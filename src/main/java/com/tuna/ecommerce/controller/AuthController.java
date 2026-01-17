@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.ReqLoginDTO;
@@ -25,7 +27,10 @@ import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 
+@RequestMapping("/api/v1")
+@RestController
 public class AuthController {
         private final AuthenticationManagerBuilder authenticationManagerBuilder;
 

@@ -7,5 +7,6 @@ import org.springframework.stereotype.Repository;
 import com.tuna.ecommerce.domain.AttributeValue;
 @Repository
 public interface AttributeValueRepository extends JpaRepository<AttributeValue, Long>,JpaSpecificationExecutor<AttributeValue> {
-    
+    boolean existsByAttributeIdAndValue(Long attributeId, String value);
+    AttributeValue findByValue(String value);
 }

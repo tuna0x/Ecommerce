@@ -9,7 +9,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Attribute;
+import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.domain.request.attribute.ReqCreateAttributeDTO;
+import com.tuna.ecommerce.domain.request.attribute.ReqUpdateAttributeDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AttributeRepository;
@@ -20,12 +23,19 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class AttributeService {
     private final AttributeRepository attributeRepository;
+    private final CategoryService categoryService;
 
-    public Attribute createAttribute(Attribute attribute) {
-        return this.attributeRepository.save(attribute);
+    public Attribute createAttribute(ReqCreateAttributeDTO attribute) {
+        Attribute curAttribute = new Attribute();
+        Category category = this.categoryService.handleGetById(attribute.getCategoryId());
+        if (category!=null) {
+            curAttribute.setCategory(category);
+            curAttribute.setName(attribute.getName());
+        }
+        return this.attributeRepository.save(curAttribute);
     }
 
-    public ResultPaginationDTO fetchAllAttribute(Specification<Attribute> spec, Pageable page) {
+    public ResultPaginationDTO getAllAttribute(Specification<Attribute> spec, Pageable page) {
         Page<Attribute> attribute = this.attributeRepository.findAll(spec, page);
                 ResultPaginationDTO rs=new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
@@ -39,17 +49,26 @@ public class AttributeService {
         return rs;
     }
 
-    public Attribute fetchAttributeById(Long id) {
+    public Attribute getAttributeById(Long id) {
         return this.attributeRepository.findById(id).orElse(null);
     }
 
-    public Attribute updateAttribute(Attribute attribute) {
-        Attribute curAttribute = fetchAttributeById(attribute.getId());
+    public Attribute updateAttribute(ReqUpdateAttributeDTO attribute) {
+        Attribute curAttribute = this.getAttributeById(attribute.getId());
         if (curAttribute != null) {
             curAttribute.setName(attribute.getName());
-            attribute = this.attributeRepository.save(curAttribute);
+            Category category = this.categoryService.handleGetById(attribute.getCategoryId());
+            if (category!=null) {
+                curAttribute.setCategory(category);
+            }
+                curAttribute = this.attributeRepository.save(curAttribute);
+
         }
-        return attribute;
+        return curAttribute;
+    }
+
+    public boolean existsByName(String name) {
+        return this.attributeRepository.existsByName(name);
     }
 
 }
