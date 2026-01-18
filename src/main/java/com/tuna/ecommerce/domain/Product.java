@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -38,8 +39,7 @@ public class Product {
     @NotBlank(message = "name is not blank")
     private String name;
     private String description;
-    private double originalPrice;
-    private double discountedPrice;
+    private BigDecimal originalPrice;
     private int stock;
     private String image;
     private Instant createdAt;
@@ -63,6 +63,9 @@ public class Product {
     @JsonIgnore
     List<ProductAttributeValue> productAttributeValues;
 
+    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @JsonIgnore
+    List<ProductPromotion> productPromotions;
 
 
             @PrePersist
