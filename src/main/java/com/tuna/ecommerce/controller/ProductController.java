@@ -14,7 +14,9 @@ import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.product.ResProductDTO;
 import com.tuna.ecommerce.service.ProductService;
+import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.turkraft.springfilter.boot.Filter;
 
@@ -34,34 +36,43 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping("/products")
-    public ResponseEntity<Product> createProduct(@RequestBody ReqCreateProductDTO product) throws IdInvalidException {
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.productService.handleCreate(product));
+    @APIMessage("Product created successfully")
+    public ResponseEntity<ResProductDTO> createProduct(@RequestBody ReqCreateProductDTO product) throws IdInvalidException {
+        Product cur=this.productService.handleCreate(product);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.productService.convertToResProductDTO(cur));
 
     }
+
+
     @PutMapping("/products")
-    public ResponseEntity<Product> updateProduct(@RequestBody ReqUpdateProductDTO product) throws IdInvalidException {
+    @APIMessage("Product updated successfully")
+    public ResponseEntity<ResProductDTO> updateProduct(@RequestBody ReqUpdateProductDTO product) throws IdInvalidException {
         Product existingProduct = this.productService.handleGetById(product.getId());
         if (existingProduct == null) {
             throw new IdInvalidException("Id invalid");
         }
-        return ResponseEntity.ok().body(this.productService.handleUpdate(product));
+        existingProduct=this.productService.handleUpdate(product);
+        return ResponseEntity.ok().body(this.productService.convertToResProductDTO(existingProduct));
     }
 
     @GetMapping("/products/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) throws IdInvalidException {
+    @APIMessage("Get product by id successfully")
+    public ResponseEntity<ResProductDTO> getProductById(@PathVariable Long id) throws IdInvalidException {
         Product product = this.productService.handleGetById(id);
         if (product == null) {
             throw new IdInvalidException("Id invalid");
         }
-        return ResponseEntity.ok().body(product);
+        return ResponseEntity.ok().body(this.productService.convertToResProductDTO(product));
     }
 
     @GetMapping("/products")
+    @APIMessage("Get all products successfully")
     public ResponseEntity<ResultPaginationDTO> getAllProduct(@Filter Specification<Product> spec, Pageable pageable) {
         return ResponseEntity.ok().body(this.productService.handleGetAll(spec, pageable));
     }
-    
+
     @DeleteMapping("/products/{id}")
+    @APIMessage("Product deleted successfully")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) throws IdInvalidException {
         Product product = this.productService.handleGetById(id);
         if (product == null) {

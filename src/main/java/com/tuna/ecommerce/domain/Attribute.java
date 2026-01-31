@@ -42,7 +42,7 @@ public class Attribute {
     private List<AttributeValue> attributeValues;
     private Instant createdAt;
     private Instant updatedAt;
-    
+
             @PrePersist
     public void handleBeforeCreate(){
         this.createdAt = Instant.now();

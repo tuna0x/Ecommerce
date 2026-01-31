@@ -10,6 +10,7 @@ import com.tuna.ecommerce.domain.request.attributeValue.ReqUpdateAttributesValue
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.service.AttributeService;
 import com.tuna.ecommerce.service.AttributeValueService;
+import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.turkraft.springfilter.boot.Filter;
 
@@ -36,15 +37,16 @@ public class AttributeValueController {
     private final AttributeService attributeService;
 
     @PostMapping("/attributes-values")
+    @APIMessage("Attribute value created successfully")
     public ResponseEntity<AttributeValue> createAttributeValue(@RequestBody ReqCreateAttributesValueDTO attributeValue) throws IdInvalidException{ 
        if (this.attributeValueService.existsByAttributeIdAndValue(attributeValue.getAttributeId(), attributeValue.getValue())) {
            throw new IdInvalidException("Attribute value already exists for this attribute");
-        
        }
         return ResponseEntity.ok(this.attributeValueService.createAttributeValue(attributeValue));
     }
 
     @PutMapping("/attributes-values")
+    @APIMessage("Attribute value updated successfully")
     public ResponseEntity<AttributeValue> updateAttributeValue(@RequestBody ReqUpdateAttributesValueDTO attributeValue) throws IdInvalidException {
         AttributeValue updatedAttributeValue = this.attributeValueService.getAttributeValueById(attributeValue.getId());
 
@@ -61,11 +63,13 @@ public class AttributeValueController {
     }
 
     @GetMapping("/attributes-values")
+    @APIMessage("Get all attribute values successfully")
     public ResponseEntity<ResultPaginationDTO> getAllUser(@Filter Specification<AttributeValue> spec,Pageable page) {
         return ResponseEntity.ok().body(this.attributeValueService.getAllAttributeValue(spec, page));
     }
 
     @GetMapping("/attributes-values/{id}")
+    @APIMessage("Get attribute value by id successfully")
     public ResponseEntity<AttributeValue> getAttributeValueById(@PathVariable("id") Long id) throws IdInvalidException {
         AttributeValue attributeValue = this.attributeValueService.getAttributeValueById(id);
         if (attributeValue == null) {
@@ -73,6 +77,5 @@ public class AttributeValueController {
         }
         return ResponseEntity.ok().body(attributeValue);
     }
-    
-    
+
 }

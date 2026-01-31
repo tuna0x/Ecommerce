@@ -1,4 +1,4 @@
-package com.tuna.ecommerce.domain.request;
+package com.tuna.ecommerce.domain.request.order;
 
 import java.util.List;
 
@@ -14,7 +14,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ReqCheckoutDTO {
-        private String shippingAddress;
-    private List<Long> cartItemIDs;
-    private PaymentMethodEnum paymentMethodEnum;
+    private String shippingAdress;
+    private List<Long> cartItemId;
+    private String couponCode;
+    private PaymentMethodEnum paymentMethod;
 }

@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -36,7 +37,7 @@ public class Payment {
     @OneToOne(mappedBy = "payment")
     @JsonIgnore
     private Order order;
-    private double amount;// số tiền thanh toán
+    private BigDecimal amount;// số tiền thanh toán
 
     @Enumerated(EnumType.STRING)
     private PaymentMethodEnum method;// phương thức thanh toán

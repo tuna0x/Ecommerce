@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import com.tuna.ecommerce.ultil.SecurityUtil;
@@ -40,8 +41,8 @@ public class CartItem {
     private Product product;
 
     private int quantity;
-    private double unitPrice;
-    private double totalPrice;
+    private BigDecimal unitPrice;
+    private BigDecimal totalPrice;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

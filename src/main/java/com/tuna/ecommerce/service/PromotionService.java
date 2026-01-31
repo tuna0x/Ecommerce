@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
+import com.tuna.ecommerce.domain.request.promotion.ReqAssignPromotionDTO;
+import com.tuna.ecommerce.domain.request.promotion.ReqCreatePromotionDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
@@ -23,8 +25,32 @@ public class PromotionService {
     private final ProductRepository productRepository;
     private final ProductPromotionRepository productPromotionRepository;
 
-    public Promotion createPromotion(Promotion promotion) {
+    public Promotion createPromotion(ReqCreatePromotionDTO req) {
+        Promotion promotion = new Promotion();
+        promotion.setType(req.getType());
+        promotion.setStartAt(req.getStartAt());
+        promotion.setEndAt(req.getEndAt());
+        promotion.setValue(req.getValue());
+        promotion.setActive(false);
         return promotionRepository.save(promotion);
+    }
+
+    public void isActive(Long id){
+        Promotion promotion=this.getPromotionById(id);
+        if (promotion != null) {
+            promotion.setActive(true);
+        }
+        this.promotionRepository.save(promotion);
+
+    }
+
+    public void deActive(Long id){
+        Promotion promotion=this.getPromotionById(id);
+        if (promotion != null) {
+            promotion.setActive(false);
+        }
+        this.promotionRepository.save(promotion);
+
     }
 
     public Promotion getPromotionById(Long id) {
@@ -61,22 +87,29 @@ public class PromotionService {
         return rs;
     }
 
-    public void applyPromotionToProduct(Long promotionId, Long productId) throws IdInvalidException {
-        Promotion promotion = this.getPromotionById(promotionId);
-        Product product = productRepository.findById(productId).orElse(null);
+    public void applyPromotionToProduct(ReqAssignPromotionDTO req) throws IdInvalidException {
+        Promotion promotion = this.getPromotionById(req.getPromotionId());
+        Product product = productRepository.findById(req.getProductId()).orElse(null);
         if (promotion==null) {
             throw new IdInvalidException("Promotion not found");
         }
         if (product == null) {
             throw new IdInvalidException("Product not found");
         }
-        if (productPromotionRepository.existsByProductIdAndPromotionId(productId, promotionId)) {
+        if (productPromotionRepository.existsByProductIdAndPromotionId(req.getProductId(), req.getPromotionId())) {
             throw new IdInvalidException("Promotion already applied to this product");
         }
 
         ProductPromotion productPromotion = new ProductPromotion();
         productPromotion.setProduct(product);
         productPromotion.setPromotion(promotion);
+        promotion.setActive(true);
         this.productPromotionRepository.save(productPromotion);
     }
+
+    public boolean existById(Long id) {
+        return this.promotionRepository.existsById(id);
+    }
+
+
 }

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
@@ -38,7 +39,9 @@ public class Promotion {
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
     private BigDecimal value;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endAt;
     private boolean isActive;
     private Instant createdAt;

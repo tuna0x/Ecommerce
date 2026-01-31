@@ -19,6 +19,8 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
@@ -36,7 +38,7 @@ public class SecurityConfiguration {
     }
 
       @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception{
 
         String [] whiteList={
             "/",
@@ -50,20 +52,22 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(
                 authz ->  authz
                 .requestMatchers(whiteList).permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/auth/refresh").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/users/**").permitAll()
+                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
+                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET,"/api/v1/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/attribute/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/attributes-values/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/coupon/**").permitAll()
                 .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults()))
-                // .authenticationEntryPoint(customAuthenticationEntryPoint))
+                .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
+                .authenticationEntryPoint(customAuthenticationEntryPoint))
 
-            // .exceptionHandling(
-            //         exceptions -> exceptions
-            //                 .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()) //401
-            //                 .accessDeniedHandler(new BearerTokenAccessDeniedHandler())) //403
+            .exceptionHandling(
+                    exceptions -> exceptions
+                            .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()) //401
+                            .accessDeniedHandler(new BearerTokenAccessDeniedHandler())) //403
             .formLogin(f->f.disable())
             .sessionManagement(
                 session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

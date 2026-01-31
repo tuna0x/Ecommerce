@@ -15,6 +15,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
@@ -62,6 +64,11 @@ public class User {
     @OneToMany(mappedBy = "user",fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Order> orders;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
+
 
         @PrePersist
     public void handleBeforeCreate(){

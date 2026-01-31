@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.User;
-import com.tuna.ecommerce.domain.request.ReqLoginDTO;
+import com.tuna.ecommerce.domain.request.auth.ReqLoginDTO;
 import com.tuna.ecommerce.domain.response.RestLoginDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.service.UserService;

@@ -1,4 +1,4 @@
-package com.tuna.ecommerce.domain.request;
+package com.tuna.ecommerce.domain.request.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

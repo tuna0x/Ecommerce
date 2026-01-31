@@ -1,5 +1,7 @@
 package com.tuna.ecommerce.domain;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,6 +34,6 @@ public class OrderItem {
     private Product product;
 
     private int quantity;
-    private Double price;
-    private Double subTotal;
+    private BigDecimal price;
+    private BigDecimal subTotal;
 }

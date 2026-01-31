@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -37,12 +38,15 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private BigDecimal totalPrice;
+    private BigDecimal discountPrice;
+    private BigDecimal finalPrice;
+    private String ShippingAddress;
+
     //n-1
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-
-    private Double totalPrice;
 
     @Enumerated(EnumType.STRING)
     private OrderStatusEnum status;
@@ -50,7 +54,6 @@ public class Order {
     @Enumerated(EnumType.STRING)
     private PaymentStatusEnum paymentStatus;
 
-    private String ShippingAddress;
 
     //1-n
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)

@@ -1,7 +1,9 @@
 package com.tuna.ecommerce.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +17,8 @@ import com.tuna.ecommerce.domain.ProductAttributeValue;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.product.ResProductDTO;
+import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
@@ -44,10 +48,8 @@ public class ProductService {
         newProduct.setCategory(category);
         this.productRepository.save(newProduct);
 
-        for(Long id: product.getAttributeValues()){
-            AttributeValue attributeValue=this.attributeValueRepository.findById(id).isPresent()
-             ? this.attributeValueRepository.findById(id).get()
-              : null;
+        for(Long id: product.getAttributeValue()){
+            AttributeValue attributeValue=this.attributeValueRepository.findById(id).orElse(null);
               if (this.productAttributeValueRepository.existsByProductIdAndAttributeValueId(newProduct.getId(), id)) {
                 throw new RuntimeException("Duplicate attribute value");
               }
@@ -60,8 +62,7 @@ public class ProductService {
     }
 
     public Product handleGetById(long id){
-        Optional<Product> product=this.productRepository.findById(id);
-        return product.isPresent() ? product.get() : null;
+        return this.productRepository.findById(id).orElse(null);
     }
 
     public Product handleUpdate(ReqUpdateProductDTO product) throws IdInvalidException{
@@ -96,8 +97,9 @@ public class ProductService {
         meta.setPages(product.getTotalPages());
         meta.setTotal(product.getTotalElements());
 
-
-        rs.setResult(product.getContent());
+        rs.setMeta(meta);
+        List<ResProductDTO> list=product.getContent().stream().map(item->this.convertToResProductDTO(item)).collect(Collectors.toList());
+        rs.setResult(list);
         return rs;
     }
 
@@ -107,5 +109,24 @@ public class ProductService {
 
     public double findByOriginalPrice(long id){
         return this.findByOriginalPrice(id);
+    }
+
+
+    public ResProductDTO convertToResProductDTO(Product product){
+        ResProductDTO res=new ResProductDTO();
+        res.setId(product.getId());
+        res.setName(product.getName());
+        res.setDescription(product.getDescription());
+        res.setImage(product.getImage());
+        res.setOriginalPrice(product.getOriginalPrice());
+        res.setStock(product.getStock());
+
+        ResProductDTO.CategoryInner categoryInner=new ResProductDTO.CategoryInner();
+        categoryInner.setId(product.getCategory().getId());
+        Category category= this.categoryService.handleGetById(product.getCategory().getId());
+        categoryInner.setName(category.getName());
+        res.setCategory(categoryInner);
+
+        return res;
     }
 }
