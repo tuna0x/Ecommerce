@@ -43,6 +43,7 @@ public class Product {
     private BigDecimal originalPrice;
     private int stock;
     private String image;
+    private String hoverImage;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

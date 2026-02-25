@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.Category;
+import com.tuna.ecommerce.domain.request.category.ReqCreateCategoryDTO;
+import com.tuna.ecommerce.domain.request.category.ReqUpdateCategoryDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.service.CategoryService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
@@ -32,7 +34,7 @@ public class CategoryController {
 
      @PostMapping("/categories")
      @APIMessage("Create new category")
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody Category Category) throws IdInvalidException {
+    public ResponseEntity<Category> createCategory(@Valid @RequestBody ReqCreateCategoryDTO Category) throws IdInvalidException {
         boolean check=this.categoryService.findByName(Category.getName());
         if (check==true) {
             throw new IdInvalidException("name's exists");
@@ -42,7 +44,7 @@ public class CategoryController {
 
     @PutMapping("/categories")
     @APIMessage("Update category")
-    public ResponseEntity<Category> updateCategory(@RequestBody Category Category) throws IdInvalidException{
+    public ResponseEntity<Category> updateCategory(@RequestBody ReqUpdateCategoryDTO Category) throws IdInvalidException{
         Category cur= this.categoryService.handleGetById(Category.getId());
         if (cur == null) {
             throw new IdInvalidException("id is not exists");

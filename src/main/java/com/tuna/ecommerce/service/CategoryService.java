@@ -9,6 +9,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Category;
+import com.tuna.ecommerce.domain.request.category.ReqCreateCategoryDTO;
+import com.tuna.ecommerce.domain.request.category.ReqUpdateCategoryDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.repository.CategoryRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
@@ -21,7 +23,15 @@ public class CategoryService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
-    public Category handleCreate(Category category){
+    public Category handleCreate(ReqCreateCategoryDTO req){
+        Category category=new Category();
+        category.setName(req.getName());
+        category.setDescription(req.getDescription());
+        
+        if (req.getParentId() !=null) {
+            Category parent = this.handleGetById(req.getParentId());
+            category.setParentCategory(parent);
+        }
         return this.categoryRepository.save(category);
     }
 
@@ -30,13 +40,16 @@ public class CategoryService {
         return category.isPresent() ? category.get() : null;
     }
 
-    public Category handleUpdate(Category category){
-        Category cur = this.handleGetById(category.getId());
-        if (cur != null) {
-            cur.setId(category.getId());
-            cur.setName(category.getName());
-            cur.setDescription(category.getDescription());
-            category=this.categoryRepository.save(cur);
+    public Category handleUpdate(ReqUpdateCategoryDTO req){
+        Category category = this.handleGetById(req.getId());
+        if (category != null) {
+            category.setName(req.getName());
+            category.setDescription(req.getDescription());
+            if (req.getParentId() !=null) {
+                Category parent = this.handleGetById(req.getParentId());
+                category.setParentCategory(parent);
+            }
+            category=this.categoryRepository.save(category);
         }
         return category;
     }
