@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.AttributeValue;
+import com.tuna.ecommerce.domain.Brand;
 import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.ProductAttributeValue;
@@ -29,43 +30,50 @@ import lombok.AllArgsConstructor;
 @Service
 @AllArgsConstructor
 public class ProductService {
-      private final ProductRepository productRepository;
-      private final AttributeValueRepository attributeValueRepository;
-      private final ProductAttributeValueRepository productAttributeValueRepository;
-      private final CategoryService categoryService;
+    private final ProductRepository productRepository;
+    private final AttributeValueRepository attributeValueRepository;
+    private final ProductAttributeValueRepository productAttributeValueRepository;
+    private final CategoryService categoryService;
+    private final BrandService brandService;
 
-    public Product handleCreate(ReqCreateProductDTO product) throws IdInvalidException{
-        Category category=this.categoryService.handleGetById(product.getCategoryId());
-        if (category==null) {
+    public Product handleCreate(ReqCreateProductDTO product) throws IdInvalidException {
+        Category category = this.categoryService.handleGetById(product.getCategoryId());
+        if (category == null) {
             throw new IdInvalidException("Id invalid");
         }
-        Product newProduct=new Product();
+
+        Product newProduct = new Product();
         newProduct.setName(product.getName());
         newProduct.setDescription(product.getDescription());
         newProduct.setOriginalPrice(product.getOriginalPrice());
         newProduct.setStock(product.getStock());
         newProduct.setImage(product.getImage());
         newProduct.setCategory(category);
+
+        Brand brand = this.brandService.getBrandById(product.getBrandId());
+        if (brand != null) {
+            newProduct.setBrand(brand);
+        }
         this.productRepository.save(newProduct);
 
-        for(Long id: product.getAttributeValue()){
-            AttributeValue attributeValue=this.attributeValueRepository.findById(id).orElse(null);
-              if (this.productAttributeValueRepository.existsByProductIdAndAttributeValueId(newProduct.getId(), id)) {
+        for (Long id : product.getAttributeValue()) {
+            AttributeValue attributeValue = this.attributeValueRepository.findById(id).orElse(null);
+            if (this.productAttributeValueRepository.existsByProductIdAndAttributeValueId(newProduct.getId(), id)) {
                 throw new RuntimeException("Duplicate attribute value");
-              }
-              ProductAttributeValue pav=new ProductAttributeValue();
-                pav.setProduct(newProduct);
-                pav.setAttributeValue(attributeValue);
-                this.productAttributeValueRepository.save(pav);
             }
+            ProductAttributeValue pav = new ProductAttributeValue();
+            pav.setProduct(newProduct);
+            pav.setAttributeValue(attributeValue);
+            this.productAttributeValueRepository.save(pav);
+        }
         return newProduct;
     }
 
-    public Product handleGetById(long id){
+    public Product handleGetById(long id) {
         return this.productRepository.findById(id).orElse(null);
     }
 
-    public Product handleUpdate(ReqUpdateProductDTO product) throws IdInvalidException{
+    public Product handleUpdate(ReqUpdateProductDTO product) throws IdInvalidException {
         Category category = this.categoryService.handleGetById(product.getCategoryId());
         if (category == null) {
             throw new IdInvalidException("Id invalid");
@@ -80,40 +88,44 @@ public class ProductService {
             cur.setOriginalPrice(product.getOriginalPrice());
             cur.setStock(product.getStock());
             cur.setCategory(category);
+            Brand brand = this.brandService.getBrandById(product.getBrandId());
+            if (brand != null) {
+                cur.setBrand(brand);
+            }
         }
         return this.productRepository.save(cur);
     }
 
-    public void handleDelete(long id){
+    public void handleDelete(long id) {
         this.productRepository.deleteById(id);
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<Product> spec,Pageable page){
-        Page<Product> product= this.productRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
+    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Pageable page) {
+        Page<Product> product = this.productRepository.findAll(spec, page);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(product.getNumber() + 1);
         meta.setPageSize(product.getSize());
         meta.setPages(product.getTotalPages());
         meta.setTotal(product.getTotalElements());
 
         rs.setMeta(meta);
-        List<ResProductDTO> list=product.getContent().stream().map(item->this.convertToResProductDTO(item)).collect(Collectors.toList());
+        List<ResProductDTO> list = product.getContent().stream().map(item -> this.convertToResProductDTO(item))
+                .collect(Collectors.toList());
         rs.setResult(list);
         return rs;
     }
 
-    public boolean findByName(String name){
+    public boolean findByName(String name) {
         return this.productRepository.existsByName(name);
     }
 
-    public double findByOriginalPrice(long id){
+    public double findByOriginalPrice(long id) {
         return this.findByOriginalPrice(id);
     }
 
-
-    public ResProductDTO convertToResProductDTO(Product product){
-        ResProductDTO res=new ResProductDTO();
+    public ResProductDTO convertToResProductDTO(Product product) {
+        ResProductDTO res = new ResProductDTO();
         res.setId(product.getId());
         res.setName(product.getName());
         res.setDescription(product.getDescription());
@@ -121,9 +133,9 @@ public class ProductService {
         res.setOriginalPrice(product.getOriginalPrice());
         res.setStock(product.getStock());
 
-        ResProductDTO.CategoryInner categoryInner=new ResProductDTO.CategoryInner();
+        ResProductDTO.CategoryInner categoryInner = new ResProductDTO.CategoryInner();
         categoryInner.setId(product.getCategory().getId());
-        Category category= this.categoryService.handleGetById(product.getCategory().getId());
+        Category category = this.categoryService.handleGetById(product.getCategory().getId());
         categoryInner.setName(category.getName());
         res.setCategory(categoryInner);
 

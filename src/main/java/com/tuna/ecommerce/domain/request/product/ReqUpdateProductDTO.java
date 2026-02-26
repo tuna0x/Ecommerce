@@ -25,4 +25,5 @@ public class ReqUpdateProductDTO {
     private String image;
     private List<Long> attributeValues;
     private Long categoryId;
+    private Long brandId;
 }
