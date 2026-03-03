@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.auth.ReqLoginDTO;
+import com.tuna.ecommerce.domain.request.auth.ReqRegisterDTO;
 import com.tuna.ecommerce.domain.response.RestLoginDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.service.UserService;
@@ -66,7 +67,8 @@ public class AuthController {
             RestLoginDTO.UserLogin userLogin=new RestLoginDTO.UserLogin(
                 curUserDB.getId(),
                 curUserDB.getEmail(),
-                curUserDB.getName());
+                curUserDB.getName(),
+                curUserDB.getRole());
             res.setUser(userLogin);
 
         }
@@ -137,7 +139,8 @@ public class AuthController {
             RestLoginDTO.UserLogin userLogin=new RestLoginDTO.UserLogin(
                 curUserDB.getId(),
                 curUserDB.getEmail(),
-                curUserDB.getName());
+                curUserDB.getName(),
+                curUserDB.getRole());
                 res.setUser(userLogin);
 
         }
@@ -187,7 +190,7 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @APIMessage("User registered successfully")
-    public ResponseEntity<ResCreateUser> register(@Valid @RequestBody User user) throws IdInvalidException{
+    public ResponseEntity<ResCreateUser> register(@Valid @RequestBody ReqRegisterDTO user) throws IdInvalidException{
         boolean isEmailExits=this.userService.exitsByEmail(user.getEmail());
         if (isEmailExits) {
             throw new IdInvalidException("email is exists");
@@ -195,7 +198,7 @@ public class AuthController {
 
         String hashPassWord =this.passwordEncoder.encode(user.getPassword());
         user.setPassword(hashPassWord);
-        User cur=this.userService.handleCreate(user);
+        User cur=this.userService.register(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUser(cur));
     }
 }

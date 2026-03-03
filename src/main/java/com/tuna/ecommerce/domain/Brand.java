@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -11,7 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -25,32 +25,37 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "brands")
 @Entity
-@Table(name = "attributes")
-public class Attribute {
+public class Brand {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private long id;
     private String name;
-    private boolean active;
+    private String description;
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category;
-
-    @OneToMany(mappedBy = "attribute",fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<AttributeValue> attributeValues;
-    private Instant createdAt;
+        private Instant createdAt;
     private Instant updatedAt;
+    private String createdBy;
+    private String updatedBy;
 
-            @PrePersist
+    @OneToMany(mappedBy = "brand", fetch =FetchType.LAZY )
+    @JsonIgnore
+    private List<Product> products;
+
+                @PrePersist
     public void handleBeforeCreate(){
+        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
+        SecurityUtil.getCurrentUserLogin().get() : "";
         this.createdAt = Instant.now();
+
     }
 
         @PreUpdate
     public void handleBeforeUpdate(){
+        this.updatedBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
+        SecurityUtil.getCurrentUserLogin().get() : "";
         this.updatedAt = Instant.now();
-    }
+
+}
 }

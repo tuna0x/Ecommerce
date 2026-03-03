@@ -22,14 +22,25 @@ public class ResProductDTO {
     private String description;
     private BigDecimal originalPrice;
     private int stock;
-    private String image;
+    private List<String> image;
     private CategoryInner category;
+    private BrandInner brand;
+
 
     @Getter
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
     public static class CategoryInner {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BrandInner {
         private Long id;
         private String name;
     }

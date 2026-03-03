@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -78,4 +79,14 @@ public class AttributeValueController {
         return ResponseEntity.ok().body(attributeValue);
     }
 
+    @DeleteMapping("/attributes-values/{id}")
+        @APIMessage("Delete attribute value by id successfully")
+    public ResponseEntity<Void> DeleteAttributeValueById(@PathVariable("id") Long id) throws IdInvalidException {
+        AttributeValue attributeValue = this.attributeValueService.getAttributeValueById(id);
+        if (attributeValue == null) {
+            throw new IdInvalidException("attribute value id is invalid");
+        }
+        this.attributeValueService.deleteByAttributeId(id);
+        return ResponseEntity.ok().body(null);
+    }
 }

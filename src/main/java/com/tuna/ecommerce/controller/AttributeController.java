@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -37,9 +38,9 @@ public class AttributeController {
     @APIMessage("Create new attribute")
     @PostMapping("/attributes")
     public ResponseEntity<Attribute> postMethodName(@RequestBody ReqCreateAttributeDTO attribute) throws IdInvalidException {
-        if (this.attributeService.existsByName(attribute.getName())) {
-            throw new IdInvalidException("attribute name is exists");
-        }
+        // if (this.attributeService.existsByName(attribute.getName())) {
+        //     throw new IdInvalidException("attribute name is exists");
+        // }
         return ResponseEntity.status(HttpStatus.CREATED).body(this.attributeService.createAttribute(attribute));
     }
 
@@ -50,9 +51,9 @@ public class AttributeController {
         if (updatedAttribute == null) {
             throw new IdInvalidException("attribute id is invalid");
         }
-        if (this.attributeService.existsByName(attribute.getName())) {
-            throw new IdInvalidException("attribute name is exists");
-        }
+        // if (this.attributeService.existsByName(attribute.getName())) {
+        //     throw new IdInvalidException("attribute name is exists");
+        // }
         return ResponseEntity.ok().body(this.attributeService.updateAttribute(attribute));
     }
 
@@ -71,5 +72,15 @@ public class AttributeController {
      public ResponseEntity<ResultPaginationDTO> getAllUser(@Filter Specification<Attribute> spec,Pageable page) {
         return ResponseEntity.ok().body(this.attributeService.getAllAttribute(spec, page));
     }
-    
+
+        @DeleteMapping("/attributes/{id}")
+    @APIMessage("Get attribute by id")
+    public ResponseEntity<Void> deleteAttributeById(@PathVariable ("id") Long id) throws IdInvalidException {
+        Attribute attribute = this.attributeService.getAttributeById(id);
+        if (attribute==null) {
+            throw new IdInvalidException("attribute id is invalid");
+        }
+        this.attributeService.deleteAttribute(id);
+        return ResponseEntity.ok().body(null);
+    }
 }

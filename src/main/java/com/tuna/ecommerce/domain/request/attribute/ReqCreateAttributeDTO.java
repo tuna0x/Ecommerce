@@ -11,5 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReqCreateAttributeDTO {
     private String name;
+    private boolean active;
     private Long categoryId;
 }

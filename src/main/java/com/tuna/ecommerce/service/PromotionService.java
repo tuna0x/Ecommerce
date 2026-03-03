@@ -82,7 +82,7 @@ public class PromotionService {
         meta.setPages(promotion.getTotalPages());
         meta.setTotal(promotion.getTotalElements());
 
-
+        rs.setMeta(meta);
         rs.setResult(promotion.getContent());
         return rs;
     }

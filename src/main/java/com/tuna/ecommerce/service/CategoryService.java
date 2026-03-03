@@ -27,7 +27,7 @@ public class CategoryService {
         Category category=new Category();
         category.setName(req.getName());
         category.setDescription(req.getDescription());
-        
+        category.setActive(true);
         if (req.getParentId() !=null) {
             Category parent = this.handleGetById(req.getParentId());
             category.setParentCategory(parent);
@@ -45,9 +45,12 @@ public class CategoryService {
         if (category != null) {
             category.setName(req.getName());
             category.setDescription(req.getDescription());
+            category.setActive(req.isActive());
             if (req.getParentId() !=null) {
                 Category parent = this.handleGetById(req.getParentId());
                 category.setParentCategory(parent);
+            }else{
+                category.setParentCategory(null);
             }
             category=this.categoryRepository.save(category);
         }
@@ -71,11 +74,16 @@ public class CategoryService {
         meta.setPages(category.getTotalPages());
         meta.setTotal(category.getTotalElements());
 
+        rs.setMeta(meta);
         rs.setResult(category.getContent());
         return rs;
     }
 
     public boolean findByName(String name){
         return this.productRepository.existsByName(name);
+    }
+
+    public Category getCategoryByName(String name){
+        return this.categoryRepository.findByName(name);
     }
 }

@@ -17,7 +17,7 @@ public class ReqCreateProductDTO {
     private String description;
     private BigDecimal originalPrice;
     private int stock;
-    private String image;
     private List<Long> attributeValue;
     private Long categoryId;
+    private Long brandId;
 }

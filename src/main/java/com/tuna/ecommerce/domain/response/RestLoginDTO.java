@@ -2,6 +2,7 @@ package com.tuna.ecommerce.domain.response;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.tuna.ecommerce.domain.Role;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,6 +27,7 @@ public class RestLoginDTO {
         private Long id;
         private String email;
         private String name;
+        private Role role;
 
     }
 

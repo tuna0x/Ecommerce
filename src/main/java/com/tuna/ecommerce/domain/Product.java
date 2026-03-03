@@ -2,6 +2,7 @@ package com.tuna.ecommerce.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -18,6 +19,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -39,15 +41,20 @@ public class Product {
     private Long id;
     @NotBlank(message = "name is not blank")
     private String name;
-    private String description;
     private BigDecimal originalPrice;
     private int stock;
-    private String image;
-    private String hoverImage;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
     private String updatedBy;
+
+    @OneToOne(mappedBy = "product")
+    @JsonIgnore
+    private ProductDetail productDetail;
+
+    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @JsonIgnore
+    List<ProductImage> images = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -69,6 +76,9 @@ public class Product {
     @JsonIgnore
     List<ProductPromotion> productPromotions;
 
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
 
             @PrePersist
     public void handleBeforeCreate(){
@@ -84,5 +94,15 @@ public class Product {
         SecurityUtil.getCurrentUserLogin().get() : "";
         this.updatedAt = Instant.now();
 
+    }
+
+    public void addImage(ProductImage productImage){
+        images.add(productImage);
+        productImage.setProduct(this);
+    }
+
+        public void removeImage(ProductImage productImage){
+        images.remove(productImage);
+        productImage.setProduct(null);
     }
 }

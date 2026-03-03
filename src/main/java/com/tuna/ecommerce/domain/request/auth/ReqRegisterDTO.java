@@ -1,4 +1,4 @@
-package com.tuna.ecommerce.domain.request.attribute;
+package com.tuna.ecommerce.domain.request.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,9 +9,8 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReqUpdateAttributeDTO {
-    private Long id;
+public class ReqRegisterDTO {
     private String name;
-    private boolean active;
-    private Long categoryId;
+    private String email;
+    private String password;
 }

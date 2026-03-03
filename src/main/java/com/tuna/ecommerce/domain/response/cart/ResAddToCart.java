@@ -43,7 +43,6 @@ public class ResAddToCart {
         public static class ProductIner {
             private long id;
             private String name;
-            private String image;
         }
     }
 }

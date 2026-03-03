@@ -3,6 +3,8 @@ package com.tuna.ecommerce.domain.response.cart;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.tuna.ecommerce.domain.ProductImage;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,7 +45,6 @@ public class ResGetCart {
         public static class ProductIner {
             private long id;
             private String name;
-            private String image;
         }
     }
 

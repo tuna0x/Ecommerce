@@ -127,7 +127,7 @@ public class CartService {
 
         List<ResGetCart.CartItemInner> list=items.stream().map(
             x->new ResGetCart.CartItemInner(x.getId(),
-            new ResGetCart.CartItemInner.ProductIner(x.getProduct().getId(),x.getProduct().getName(),x.getProduct().getImage()),
+            new ResGetCart.CartItemInner.ProductIner(x.getProduct().getId(),x.getProduct().getName()),
             x.getUnitPrice(), x.getQuantity(), x.getTotalPrice()))
             .collect(Collectors.toList());
         res.setItem(list);
@@ -146,9 +146,10 @@ public class CartService {
         ? Collections.emptyList()
         : cart.getItems();
 
+
         List<ResAddToCart.CartItemInner> list=items.stream().map(
             x->new ResAddToCart.CartItemInner(x.getId(),
-            new ResAddToCart.CartItemInner.ProductIner(x.getProduct().getId(),x.getProduct().getName(),x.getProduct().getImage()),
+            new ResAddToCart.CartItemInner.ProductIner(x.getProduct().getId(),x.getProduct().getName()),
             x.getUnitPrice(), x.getQuantity(), x.getTotalPrice()))
             .collect(Collectors.toList());
         res.setItem(list);

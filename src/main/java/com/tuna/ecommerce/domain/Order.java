@@ -38,10 +38,17 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String receiverName;
+    private String phone;
+    private String province;
+    private String district;
+    private String ward;
+    private String ShippingAddress;
+
     private BigDecimal totalPrice;
     private BigDecimal discountPrice;
+    private BigDecimal shippingFee;
     private BigDecimal finalPrice;
-    private String ShippingAddress;
 
     //n-1
     @ManyToOne

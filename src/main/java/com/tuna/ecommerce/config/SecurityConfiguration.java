@@ -59,6 +59,7 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.GET,"/api/v1/attribute/**").permitAll()
                 .requestMatchers(HttpMethod.GET,"/api/v1/attributes-values/**").permitAll()
                 .requestMatchers(HttpMethod.GET,"/api/v1/coupon/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/product-detail/**").permitAll()
                 .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())

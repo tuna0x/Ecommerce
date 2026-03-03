@@ -7,8 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.Attr;
 
 import com.tuna.ecommerce.domain.Attribute;
+import com.tuna.ecommerce.domain.AttributeValue;
 import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.attribute.ReqCreateAttributeDTO;
@@ -16,6 +18,7 @@ import com.tuna.ecommerce.domain.request.attribute.ReqUpdateAttributeDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AttributeRepository;
+import com.tuna.ecommerce.repository.AttributeValueRepository;
 
 import lombok.AllArgsConstructor;
 
@@ -23,6 +26,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class AttributeService {
     private final AttributeRepository attributeRepository;
+    private final AttributeValueRepository attributeValueRepository;
     private final CategoryService categoryService;
 
     public Attribute createAttribute(ReqCreateAttributeDTO attribute) {
@@ -31,6 +35,7 @@ public class AttributeService {
         if (category!=null) {
             curAttribute.setCategory(category);
             curAttribute.setName(attribute.getName());
+            curAttribute.setActive(attribute.isActive());
         }
         return this.attributeRepository.save(curAttribute);
     }
@@ -57,6 +62,7 @@ public class AttributeService {
         Attribute curAttribute = this.getAttributeById(attribute.getId());
         if (curAttribute != null) {
             curAttribute.setName(attribute.getName());
+            curAttribute.setActive(attribute.isActive());
             Category category = this.categoryService.handleGetById(attribute.getCategoryId());
             if (category!=null) {
                 curAttribute.setCategory(category);
@@ -69,6 +75,14 @@ public class AttributeService {
 
     public boolean existsByName(String name) {
         return this.attributeRepository.existsByName(name);
+    }
+
+    public void deleteAttribute(long id){
+        List<AttributeValue> value=this.attributeValueRepository.findByAttributeId(id);
+        for (AttributeValue attributeValue : value) {
+            this.attributeValueRepository.deleteById(attributeValue.getId());
+        }
+        this.attributeRepository.deleteById(id);
     }
 
 }

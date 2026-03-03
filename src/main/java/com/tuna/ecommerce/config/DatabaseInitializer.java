@@ -84,6 +84,18 @@ public class DatabaseInitializer implements CommandLineRunner{
             arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE"));
             arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET", "ATTRIBUTE VALUE"));
 
+            arr.add(new Permission("Create a brand", "/api/v1/brands", "POST", "BRAND"));
+            arr.add(new Permission("Update a brand", "/api/v1/brands", "PUT", "BRAND"));
+            arr.add(new Permission("Delete a brand", "/api/v1/brands/{id}", "DELETE", "BRAND"));
+            arr.add(new Permission("Get a brand by id", "/api/v1/brands/{id}", "GET", "BRAND"));
+            arr.add(new Permission("Get brands with pagination", "/api/v1/brands", "GET", "BRAND"));
+
+            arr.add(new Permission("Create a product detail", "/api/v1/product-detail", "POST", "PRODUCT DETAIL"));
+            arr.add(new Permission("Update a product detail", "/api/v1/product-detail", "PUT", "PRODUCT DETAIL"));
+            arr.add(new Permission("Delete a product detail", "/api/v1/product-detail/{id}", "DELETE", "PRODUCT DETAIL"));
+            arr.add(new Permission("Get a product detail by id", "/api/v1/product-detail/{id}", "GET", "PRODUCT DETAIL"));
+            arr.add(new Permission("Get product-detail with pagination", "/api/v1/product-detail", "GET", "PRODUCT DETAIL"));
+
             arr.add(new Permission("Create a coupon", "/api/v1/coupons", "POST", "COUPONS"));
             arr.add(new Permission("Update a coupon", "/api/v1/coupons", "PUT", "COUPONS"));
             arr.add(new Permission("Delete a coupon", "/api/v1/coupons/{id}", "DELETE", "COUPONS"));

@@ -24,6 +24,8 @@ import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/v1")
@@ -78,4 +80,10 @@ public class CategoryController {
     public ResponseEntity<ResultPaginationDTO> getAllCategory(@Filter Specification<Category> spec, Pageable page) {
         return ResponseEntity.ok().body(this.categoryService.handleGetAll(spec, page));
     }
+
+    // @GetMapping("/categories")
+    // public ResponseEntity<Category> getCategoryByName(@RequestParam String name) {
+    //     return ResponseEntity.ok().body(this.categoryService.getCategoryByName(name));
+    // }
+    
 }
