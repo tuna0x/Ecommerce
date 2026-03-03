@@ -26,27 +26,30 @@ import org.springframework.security.web.SecurityFilterChain;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.util.Base64;
 import com.tuna.ecommerce.ultil.SecurityUtil;
+
 @Configuration
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfiguration {
-      @Value("${tuna.jwt.base64-secret}")
+    @Value("${tuna.jwt.base64-secret}")
     private String jwtKey;
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-      @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception{
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) throws Exception {
 
-        String [] whiteList={
-            "/",
-            "/api/v1/auth/login",
-            "/api/v1/auth/refresh",
-            "/api/v1/auth/register"
+        String[] whiteList = {
+                "/",
+                "/api/v1/auth/login",
+                "/api/v1/auth/refresh",
+                "/api/v1/auth/register"
         };
         http
+<<<<<<< HEAD
             .csrf(c-> c.disable())
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(
@@ -62,21 +65,36 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.GET,"/api/v1/product-detail/**").permitAll()
                 .anyRequest().authenticated()
                 )
+=======
+                .csrf(c -> c.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(
+                        authz -> authz
+                                .requestMatchers(whiteList).permitAll()
+                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
+                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/attribute/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/attributes-values/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/coupon/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()
+                                .anyRequest().authenticated())
+>>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
-                .authenticationEntryPoint(customAuthenticationEntryPoint))
+                        .authenticationEntryPoint(customAuthenticationEntryPoint))
 
-            .exceptionHandling(
-                    exceptions -> exceptions
-                            .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()) //401
-                            .accessDeniedHandler(new BearerTokenAccessDeniedHandler())) //403
-            .formLogin(f->f.disable())
-            .sessionManagement(
-                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-            return http.build();
+                .exceptionHandling(
+                        exceptions -> exceptions
+                                .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint()) // 401
+                                .accessDeniedHandler(new BearerTokenAccessDeniedHandler())) // 403
+                .formLogin(f -> f.disable())
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
     }
 
-
-        @Bean
+    @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
         grantedAuthoritiesConverter.setAuthorityPrefix("");
@@ -87,13 +105,13 @@ public class SecurityConfiguration {
         return jwtAuthenticationConverter;
     }
 
-
     @Bean
-public JwtEncoder jwtEncoder() {
+    public JwtEncoder jwtEncoder() {
         return new NimbusJwtEncoder(new ImmutableSecret<>(getSecretKey()));
-}
-//@FunctionalInterface
-@Bean
+    }
+
+    // @FunctionalInterface
+    @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(
                 getSecretKey()).macAlgorithm(SecurityUtil.JWT_ALGORITHM).build();
@@ -107,10 +125,9 @@ public JwtEncoder jwtEncoder() {
         };
     }
 
-  private SecretKey getSecretKey() {
+    private SecretKey getSecretKey() {
         byte[] keyBytes = Base64.from(jwtKey).decode();
-        return new SecretKeySpec(keyBytes, 0, keyBytes.length,SecurityUtil.JWT_ALGORITHM.getName());
-  }
-
+        return new SecretKeySpec(keyBytes, 0, keyBytes.length, SecurityUtil.JWT_ALGORITHM.getName());
+    }
 
 }

@@ -15,9 +15,8 @@ import com.tuna.ecommerce.repository.RoleRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.constant.GenderEnum;
 
-
 @Service
-public class DatabaseInitializer implements CommandLineRunner{
+public class DatabaseInitializer implements CommandLineRunner {
     private final PermissionRepository permissionrRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
@@ -40,7 +39,7 @@ public class DatabaseInitializer implements CommandLineRunner{
         long countUsers = this.userRepository.count();
 
         if (countPermissions == 0) {
-            ArrayList<Permission> arr=new ArrayList<>();
+            ArrayList<Permission> arr = new ArrayList<>();
 
             arr.add(new Permission("Create a permission", "/api/v1/permissions", "POST", "PERMISSIONS"));
             arr.add(new Permission("Update a permission", "/api/v1/permissions", "PUT", "PERMISSIONS"));
@@ -72,6 +71,12 @@ public class DatabaseInitializer implements CommandLineRunner{
             arr.add(new Permission("Get a category by id", "/api/v1/categories/{id}", "GET", "CATEGORIES"));
             arr.add(new Permission("Get categories with pagination", "/api/v1/categories", "GET", "CATEGORIES"));
 
+            arr.add(new Permission("Create a brand", "/api/v1/brands", "POST", "BRANDS"));
+            arr.add(new Permission("Update a brand", "/api/v1/brands", "PUT", "BRANDS"));
+            arr.add(new Permission("Delete a brand", "/api/v1/brands/{id}", "DELETE", "BRANDS"));
+            arr.add(new Permission("Get a brand by id", "/api/v1/brands/{id}", "GET", "BRANDS"));
+            arr.add(new Permission("Get brands with pagination", "/api/v1/brands", "GET", "BRANDS"));
+
             arr.add(new Permission("Create a attribute", "/api/v1/attributes", "POST", "ATTRIBUTES"));
             arr.add(new Permission("Update a attribute", "/api/v1/attributes", "PUT", "ATTRIBUTES"));
             arr.add(new Permission("Delete a attribute", "/api/v1/attributes/{id}", "DELETE", "ATTRIBUTES"));
@@ -80,9 +85,12 @@ public class DatabaseInitializer implements CommandLineRunner{
 
             arr.add(new Permission("Create a attribute value", "/api/v1/attributes-values", "POST", "ATTRIBUTE VALUE"));
             arr.add(new Permission("Update a attribute value", "/api/v1/attributes-values", "PUT", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET", "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE",
+                    "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET",
+                    "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET",
+                    "ATTRIBUTE VALUE"));
 
             arr.add(new Permission("Create a brand", "/api/v1/brands", "POST", "BRAND"));
             arr.add(new Permission("Update a brand", "/api/v1/brands", "PUT", "BRAND"));
@@ -121,7 +129,8 @@ public class DatabaseInitializer implements CommandLineRunner{
 
             arr.add(new Permission("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT"));
 
-            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST", "PRODUCT PROMOTIONS"));
+            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST",
+                    "PRODUCT PROMOTIONS"));
             arr.add(new Permission("Get Product price", "/api/v1/price/{id}", "GET", "PRICING PRODUCT"));
 
             this.permissionrRepository.saveAll(arr);
@@ -139,7 +148,7 @@ public class DatabaseInitializer implements CommandLineRunner{
         }
 
         if (countUsers == 0) {
-            User admin=new User();
+            User admin = new User();
             admin.setEmail("admin@gmail.com");
             admin.setAddress("HA NOI");
             admin.setAge(20);
@@ -147,7 +156,7 @@ public class DatabaseInitializer implements CommandLineRunner{
             admin.setName("SUPPER ADMIN");
             admin.setPassword(this.passwordEncoder.encode("123456"));
 
-            Role adminRole=this.roleRepository.findByName("SUPER_ADMIN");
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
             if (adminRole != null) {
                 admin.setRole(adminRole);
             }

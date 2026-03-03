@@ -60,19 +60,19 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<CartItem> cartItems;
 
-    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<OrderItem> orderItems;
 
-    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<ProductAttributeValue> productAttributeValues;
 
-    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<ProductPromotion> productPromotions;
 
@@ -80,18 +80,20 @@ public class Product {
     @JoinColumn(name = "brand_id")
     private Brand brand;
 
-            @PrePersist
-    public void handleBeforeCreate(){
-        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    @PrePersist
+    public void handleBeforeCreate() {
+        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.createdAt = Instant.now();
 
     }
 
-        @PreUpdate
-    public void handleBeforeUpdate(){
-        this.updatedBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    @PreUpdate
+    public void handleBeforeUpdate() {
+        this.updatedBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.updatedAt = Instant.now();
 
     }
