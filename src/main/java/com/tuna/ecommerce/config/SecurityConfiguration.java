@@ -48,9 +48,8 @@ public class SecurityConfiguration {
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/register"
         };
-        http
-<<<<<<< HEAD
-            .csrf(c-> c.disable())
+        http.
+            csrf(c-> c.disable())
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(
                 authz ->  authz
@@ -65,7 +64,6 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.GET,"/api/v1/product-detail/**").permitAll()
                 .anyRequest().authenticated()
                 )
-=======
                 .csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(
@@ -80,7 +78,6 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.GET, "/api/v1/coupon/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()
                                 .anyRequest().authenticated())
->>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(customAuthenticationEntryPoint))
 

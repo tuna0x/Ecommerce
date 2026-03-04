@@ -1,25 +1,23 @@
 package com.tuna.ecommerce.service;
 
-<<<<<<< HEAD
+
 import java.util.stream.Collectors;
 
-=======
->>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Brand;
-<<<<<<< HEAD
+
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.product.ResProductDTO;
-=======
+
 import com.tuna.ecommerce.domain.request.brand.ReqCreateBrandDTO;
 import com.tuna.ecommerce.domain.request.brand.ReqUpdateBrandDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
->>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
+
 import com.tuna.ecommerce.repository.BrandRepository;
 
 import lombok.AllArgsConstructor;
@@ -29,7 +27,7 @@ import lombok.AllArgsConstructor;
 public class BrandService {
     private final BrandRepository brandRepository;
 
-<<<<<<< HEAD
+
     public Brand createBrand(Brand brand){
         return this.brandRepository.save(brand);
     }
@@ -49,12 +47,6 @@ public class BrandService {
 
     }
 
-    
-    public ResultPaginationDTO handleGetAll(Specification<Brand> spec,Pageable page){
-        Page<Brand> brand= this.brandRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
-=======
     public Brand createBrand(ReqCreateBrandDTO brand) {
         Brand newBrand = new Brand();
         newBrand.setName(brand.getName());
@@ -84,13 +76,11 @@ public class BrandService {
         Page<Brand> brand = this.brandRepository.findAll(spec, page);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
->>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
         meta.setPage(brand.getNumber() + 1);
         meta.setPageSize(brand.getSize());
         meta.setPages(brand.getTotalPages());
         meta.setTotal(brand.getTotalElements());
 
-<<<<<<< HEAD
         rs.setMeta(meta);
         rs.setResult(brand.getContent());
         return rs;
@@ -103,9 +93,8 @@ public class BrandService {
     public boolean findByName(String name) {
        return this.brandRepository.findByName(name);
     }
-=======
-        rs.setResult(brand.getContent());
-        return rs;
-    }
->>>>>>> 1a5b218cbf68d4f224d1e4a45849a844cc324fc8
+
+
+    
+
 }
