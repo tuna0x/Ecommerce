@@ -69,6 +69,10 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
+    @OneToMany(fetch = FetchType.LAZY,mappedBy = "user")
+    @JsonIgnore
+    private List<Address> addresses;
+
 
         @PrePersist
     public void handleBeforeCreate(){

@@ -14,7 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ReqCheckoutDTO {
-    private String shippingAdress;
+    private Long addressId;
     private List<Long> cartItemId;
     private String couponCode;
     private PaymentMethodEnum paymentMethod;

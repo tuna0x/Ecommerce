@@ -62,22 +62,7 @@ public class SecurityConfiguration {
                 .requestMatchers(HttpMethod.GET,"/api/v1/attributes-values/**").permitAll()
                 .requestMatchers(HttpMethod.GET,"/api/v1/coupon/**").permitAll()
                 .requestMatchers(HttpMethod.GET,"/api/v1/product-detail/**").permitAll()
-                .anyRequest().authenticated()
-                )
-                .csrf(c -> c.disable())
-                .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(
-                        authz -> authz
-                                .requestMatchers(whiteList).permitAll()
-                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
-                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/attribute/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/attributes-values/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/coupon/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()
-                                .anyRequest().authenticated())
+                .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(customAuthenticationEntryPoint))
 

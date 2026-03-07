@@ -43,6 +43,7 @@ public class Product {
     private String name;
     private BigDecimal originalPrice;
     private int stock;
+    private Integer weight;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

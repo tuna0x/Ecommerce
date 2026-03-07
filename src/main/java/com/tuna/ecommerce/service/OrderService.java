@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.tuna.ecommerce.domain.Address;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.Coupon;
 import com.tuna.ecommerce.domain.Order;
@@ -38,12 +39,15 @@ public class OrderService {
     private final UserService userService;
     private final CartItemRepository cartItemRepository;
     private final CouponRepository couponRepository;
+    private final AddressService addressService;
+    private final GHTKService ghtkService;
 
 
     public Order createOder(ReqCheckoutDTO req) throws IdInvalidException{
         String email = this.securityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
         String couponCode=req.getCouponCode();
+        Address address= this.addressService.getAddressById(req.getAddressId());
 
         List<CartItem> cartItems= cartItemRepository.findByIdIn(req.getCartItemId());
         if (cartItems.isEmpty()) {
@@ -51,9 +55,16 @@ public class OrderService {
         }
         Order order= new Order();
         order.setUser(user);
+        order.setReceiverName(address.getReceiverName());
+        order.setPhone(address.getPhone());
+        order.setProvince(address.getProvince());
+        order.setDistrict(address.getDistrict());
+        order.setWard(address.getWard());
+        order.setShippingAddress(address.getDetail());
+
         order.setDiscountPrice(BigDecimal.valueOf(0.0));
         order.setStatus(OrderStatusEnum.PENDDING);
-        order.setShippingAddress(req.getShippingAdress());
+        order.setShippingAddress(address.getDetail());
         order.setPaymentStatus(PaymentStatusEnum.UNPAID);
 
         List<OrderItem> orderItems = new ArrayList<>();
@@ -69,6 +80,17 @@ public class OrderService {
             total=total.add(orderItem.getSubTotal());
             orderItems.add(orderItem);
         }
+
+        int weight= this.cartService.calculateTotalWeight(cartItems);
+        int shippingFee= this.ghtkService.calculateFee(address.getProvince(),address.getDistrict() ,weight);
+
+        if (total.compareTo(BigDecimal.valueOf(500000))>0) {
+            order.setShippingFee(0);
+        }else{
+
+            order.setShippingFee(shippingFee);
+        }
+
         order.setTotalPrice(total);
         order.setItems(orderItems);
 

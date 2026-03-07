@@ -47,7 +47,7 @@ public class Order {
 
     private BigDecimal totalPrice;
     private BigDecimal discountPrice;
-    private BigDecimal shippingFee;
+    private Integer shippingFee;
     private BigDecimal finalPrice;
 
     //n-1

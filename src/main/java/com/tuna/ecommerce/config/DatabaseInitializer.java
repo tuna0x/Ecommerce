@@ -116,6 +116,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get a promotion by id", "/api/v1/promotions/{id}", "GET", "PROMOTIONS"));
             arr.add(new Permission("Get promotions with pagination", "/api/v1/promotions", "GET", "PROMOTIONS"));
 
+            arr.add(new Permission("Create a address", "/api/v1/addresses", "POST", "ADDRESSES"));
+            arr.add(new Permission("Update a address", "/api/v1/addresses", "PUT", "ADDRESSES"));
+            arr.add(new Permission("Delete a address", "/api/v1/addresses/{id}", "DELETE", "ADDRESSES"));
+            arr.add(new Permission("Set address default", "/api/v1/addresses/{id}/default", "PUT", "ADDRESSES"));
+            arr.add(new Permission("Get addresses with pagination", "/api/v1/addresses", "GET", "ADDRESSES"));
+
             arr.add(new Permission("Active a promotion", "/api/v1/promotions/active/{id}", "POST", "PROMOTIONS"));
             arr.add(new Permission("Deactive a promotion", "/api/v1/promotions/deactive/{id}", "POST", "PROMOTIONS"));
 

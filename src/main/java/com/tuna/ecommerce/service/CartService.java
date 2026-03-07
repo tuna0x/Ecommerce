@@ -155,4 +155,18 @@ public class CartService {
         res.setItem(list);
         return res;
     }
+
+    public Integer calculateTotalWeight(List<CartItem> items){
+
+    int totalWeight = 0;
+
+    for(CartItem item : items){
+
+        Product product = item.getProduct();
+
+        totalWeight += product.getWeight() * item.getQuantity();
+    }
+
+    return totalWeight;
+}
 }
