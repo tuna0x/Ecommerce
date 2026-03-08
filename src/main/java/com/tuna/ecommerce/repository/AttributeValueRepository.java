@@ -11,6 +11,8 @@ import com.tuna.ecommerce.domain.AttributeValue;
 public interface AttributeValueRepository extends JpaRepository<AttributeValue, Long>,JpaSpecificationExecutor<AttributeValue> {
     boolean existsByAttributeIdAndValue(Long attributeId, String value);
     AttributeValue findByValue(String value);
-    
-    List<AttributeValue> findByAttributeId(long attributeId);
+
+    List<AttributeValue> findByAttributeId(Long attributeId);
+
+
 }

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -43,6 +44,7 @@ public class ProductService {
       private final CloudinaryService cloudinaryService;
       private final ProductImageRepository productImageRepository;
       private final BrandService brandService;
+      private final AttributeValueService attributeValueService;
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile>files) throws IdInvalidException, IOException{
             Product newProduct=new Product();
@@ -60,6 +62,7 @@ public class ProductService {
         newProduct.setOriginalPrice(product.getOriginalPrice());
         newProduct.setStock(product.getStock());
         newProduct.setCategory(category);
+        newProduct.setWeight(product.getWeight());
         this.productRepository.save(newProduct);
 
                 if (files!=null && !files.isEmpty()) {
@@ -82,6 +85,7 @@ public class ProductService {
                 pav.setProduct(newProduct);
                 pav.setAttributeValue(attributeValue);
                 this.productAttributeValueRepository.save(pav);
+                newProduct.getProductAttributeValues().add(pav);
             }
         return newProduct;
     }
@@ -119,6 +123,7 @@ public class ProductService {
             cur.setOriginalPrice(product.getOriginalPrice());
             cur.setStock(product.getStock());
             cur.setCategory(category);
+            cur.setWeight(product.getWeight());
             Brand brand= this.brandService.getById(product.getBrandId());
             if (brand!=null) {
                 cur.setBrand(brand);
@@ -165,9 +170,7 @@ public class ProductService {
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
         res.setStock(product.getStock());
-
-
-
+        res.setWeight(product.getWeight());
         List<String> imageUrl= product.getImages().stream().map(img->img.getImageUrl()).collect(Collectors.toList());
         res.setImage(imageUrl);
 
@@ -183,6 +186,19 @@ public class ProductService {
         brandInner.setId(brand.getId());
         brandInner.setName(brand.getName());
         res.setBrand(brandInner);
+
+        List<ResProductDTO.ValueInner> valueInner= new ArrayList<>();
+        List<ProductAttributeValue> pav= product.getProductAttributeValues();
+        List<Long> values= pav.stream().map(item-> item.getAttributeValue().getId()).collect(Collectors.toList());
+        List<AttributeValue> attributeValues= this.attributeValueRepository.findAllById(values);
+        for(AttributeValue a: attributeValues){
+            ResProductDTO.ValueInner v= new ResProductDTO.ValueInner();
+            v.setId(a.getId());
+            v.setValue(a.getValue());
+            valueInner.add(v);
+        }
+        res.setAttributeValue(valueInner);
+
         }
 
         return res;

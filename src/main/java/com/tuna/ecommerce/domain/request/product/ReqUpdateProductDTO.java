@@ -22,6 +22,7 @@ public class ReqUpdateProductDTO {
     private String description;
     private BigDecimal originalPrice;
     private int stock;
+    private int weight;
     private List<Long> attributeValues;
     private Long categoryId;
     private Long brandId;

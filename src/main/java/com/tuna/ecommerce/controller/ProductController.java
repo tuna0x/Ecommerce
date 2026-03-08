@@ -49,6 +49,7 @@ public class ProductController {
     }
 
 
+
     @PutMapping("/products")
     @APIMessage("Product updated successfully")
     public ResponseEntity<ResProductDTO> updateProduct(@RequestPart("data") ReqUpdateProductDTO product, @RequestPart(value = "files", required = false) List<MultipartFile> files) throws IdInvalidException, IOException {

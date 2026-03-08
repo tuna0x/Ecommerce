@@ -71,7 +71,7 @@ public class Product {
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
-    List<ProductAttributeValue> productAttributeValues;
+    List<ProductAttributeValue> productAttributeValues= new ArrayList<>();
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore

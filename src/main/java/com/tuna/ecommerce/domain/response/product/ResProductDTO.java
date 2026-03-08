@@ -22,9 +22,11 @@ public class ResProductDTO {
     private String description;
     private BigDecimal originalPrice;
     private int stock;
+    private int weight;
     private List<String> image;
     private CategoryInner category;
     private BrandInner brand;
+    private List<ValueInner> attributeValue;
 
 
     @Getter
@@ -44,6 +46,16 @@ public class ResProductDTO {
         private Long id;
         private String name;
     }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ValueInner {
+        private Long id;
+        private String value;
+    }
+
 
 }
 

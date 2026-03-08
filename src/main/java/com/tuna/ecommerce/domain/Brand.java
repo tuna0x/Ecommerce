@@ -25,17 +25,14 @@ import lombok.Setter;
 
 @Getter
 @Setter
-
 @AllArgsConstructor
 @NoArgsConstructor
-
-
 @Table(name = "brands")
 @Entity
 public class Brand {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
     @NotBlank(message = "name is not blank")
     private String name;
     private String description;

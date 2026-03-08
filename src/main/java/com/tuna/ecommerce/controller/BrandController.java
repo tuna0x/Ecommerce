@@ -43,10 +43,10 @@ public class BrandController {
      @PostMapping("/brands")
      @APIMessage("Create new brand")
     public ResponseEntity<Brand> createCategory(@Valid @RequestBody Brand Brand) throws IdInvalidException {
-        boolean check=this.brandService.findByName(Brand.getName());
-        if (check==true) {
-            throw new IdInvalidException("name's exists");
-        }
+        // boolean check=this.brandService.findByName(Brand.getName());
+        // if (check==true) {
+        //     throw new IdInvalidException("name's exists");
+        // }
         return ResponseEntity.status(HttpStatus.CREATED).body(this.brandService.createBrand(Brand));
     }
 
