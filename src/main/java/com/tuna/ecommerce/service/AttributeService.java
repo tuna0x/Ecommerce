@@ -16,6 +16,7 @@ import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.attribute.ReqCreateAttributeDTO;
 import com.tuna.ecommerce.domain.request.attribute.ReqUpdateAttributeDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.attribute.ResAttributeDTO;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AttributeRepository;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
@@ -42,15 +43,16 @@ public class AttributeService {
 
     public ResultPaginationDTO getAllAttribute(Specification<Attribute> spec, Pageable page) {
         Page<Attribute> attribute = this.attributeRepository.findAll(spec, page);
-                ResultPaginationDTO rs=new ResultPaginationDTO();
+        ResultPaginationDTO rs=new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
         meta.setPage(attribute.getNumber() + 1);
         meta.setPageSize(attribute.getSize());
         meta.setPages(attribute.getTotalPages());
         meta.setTotal(attribute.getTotalElements());
+                List<ResAttributeDTO> list=attribute.getContent().stream().map(item->this.convertAttributeDTO(item)).collect(Collectors.toList());
 
         rs.setMeta(meta);
-        rs.setResult(attribute.getContent());
+        rs.setResult(list);
         return rs;
     }
 
@@ -83,6 +85,18 @@ public class AttributeService {
             this.attributeValueRepository.deleteById(attributeValue.getId());
         }
         this.attributeRepository.deleteById(id);
+    }
+
+    public ResAttributeDTO convertAttributeDTO(Attribute attribute){
+        ResAttributeDTO resAttributeDTO= new ResAttributeDTO();
+        resAttributeDTO.setId(attribute.getId());
+        resAttributeDTO.setName(attribute.getName());
+
+        ResAttributeDTO.CategoryInner cate= new ResAttributeDTO.CategoryInner();
+        cate.setId(attribute.getCategory().getId());
+        cate.setName(attribute.getCategory().getName());
+        resAttributeDTO.setCategory(cate);
+        return resAttributeDTO;
     }
 
 }

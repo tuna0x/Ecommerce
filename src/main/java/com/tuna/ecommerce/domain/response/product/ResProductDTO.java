@@ -23,6 +23,7 @@ public class ResProductDTO {
     private BigDecimal originalPrice;
     private int stock;
     private int weight;
+    private String thumbnail;
     private List<String> image;
     private CategoryInner category;
     private BrandInner brand;

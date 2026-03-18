@@ -42,7 +42,8 @@ public class ProductController {
 
     @PostMapping("/products")
     @APIMessage("Product created successfully")
-    public ResponseEntity<ResProductDTO> createProduct(@RequestPart("data") ReqCreateProductDTO product, @RequestPart(value = "files", required = false) List<MultipartFile> files) throws IdInvalidException, IOException {
+    public ResponseEntity<ResProductDTO> createProduct(@RequestPart("data") ReqCreateProductDTO product,
+     @RequestPart(value = "files", required = false) List<MultipartFile> files) throws IdInvalidException, IOException {
         Product cur=this.productService.handleCreate(product, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.productService.convertToResProductDTO(cur));
 

@@ -73,8 +73,11 @@ public class ProductService {
                 image.setImageUrl(uploadResult.get("secure_url").toString());
                 image.setPublicId(uploadResult.get("public_id").toString());
                 newProduct.addImage(image);
+                this.productImageRepository.save(image);
+
             }
         }
+                this.productRepository.save(newProduct);
 
         for(Long id: product.getAttributeValue()){
             AttributeValue attributeValue=this.attributeValueRepository.findById(id).orElse(null);
@@ -98,10 +101,12 @@ public class ProductService {
                 Product cur = this.handleGetById(product.getId());
 
                 for(ProductImage img: cur.getImages()){
+                    this.productImageRepository.deleteById(img.getId());
                     this.cloudinaryService.deleteFile(img.getPublicId());
                 }
 
                 cur.getImages().clear();
+
 
             for(MultipartFile file:files){
                 Map uploadResult = cloudinaryService.uploadFile(file);
@@ -111,6 +116,7 @@ public class ProductService {
                 image.setPublicId(uploadResult.get("public_id").toString());
                 this.productImageRepository.save(image);
                 cur.addImage(image);
+
             }
         Category category = this.categoryService.handleGetById(product.getCategoryId());
         if (category == null) {
@@ -135,9 +141,15 @@ public class ProductService {
     public void handleDelete(long id) throws IOException{
         Product product= this.handleGetById(id);
         for(ProductImage img:product.getImages()){
+            this.productImageRepository.deleteById(img.getId());
             this.cloudinaryService.deleteFile(img.getPublicId());
         }
-        this.productRepository.deleteById(id);
+
+        List<ProductAttributeValue> productAttributeValues= this.productAttributeValueRepository.findByProductId(product.getId());
+            for(ProductAttributeValue p:productAttributeValues){
+                this.productAttributeValueRepository.deleteById(p.getId());
+            }
+        this.productRepository.deleteById(product.getId());
     }
 
     public ResultPaginationDTO handleGetAll(Specification<Product> spec,Pageable page){

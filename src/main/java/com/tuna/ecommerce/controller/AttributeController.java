@@ -8,6 +8,7 @@ import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.attribute.ReqCreateAttributeDTO;
 import com.tuna.ecommerce.domain.request.attribute.ReqUpdateAttributeDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.attribute.ResAttributeDTO;
 import com.tuna.ecommerce.service.AttributeService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -37,16 +38,17 @@ public class AttributeController {
 
     @APIMessage("Create new attribute")
     @PostMapping("/attributes")
-    public ResponseEntity<Attribute> postMethodName(@RequestBody ReqCreateAttributeDTO attribute) throws IdInvalidException {
+    public ResponseEntity<ResAttributeDTO> postMethodName(@RequestBody ReqCreateAttributeDTO req) throws IdInvalidException {
         // if (this.attributeService.existsByName(attribute.getName())) {
         //     throw new IdInvalidException("attribute name is exists");
         // }
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.attributeService.createAttribute(attribute));
+        Attribute attribute= this.attributeService.createAttribute(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.attributeService.convertAttributeDTO(attribute));
     }
 
     @APIMessage("Update attribute")
     @PutMapping("/attributes")
-    public ResponseEntity<Attribute> updateAttribute(@RequestBody ReqUpdateAttributeDTO attribute) throws IdInvalidException {
+    public ResponseEntity<ResAttributeDTO> updateAttribute(@RequestBody ReqUpdateAttributeDTO attribute) throws IdInvalidException {
         Attribute updatedAttribute = this.attributeService.getAttributeById(attribute.getId());
         if (updatedAttribute == null) {
             throw new IdInvalidException("attribute id is invalid");
@@ -54,17 +56,18 @@ public class AttributeController {
         // if (this.attributeService.existsByName(attribute.getName())) {
         //     throw new IdInvalidException("attribute name is exists");
         // }
-        return ResponseEntity.ok().body(this.attributeService.updateAttribute(attribute));
+        updatedAttribute= this.attributeService.updateAttribute(attribute);
+        return ResponseEntity.ok().body(this.attributeService.convertAttributeDTO(updatedAttribute));
     }
 
     @GetMapping("/attributes/{id}")
     @APIMessage("Get attribute by id")
-    public ResponseEntity<Attribute> getAttributeById(@PathVariable ("id") Long id) throws IdInvalidException {
-        Attribute attribute = this.attributeService.getAttributeById(id); 
+    public ResponseEntity<ResAttributeDTO> getAttributeById(@PathVariable ("id") Long id) throws IdInvalidException {
+        Attribute attribute = this.attributeService.getAttributeById(id);
         if (attribute==null) {
             throw new IdInvalidException("attribute id is invalid");
         }
-        return ResponseEntity.ok().body(this.attributeService.getAttributeById(id));
+        return ResponseEntity.ok().body(this.attributeService.convertAttributeDTO(attribute));
     }
     
     @GetMapping("/attributes")

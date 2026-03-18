@@ -1,5 +1,8 @@
 package com.tuna.ecommerce.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +13,8 @@ import com.tuna.ecommerce.domain.AttributeValue;
 import com.tuna.ecommerce.domain.request.attributeValue.ReqCreateAttributesValueDTO;
 import com.tuna.ecommerce.domain.request.attributeValue.ReqUpdateAttributesValueDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.attribute.ResAttributeDTO;
+import com.tuna.ecommerce.domain.response.attributevalue.ResAttributeValueDTO;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
@@ -56,9 +61,11 @@ public class AttributeValueService {
         meta.setPageSize(attributeValues.getSize());
         meta.setPages(attributeValues.getTotalPages());
         meta.setTotal(attributeValues.getTotalElements());
+            List<ResAttributeValueDTO> list=attributeValues.getContent().stream().map(item->this.convertToAttributeValueDTO(item)).collect(Collectors.toList());
+
 
         rs.setMeta(meta);
-        rs.setResult(attributeValues.getContent());
+        rs.setResult(list);
         return rs;
     }
 
@@ -68,6 +75,24 @@ public class AttributeValueService {
 
     public boolean existsByAttributeIdAndValue(Long attributeId, String value) {
         return this.attributeValueRepository.existsByAttributeIdAndValue(attributeId, value);
+    }
+
+    public ResAttributeValueDTO convertToAttributeValueDTO(AttributeValue attributeValue){
+        ResAttributeValueDTO res= new ResAttributeValueDTO();
+        res.setId(attributeValue.getId());
+        res.setValue(attributeValue.getValue());
+
+        ResAttributeValueDTO.AttributeInner attr = new ResAttributeValueDTO.AttributeInner();
+        attr.setId(attributeValue.getAttribute().getId());
+        attr.setName(attributeValue.getAttribute().getName());
+
+        ResAttributeValueDTO.AttributeInner.CategoryInner cate= new ResAttributeValueDTO.AttributeInner.CategoryInner();
+        cate.setId(attributeValue.getAttribute().getCategory().getId());
+        cate.setName(attributeValue.getAttribute().getCategory().getName());
+        attr.setCategory(cate);
+
+        res.setAttribute(attr);
+        return res;
     }
 
 

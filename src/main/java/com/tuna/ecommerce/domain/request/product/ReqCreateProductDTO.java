@@ -14,7 +14,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReqCreateProductDTO {
     private String name;
-    private String description;
     private BigDecimal originalPrice;
     private int stock;
     private int weight;
