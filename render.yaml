@@ -15,3 +15,5 @@ services:
         sync: false # Bạn sẽ dán mật khẩu thật vào đây trên Render Dashboard
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
+      - key: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+        value: org.hibernate.dialect.MySQLDialect
