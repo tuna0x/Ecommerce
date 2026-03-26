@@ -1,6 +1,8 @@
 package com.tuna.ecommerce.domain.response.attribute;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -8,7 +10,7 @@ import lombok.*;
 public class ResAttributeDTO {
     private Long id;
     private String name;
-    private CategoryInner category;
+    private List<CategoryInner> categories;
 
     @Getter
     @Setter

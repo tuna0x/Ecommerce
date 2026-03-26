@@ -1,6 +1,7 @@
 package com.tuna.ecommerce.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +12,6 @@ import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
-import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
 
 import lombok.AllArgsConstructor;
 
@@ -20,38 +20,69 @@ import lombok.AllArgsConstructor;
 public class PricingService {
     private final ProductPromotionRepository productPromotionRepository;
 
-    public BigDecimal calculateBestDiscount(BigDecimal price,List<Promotion> promotions) {
-        BigDecimal max=BigDecimal.ZERO;
-        BigDecimal discount=BigDecimal.ZERO;
-        for (Promotion prom : promotions){
+    /**
+     * Calculates the best discount (highest value) among all applicable promotions.
+     * Picks only one "best" discount, they don't stack by default in this logic.
+     */
+    public BigDecimal calculateBestDiscount(BigDecimal price, List<Promotion> promotions) {
+        if (price == null || promotions == null || promotions.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal bestDiscountAmount = BigDecimal.ZERO;
+
+        for (Promotion prom : promotions) {
+            BigDecimal currentDiscount = BigDecimal.ZERO;
+            if (prom.getType() == null || prom.getValue() == null) continue;
+
             switch (prom.getType()) {
                 case PERCENT:
-                    discount=price.multiply(prom.getValue()).divide(BigDecimal.valueOf(100));
+                    // Example: 10% discount on 100k = 10k
+                    currentDiscount = price.multiply(prom.getValue())
+                            .divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
                     break;
                 case FIXED:
-                    discount=prom.getValue();
+                    currentDiscount = prom.getValue();
                     break;
                 default:
                     break;
             }
 
-            if (discount.compareTo(max)>0) {
-                max=discount;
+            if (currentDiscount.compareTo(bestDiscountAmount) > 0) {
+                bestDiscountAmount = currentDiscount;
             }
         }
-        return max;
+        return bestDiscountAmount;
     }
 
+    /**
+     * Calculates current pricing for a product including its best active promotion.
+     */
     public ResPriceResultDTO calculatePrice(Product product) {
-        BigDecimal originalPrice=product.getOriginalPrice();
-        List<ProductPromotion> list=this.productPromotionRepository.findActiveByProductId(product.getId());
-        List<Promotion> promotions= new ArrayList<>();
-        for(ProductPromotion p:list){
-            promotions.add(p.getPromotion());
+        if (product == null || product.getOriginalPrice() == null) {
+            return new ResPriceResultDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         }
-        BigDecimal discount = this.calculateBestDiscount(originalPrice, promotions);
-        BigDecimal finalPrice = originalPrice.subtract(discount);
-        return new ResPriceResultDTO(originalPrice, discount, finalPrice);
 
+        BigDecimal originalPrice = product.getOriginalPrice();
+        List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId());
+        
+        List<Promotion> promotions = new ArrayList<>();
+        if (productPromos != null) {
+            for (ProductPromotion pp : productPromos) {
+                if (pp.getPromotion() != null) {
+                    promotions.add(pp.getPromotion());
+                }
+            }
+        }
+
+        BigDecimal discount = this.calculateBestDiscount(originalPrice, promotions);
+        
+        // Final price cannot be less than zero
+        BigDecimal finalPrice = originalPrice.subtract(discount);
+        if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            finalPrice = BigDecimal.ZERO;
+        }
+
+        return new ResPriceResultDTO(originalPrice, discount, finalPrice);
     }
 }

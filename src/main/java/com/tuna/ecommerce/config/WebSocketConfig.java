@@ -1,0 +1,33 @@
+package com.tuna.ecommerce.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        // Kích hoạt một message broker đơn giản trong bộ nhớ
+        // /topic dùng cho broadcast, /user dùng cho tin nhắn cá nhân
+        config.enableSimpleBroker("/topic", "/user");
+        
+        // Prefix cho các tin nhắn được gửi từ client tới server (@MessageMapping)
+        config.setApplicationDestinationPrefixes("/app");
+        
+        // Prefix dành riêng cho tin nhắn cá nhân
+        config.setUserDestinationPrefix("/user");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Endpoint để client kết nối tới
+        registry.addEndpoint("/websocket")
+                .setAllowedOriginPatterns("*")
+                .withSockJS();
+    }
+}

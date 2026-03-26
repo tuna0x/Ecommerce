@@ -28,6 +28,8 @@ public class ResProductDTO {
     private CategoryInner category;
     private BrandInner brand;
     private List<ValueInner> attributeValue;
+    private Double averageRating;
+    private Long reviewCount;
 
 
     @Getter

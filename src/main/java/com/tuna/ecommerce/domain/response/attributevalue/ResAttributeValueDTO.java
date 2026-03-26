@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain.response.attributevalue;
 
+import java.util.List;
 import lombok.*;
 @Getter
 @Setter
@@ -18,7 +19,7 @@ public class ResAttributeValueDTO {
     public static class AttributeInner {
     private Long id;
     private String name;
-    private CategoryInner category;
+    private List<CategoryInner> categories;
 
         @Getter
         @Setter

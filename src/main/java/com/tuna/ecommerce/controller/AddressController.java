@@ -27,8 +27,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-
-
 @RestController
 @RequestMapping("/api/v1")
 @AllArgsConstructor
@@ -37,24 +35,25 @@ public class AddressController {
 
     @PostMapping("/addresses")
     public ResponseEntity<ResAddressDTO> createAddress(@RequestBody ReqCreateAddressDTO req) {
-        Address address= this.addressService.createAddress(req);
+        Address address = this.addressService.createAddress(req);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(this.addressService.convertToAddressDTO(address));
     }
+
     @PutMapping("/addresses")
     public ResponseEntity<ResAddressDTO> updateAddress(@RequestBody ReqUpdateAddressDTO req) throws IdInvalidException {
-        Address address= this.addressService.getAddressById(req.getId());
-        if (address==null) {
+        Address address = this.addressService.getAddressById(req.getId());
+        if (address == null) {
             throw new IdInvalidException("address not found");
         }
-        address=this.addressService.UpdateAddress(req);
+        address = this.addressService.UpdateAddress(req);
         return ResponseEntity.ok().body(this.addressService.convertToAddressDTO(address));
     }
 
-    @DeleteMapping("/addresses")
-    public ResponseEntity<Void> deleteAddress(@PathVariable ("id") Long id) throws IdInvalidException{
-        Address address= this.addressService.getAddressById(id);
-        if (address==null) {
+    @DeleteMapping("/addresses/{id}")
+    public ResponseEntity<Void> deleteAddress(@PathVariable("id") Long id) throws IdInvalidException {
+        Address address = this.addressService.getAddressById(id);
+        if (address == null) {
             throw new IdInvalidException("address not found");
         }
         this.addressService.deleteById(id);

@@ -2,6 +2,7 @@ package com.tuna.ecommerce.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -9,6 +10,7 @@ import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -43,7 +45,7 @@ public class Order {
     private String province;
     private String district;
     private String ward;
-    private String ShippingAddress;
+    private String shippingAddress;
 
     private BigDecimal totalPrice;
     private BigDecimal discountPrice;
@@ -62,10 +64,15 @@ public class Order {
     private PaymentStatusEnum paymentStatus;
 
 
-    //1-n
-    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    // 1-n
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<OrderItem> items;
+    private List<OrderItem> items = new ArrayList<>();
+
+    public void addOrderItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
+    }
 
     @OneToOne
     @JoinColumn(name="payment_id",referencedColumnName = "id")

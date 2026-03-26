@@ -15,6 +15,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -28,7 +29,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = { @Index(name = "idx_user_email", columnList = "email") })
 @Getter
 @Setter
 @AllArgsConstructor
@@ -42,6 +43,7 @@ public class User {
     @NotBlank(message = "Name is not blank")
     private String name;
     @NotBlank(message = "Email is not blank")
+    @Column(unique = true)
     private String email;
     private String password;
     private String address;
@@ -69,9 +71,17 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
-    @OneToMany(fetch = FetchType.LAZY,mappedBy = "user")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     @JsonIgnore
     private List<Address> addresses;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+    @JsonIgnore
+    private List<Notification> notifications;
+
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
+    @JsonIgnore
+    private List<Review> reviews;
 
 
         @PrePersist

@@ -2,6 +2,7 @@ package com.tuna.ecommerce.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,14 +18,14 @@ import com.tuna.ecommerce.ultil.constant.GenderEnum;
 
 @Service
 public class DatabaseInitializer implements CommandLineRunner {
-    private final PermissionRepository permissionrRepository;
+    private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public DatabaseInitializer(PermissionRepository permissionrRepository, RoleRepository roleRepository,
+    public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.permissionrRepository = permissionrRepository;
+        this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -34,13 +35,14 @@ public class DatabaseInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         System.out.println(">>> START INIT DATABASE");
 
-        long countPermissions = this.permissionrRepository.count();
+        long countPermissions = this.permissionRepository.count();
         long countRoles = this.roleRepository.count();
         long countUsers = this.userRepository.count();
 
         if (countPermissions == 0) {
             ArrayList<Permission> arr = new ArrayList<>();
 
+            // Permissions for Administration
             arr.add(new Permission("Create a permission", "/api/v1/permissions", "POST", "PERMISSIONS"));
             arr.add(new Permission("Update a permission", "/api/v1/permissions", "PUT", "PERMISSIONS"));
             arr.add(new Permission("Delete a permission", "/api/v1/permissions/{id}", "DELETE", "PERMISSIONS"));
@@ -59,11 +61,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get a user by id", "/api/v1/users/{id}", "GET", "USERS"));
             arr.add(new Permission("Get users with pagination", "/api/v1/users", "GET", "USERS"));
 
+            arr.add(new Permission("Get dashboard statistics", "/api/v1/dashboard/statistics", "GET", "DASHBOARD"));
+
+            // Catalog Management (Admin Only for POST/PUT/DELETE)
             arr.add(new Permission("Create a product", "/api/v1/products", "POST", "PRODUCTS"));
             arr.add(new Permission("Update a product", "/api/v1/products", "PUT", "PRODUCTS"));
             arr.add(new Permission("Delete a product", "/api/v1/products/{id}", "DELETE", "PRODUCTS"));
             arr.add(new Permission("Get a product by id", "/api/v1/products/{id}", "GET", "PRODUCTS"));
             arr.add(new Permission("Get products with pagination", "/api/v1/products", "GET", "PRODUCTS"));
+            arr.add(new Permission("Get related products", "/api/v1/products/{id}/related", "GET", "PRODUCTS"));
 
             arr.add(new Permission("Create a category", "/api/v1/categories", "POST", "CATEGORIES"));
             arr.add(new Permission("Update a category", "/api/v1/categories", "PUT", "CATEGORIES"));
@@ -85,18 +91,9 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             arr.add(new Permission("Create a attribute value", "/api/v1/attributes-values", "POST", "ATTRIBUTE VALUE"));
             arr.add(new Permission("Update a attribute value", "/api/v1/attributes-values", "PUT", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE",
-                    "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET",
-                    "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET",
-                    "ATTRIBUTE VALUE"));
-
-            arr.add(new Permission("Create a brand", "/api/v1/brands", "POST", "BRAND"));
-            arr.add(new Permission("Update a brand", "/api/v1/brands", "PUT", "BRAND"));
-            arr.add(new Permission("Delete a brand", "/api/v1/brands/{id}", "DELETE", "BRAND"));
-            arr.add(new Permission("Get a brand by id", "/api/v1/brands/{id}", "GET", "BRAND"));
-            arr.add(new Permission("Get brands with pagination", "/api/v1/brands", "GET", "BRAND"));
+            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE", "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET", "ATTRIBUTE VALUE"));
 
             arr.add(new Permission("Create a product detail", "/api/v1/product-detail", "POST", "PRODUCT DETAIL"));
             arr.add(new Permission("Update a product detail", "/api/v1/product-detail", "PUT", "PRODUCT DETAIL"));
@@ -104,6 +101,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get a product detail by id", "/api/v1/product-detail/{id}", "GET", "PRODUCT DETAIL"));
             arr.add(new Permission("Get product-detail with pagination", "/api/v1/product-detail", "GET", "PRODUCT DETAIL"));
 
+            // Coupons & Promotions
             arr.add(new Permission("Create a coupon", "/api/v1/coupons", "POST", "COUPONS"));
             arr.add(new Permission("Update a coupon", "/api/v1/coupons", "PUT", "COUPONS"));
             arr.add(new Permission("Delete a coupon", "/api/v1/coupons/{id}", "DELETE", "COUPONS"));
@@ -115,15 +113,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Delete a promotion", "/api/v1/promotions/{id}", "DELETE", "PROMOTIONS"));
             arr.add(new Permission("Get a promotion by id", "/api/v1/promotions/{id}", "GET", "PROMOTIONS"));
             arr.add(new Permission("Get promotions with pagination", "/api/v1/promotions", "GET", "PROMOTIONS"));
+            arr.add(new Permission("Active a promotion", "/api/v1/promotions/active/{id}", "POST", "PROMOTIONS"));
+            arr.add(new Permission("Deactive a promotion", "/api/v1/promotions/deactive/{id}", "POST", "PROMOTIONS"));
+            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST", "PRODUCT PROMOTIONS"));
 
+            // User Operations (Common for Admin & User)
             arr.add(new Permission("Create a address", "/api/v1/addresses", "POST", "ADDRESSES"));
             arr.add(new Permission("Update a address", "/api/v1/addresses", "PUT", "ADDRESSES"));
             arr.add(new Permission("Delete a address", "/api/v1/addresses/{id}", "DELETE", "ADDRESSES"));
             arr.add(new Permission("Set address default", "/api/v1/addresses/{id}/default", "PUT", "ADDRESSES"));
             arr.add(new Permission("Get addresses with pagination", "/api/v1/addresses", "GET", "ADDRESSES"));
-
-            arr.add(new Permission("Active a promotion", "/api/v1/promotions/active/{id}", "POST", "PROMOTIONS"));
-            arr.add(new Permission("Deactive a promotion", "/api/v1/promotions/deactive/{id}", "POST", "PROMOTIONS"));
 
             arr.add(new Permission("Add to cart", "/api/v1/cart", "POST", "CART"));
             arr.add(new Permission("Get a cart", "/api/v1/cart", "GET", "CART"));
@@ -134,39 +133,86 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get order by id", "/api/v1/order/{id}", "GET", "ORDER"));
 
             arr.add(new Permission("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT"));
-
-            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST",
-                    "PRODUCT PROMOTIONS"));
             arr.add(new Permission("Get Product price", "/api/v1/price/{id}", "GET", "PRICING PRODUCT"));
 
-            this.permissionrRepository.saveAll(arr);
+            arr.add(new Permission("Create a review", "/api/v1/reviews", "POST", "REVIEWS"));
+            arr.add(new Permission("Get reviews by product", "/api/v1/reviews/product/{productId}", "GET", "REVIEWS"));
+            arr.add(new Permission("Delete a review", "/api/v1/reviews/{id}", "DELETE", "REVIEWS"));
+
+            this.permissionRepository.saveAll(arr);
         }
 
         if (countRoles == 0) {
-            List<Permission> allPermissions = this.permissionrRepository.findAll();
+            List<Permission> allPermissions = this.permissionRepository.findAll();
+            
+            // 1. SUPER_ADMIN Role
             Role adminRole = new Role();
             adminRole.setName("SUPER_ADMIN");
-            adminRole.setDescription("admin is full permissions");
+            adminRole.setDescription("Full control role");
             adminRole.setActive(true);
             adminRole.setPermissions(allPermissions);
-
             this.roleRepository.save(adminRole);
+
+            // 2. USER Role (Only essential permissions)
+            Role userRole = new Role();
+            userRole.setName("ROLE_USER");
+            userRole.setDescription("Regular customer role");
+            userRole.setActive(true);
+
+            // Define permissions for USER
+            List<Permission> userPermissions = allPermissions.stream().filter(p -> {
+                String method = p.getMethod();
+                String url = p.getApiPath();
+                
+                // USER can GET products, categories, brands, attributes, etc.
+                boolean isGetPublic = method.equals("GET") && (
+                    url.startsWith("/api/v1/products") || 
+                    url.startsWith("/api/v1/categories") || 
+                    url.startsWith("/api/v1/brands") ||
+                    url.startsWith("/api/v1/attributes") ||
+                    url.startsWith("/api/v1/product-detail") ||
+                    url.startsWith("/api/v1/price") ||
+                    url.startsWith("/api/v1/reviews/product")
+                );
+
+                // USER has full access to Cart, Address, Order, Payment Confirm
+                boolean isUserOwnData = url.startsWith("/api/v1/cart") || 
+                                       url.startsWith("/api/v1/addresses") || 
+                                       url.startsWith("/api/v1/order") || 
+                                       url.startsWith("/api/v1/payment") ||
+                                       url.startsWith("/api/v1/reviews");
+
+                return isGetPublic || isUserOwnData;
+            }).collect(Collectors.toList());
+
+            userRole.setPermissions(userPermissions);
+            this.roleRepository.save(userRole);
         }
 
         if (countUsers == 0) {
+            // Create Admin
             User admin = new User();
             admin.setEmail("admin@gmail.com");
             admin.setAddress("HA NOI");
             admin.setAge(20);
             admin.setGender(GenderEnum.MALE);
-            admin.setName("SUPPER ADMIN");
+            admin.setName("SUPER ADMIN");
             admin.setPassword(this.passwordEncoder.encode("123456"));
-
             Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
-            if (adminRole != null) {
-                admin.setRole(adminRole);
-            }
+            if (adminRole != null) admin.setRole(adminRole);
             this.userRepository.save(admin);
+
+            // Create Regular User
+            User normalUser = new User();
+            normalUser.setEmail("user@gmail.com");
+            normalUser.setAddress("HA NOI");
+            normalUser.setAge(18);
+            normalUser.setGender(GenderEnum.FEMALE);
+            normalUser.setName("REGULAR USER");
+            normalUser.setPassword(this.passwordEncoder.encode("123456"));
+            Role userRole = this.roleRepository.findByName("ROLE_USER");
+            if (userRole != null) normalUser.setRole(userRole);
+            this.userRepository.save(normalUser);
         }
     }
 }

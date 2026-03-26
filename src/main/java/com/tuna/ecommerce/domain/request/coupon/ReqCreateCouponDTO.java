@@ -16,6 +16,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ReqCreateCouponDTO {
+    private String code;
     private CouponTypeEnum type;
     private BigDecimal value;
     private LocalDateTime startDate;

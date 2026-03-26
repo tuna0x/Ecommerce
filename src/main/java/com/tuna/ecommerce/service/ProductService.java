@@ -4,14 +4,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.tuna.ecommerce.domain.AttributeValue;
@@ -19,207 +18,226 @@ import com.tuna.ecommerce.domain.Brand;
 import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.ProductAttributeValue;
-import com.tuna.ecommerce.domain.ProductDetail;
 import com.tuna.ecommerce.domain.ProductImage;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.product.ResProductDTO;
-import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductImageRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
+import com.tuna.ecommerce.repository.ReviewRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
+@Transactional
 public class ProductService {
-      private final ProductRepository productRepository;
-      private final AttributeValueRepository attributeValueRepository;
-      private final ProductAttributeValueRepository productAttributeValueRepository;
-      private final CategoryService categoryService;
-      private final CloudinaryService cloudinaryService;
-      private final ProductImageRepository productImageRepository;
-      private final BrandService brandService;
-      private final AttributeValueService attributeValueService;
+    private final ProductRepository productRepository;
+    private final ReviewRepository reviewRepository;
+    private final AttributeValueRepository attributeValueRepository;
+    private final ProductAttributeValueRepository productAttributeValueRepository;
+    private final CategoryService categoryService;
+    private final CloudinaryService cloudinaryService;
+    private final ProductImageRepository productImageRepository;
+    private final BrandService brandService;
 
-    public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile>files) throws IdInvalidException, IOException{
-            Product newProduct=new Product();
-
-        Category category=this.categoryService.handleGetById(product.getCategoryId());
-        if (category==null) {
-            throw new IdInvalidException("Id invalid");
+    public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
+            throws IdInvalidException, IOException {
+        Category category = this.categoryService.handleGetById(product.getCategoryId());
+        if (category == null) {
+            throw new IdInvalidException("Category not found with id: " + product.getCategoryId());
         }
 
-        Brand brand= this.brandService.getById(product.getBrandId());
-        if (brand!=null) {
-            newProduct.setBrand(brand);
-        }
+        Product newProduct = new Product();
         newProduct.setName(product.getName());
         newProduct.setOriginalPrice(product.getOriginalPrice());
         newProduct.setStock(product.getStock());
         newProduct.setCategory(category);
         newProduct.setWeight(product.getWeight());
-        this.productRepository.save(newProduct);
 
-                if (files!=null && !files.isEmpty()) {
-            for(MultipartFile file:files){
-                Map uploadResult = cloudinaryService.uploadFile(file);
+        Brand brand = this.brandService.handleGetById(product.getBrandId());
+        if (brand != null) {
+            newProduct.setBrand(brand);
+        }
 
-                ProductImage image=new ProductImage();
+        // Save first to get ID for images and attributes
+        newProduct = this.productRepository.save(newProduct);
+
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+                ProductImage image = new ProductImage();
                 image.setImageUrl(uploadResult.get("secure_url").toString());
                 image.setPublicId(uploadResult.get("public_id").toString());
-                newProduct.addImage(image);
+                image.setProduct(newProduct);
                 this.productImageRepository.save(image);
-
+                newProduct.addImage(image);
             }
         }
-                this.productRepository.save(newProduct);
 
-        for(Long id: product.getAttributeValue()){
-            AttributeValue attributeValue=this.attributeValueRepository.findById(id).orElse(null);
-              if (this.productAttributeValueRepository.existsByProductIdAndAttributeValueId(newProduct.getId(), id)) {
-                throw new RuntimeException("Duplicate attribute value");
-              }
-              ProductAttributeValue pav=new ProductAttributeValue();
-                pav.setProduct(newProduct);
-                pav.setAttributeValue(attributeValue);
-                this.productAttributeValueRepository.save(pav);
-                newProduct.getProductAttributeValues().add(pav);
+        if (product.getAttributeValue() != null) {
+            for (Long id : product.getAttributeValue()) {
+                AttributeValue attributeValue = this.attributeValueRepository.findById(id).orElse(null);
+                if (attributeValue != null) {
+                    ProductAttributeValue pav = new ProductAttributeValue();
+                    pav.setProduct(newProduct);
+                    pav.setAttributeValue(attributeValue);
+                    this.productAttributeValueRepository.save(pav);
+                    newProduct.getProductAttributeValues().add(pav);
+                }
             }
+        }
+
         return newProduct;
     }
 
-    public Product handleGetById(long id){
+    public Product handleGetById(long id) {
         return this.productRepository.findById(id).orElse(null);
     }
 
-    public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files) throws IdInvalidException, IOException{
-                Product cur = this.handleGetById(product.getId());
+    public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
+            throws IdInvalidException, IOException {
+        Product cur = this.handleGetById(product.getId());
+        if (cur == null) {
+            throw new IdInvalidException("Product not found with id: " + product.getId());
+        }
 
-                for(ProductImage img: cur.getImages()){
-                    this.productImageRepository.deleteById(img.getId());
-                    this.cloudinaryService.deleteFile(img.getPublicId());
-                }
-
-                cur.getImages().clear();
-
-
-            for(MultipartFile file:files){
-                Map uploadResult = cloudinaryService.uploadFile(file);
-
-                ProductImage image=new ProductImage();
-                image.setImageUrl(uploadResult.get("secure_url").toString());
-                image.setPublicId(uploadResult.get("public_id").toString());
-                this.productImageRepository.save(image);
-                cur.addImage(image);
-
-            }
         Category category = this.categoryService.handleGetById(product.getCategoryId());
         if (category == null) {
-            throw new IdInvalidException("Id invalid");
+            throw new IdInvalidException("Category not found with id: " + product.getCategoryId());
         }
 
-        if (cur != null) {
-            cur.setId(product.getId());
-            cur.setName(product.getName());
-            cur.setOriginalPrice(product.getOriginalPrice());
-            cur.setStock(product.getStock());
-            cur.setCategory(category);
-            cur.setWeight(product.getWeight());
-            Brand brand= this.brandService.getById(product.getBrandId());
-            if (brand!=null) {
-                cur.setBrand(brand);
+        cur.setName(product.getName());
+        cur.setOriginalPrice(product.getOriginalPrice());
+        cur.setStock(product.getStock());
+        cur.setCategory(category);
+        cur.setWeight(product.getWeight());
+
+        Brand brand = this.brandService.handleGetById(product.getBrandId());
+        cur.setBrand(brand);
+
+        if (files != null && !files.isEmpty()) {
+            // Delete old images only if new images are provided (optional logic, could be
+            // different)
+            for (ProductImage img : new ArrayList<>(cur.getImages())) {
+                this.cloudinaryService.deleteFile(img.getPublicId());
+                this.productImageRepository.delete(img);
+            }
+            cur.getImages().clear();
+
+            for (MultipartFile file : files) {
+                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+                ProductImage image = new ProductImage();
+                image.setImageUrl(uploadResult.get("secure_url").toString());
+                image.setPublicId(uploadResult.get("public_id").toString());
+                image.setProduct(cur);
+                this.productImageRepository.save(image);
+                cur.addImage(image);
+            }
         }
-        }
+
         return this.productRepository.save(cur);
     }
 
-    public void handleDelete(long id) throws IOException{
-        Product product= this.handleGetById(id);
-        for(ProductImage img:product.getImages()){
-            this.productImageRepository.deleteById(img.getId());
-            this.cloudinaryService.deleteFile(img.getPublicId());
-        }
-
-        List<ProductAttributeValue> productAttributeValues= this.productAttributeValueRepository.findByProductId(product.getId());
-            for(ProductAttributeValue p:productAttributeValues){
-                this.productAttributeValueRepository.deleteById(p.getId());
+    public void handleDelete(long id) throws IOException {
+        Product product = this.handleGetById(id);
+        if (product != null) {
+            for (ProductImage img : product.getImages()) {
+                this.cloudinaryService.deleteFile(img.getPublicId());
             }
-        this.productRepository.deleteById(product.getId());
+            // Cascade.ALL + orphanRemoval handles ProductImage and ProductAttributeValue deletion
+            this.productRepository.delete(product);
+        }
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<Product> spec,Pageable page){
-        Page<Product> product= this.productRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
+    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Pageable page) {
+        Page<Product> product = this.productRepository.findAll(spec, page);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(product.getNumber() + 1);
         meta.setPageSize(product.getSize());
         meta.setPages(product.getTotalPages());
         meta.setTotal(product.getTotalElements());
 
         rs.setMeta(meta);
-        List<ResProductDTO> list=product.getContent().stream().map(item->this.convertToResProductDTO(item)).collect(Collectors.toList());
+        List<ResProductDTO> list = product.getContent().stream().map(item -> this.convertToResProductDTO(item))
+                .collect(Collectors.toList());
         rs.setResult(list);
         return rs;
     }
 
-    public boolean findByName(String name){
+    public boolean findByName(String name) {
         return this.productRepository.existsByName(name);
     }
 
-    public double findByOriginalPrice(long id){
-        return this.findByOriginalPrice(id);
+    public List<ResProductDTO> getRelatedProducts(Long id) {
+        Product product = this.handleGetById(id);
+        if (product == null || product.getCategory() == null) {
+            return new ArrayList<>();
+        }
+        List<Product> related = this.productRepository.findTop8ByCategoryIdAndIdNot(product.getCategory().getId(), id);
+        return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
+    public double findByOriginalPrice(long id) {
+        return this.productRepository.findOriginalPriceById(id).orElse(0.0);
+    }
 
-    public ResProductDTO convertToResProductDTO(Product product){
-        ResProductDTO res=new ResProductDTO();
+    public ResProductDTO convertToResProductDTO(Product product) {
+        ResProductDTO res = new ResProductDTO();
         res.setId(product.getId());
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
         res.setStock(product.getStock());
         res.setWeight(product.getWeight());
-        List<String> imageUrl= product.getImages().stream().map(img->img.getImageUrl()).collect(Collectors.toList());
-        res.setImage(imageUrl);
 
-        ResProductDTO.CategoryInner categoryInner=new ResProductDTO.CategoryInner();
-        Category category= this.categoryService.handleGetById(product.getCategory().getId());
-        categoryInner.setId(category.getId());
-        categoryInner.setName(category.getName());
-        res.setCategory(categoryInner);
-
-        ResProductDTO.BrandInner brandInner=new ResProductDTO.BrandInner();
-        if (product.getBrand()!=null) {
-        Brand brand= this.brandService.getById(product.getBrand().getId());
-        brandInner.setId(brand.getId());
-        brandInner.setName(brand.getName());
-        res.setBrand(brandInner);
-
-        List<ResProductDTO.ValueInner> valueInner= new ArrayList<>();
-        List<ProductAttributeValue> pav= product.getProductAttributeValues();
-        List<Long> values= pav.stream().map(item-> item.getAttributeValue().getId()).collect(Collectors.toList());
-        List<AttributeValue> attributeValues= this.attributeValueRepository.findAllById(values);
-        for(AttributeValue a: attributeValues){
-            ResProductDTO.ValueInner v= new ResProductDTO.ValueInner();
-            v.setId(a.getId());
-            v.setValue(a.getValue());
-            valueInner.add(v);
+        if (product.getImages() != null) {
+            List<String> imageUrls = product.getImages().stream()
+                    .map(ProductImage::getImageUrl)
+                    .collect(Collectors.toList());
+            res.setImage(imageUrls);
         }
-        res.setAttributeValue(valueInner);
 
+        if (product.getCategory() != null) {
+            ResProductDTO.CategoryInner categoryInner = new ResProductDTO.CategoryInner();
+            categoryInner.setId(product.getCategory().getId());
+            categoryInner.setName(product.getCategory().getName());
+            res.setCategory(categoryInner);
         }
+
+        if (product.getBrand() != null) {
+            ResProductDTO.BrandInner brandInner = new ResProductDTO.BrandInner();
+            brandInner.setId(product.getBrand().getId());
+            brandInner.setName(product.getBrand().getName());
+            res.setBrand(brandInner);
+        }
+
+        if (product.getProductAttributeValues() != null) {
+            List<ResProductDTO.ValueInner> valueInners = product.getProductAttributeValues().stream()
+                    .map(pav -> {
+                        ResProductDTO.ValueInner v = new ResProductDTO.ValueInner();
+                        v.setId(pav.getAttributeValue().getId());
+                        v.setValue(pav.getAttributeValue().getValue());
+                        return v;
+                    })
+                    .collect(Collectors.toList());
+            res.setAttributeValue(valueInners);
+        }
+
+        res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
+        res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
 
         return res;
     }
 
-    public Product addImages(ReqUpdateProductDTO req, List<MultipartFile> files) throws IOException{
-        Product product= this.handleGetById(req.getId());
+    public Product addImages(ReqUpdateProductDTO req, List<MultipartFile> files) throws IOException {
+        Product product = this.handleGetById(req.getId());
 
-            for (MultipartFile file : files) {
+        for (MultipartFile file : files) {
 
             Map uploadResult = cloudinaryService.uploadFile(file);
 
