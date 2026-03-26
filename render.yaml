@@ -8,13 +8,13 @@ services:
     plan: free # Sử dụng gói Free của Render
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?useSSL=true&allowPublicKeyRetrieval=true&serverTimezone=UTC&sessionVariables=sql_require_primary_key=OFF
+        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC
       - key: SPRING_DATASOURCE_USERNAME
         value: avnadmin
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false # Bạn sẽ dán mật khẩu thật vào đây trên Render Dashboard
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: create
+        value: update
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: 2
       - key: SPRING_JPA_HIBERNATE_NAMING_PHYSICAL_STRATEGY
