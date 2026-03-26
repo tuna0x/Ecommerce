@@ -8,7 +8,7 @@ services:
     plan: free # Sử dụng gói Free của Render
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
       - key: SPRING_DATASOURCE_USERNAME
         value: avnadmin
       - key: SPRING_DATASOURCE_PASSWORD
@@ -17,6 +17,10 @@ services:
         value: update
       - key: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
         value: 2
+      - key: SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_BATCH_SIZE
+        value: 50
+      - key: SPRING_JPA_PROPERTIES_HIBERNATE_ORDER_INSERTS
+        value: true
       - key: SPRING_JPA_HIBERNATE_NAMING_PHYSICAL_STRATEGY
         value: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
       - key: JAVA_OPTS
