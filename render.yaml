@@ -17,3 +17,7 @@ services:
         value: update
       - key: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
         value: org.hibernate.dialect.MySQLDialect
+      - key: JAVA_OPTS
+        value: -Xmx384m -Xms384m
+      - key: SERVER_PORT
+        value: 8080
