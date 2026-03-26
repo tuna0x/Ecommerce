@@ -1,0 +1,17 @@
+services:
+  # Spring Boot Application (Web Service)
+  - type: web
+    name: ecommerce-app
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: Dockerfile
+    plan: free # Sử dụng gói Free của Render
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?useSSL=false
+      - key: SPRING_DATASOURCE_USERNAME
+        value: avnadmin
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false # Bạn sẽ dán mật khẩu thật vào đây trên Render Dashboard
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
