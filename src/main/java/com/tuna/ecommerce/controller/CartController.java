@@ -45,17 +45,16 @@ public class CartController {
 
     @PutMapping("/cart")
     @APIMessage("Update cart item quantity successfully")
-    public ResponseEntity<ResAddToCart> updateQuantity(@Valid @RequestBody ReqUpdateQuantityDTO req) {
-        Cart cart=this.cartService.updateQuantity(req);
+    public ResponseEntity<ResAddToCart> updateQuantity(@Valid @RequestBody ReqUpdateQuantityDTO req) throws IdInvalidException {
+        Cart cart = this.cartService.updateQuantity(req);
         return ResponseEntity.ok().body(this.cartService.convertToResAddToCart(cart));
     }
 
     @DeleteMapping("/cart/{id}")
     @APIMessage("Remove item from cart successfully")
-    public ResponseEntity<Void> updateQuantity(
-    @PathVariable ("id") long id) {
+    public ResponseEntity<Void> removeItem(@PathVariable("id") long id) throws IdInvalidException {
         this.cartService.removeItem(id);
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok().build();
     }
 }
 

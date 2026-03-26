@@ -25,9 +25,9 @@ public class ProductDetailService {
         public ProductDetail createProductDetail(ReqCreateProductDetailDTO req) throws IdInvalidException{
             ProductDetail productDetail=new ProductDetail();
             productDetail.setDescription(req.getDescription());
-            productDetail.setIngredient(productDetail.getIngredient());
-            productDetail.setUsageGuide(productDetail.getUsageGuide());
-            productDetail.setSpecification(productDetail.getSpecification());
+            productDetail.setIngredient(req.getIngredient());
+            productDetail.setUsageGuide(req.getUsageGuide());
+            productDetail.setSpecification(req.getSpecification());
 
             Product product= this.productRepository.findById(req.getProductId()).orElse(null);
             if (product!=null) {

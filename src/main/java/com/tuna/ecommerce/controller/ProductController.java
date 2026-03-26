@@ -88,4 +88,10 @@ public class ProductController {
         this.productService.handleDelete(id);
         return ResponseEntity.ok().body(null);
     }
+
+    @GetMapping("/products/{id}/related")
+    @APIMessage("Get related products successfully")
+    public ResponseEntity<List<ResProductDTO>> getRelatedProducts(@PathVariable Long id) {
+        return ResponseEntity.ok().body(this.productService.getRelatedProducts(id));
+    }
 }

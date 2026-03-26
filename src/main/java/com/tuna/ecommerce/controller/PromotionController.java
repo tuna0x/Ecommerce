@@ -42,16 +42,18 @@ public class PromotionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.promotionService.createPromotion(promotion));
     }
 
-    @PutMapping("promotions/active/{id}")
-    public ResponseEntity<Void> activePromotion(@PathVariable ("id") Long id) {
+    @PutMapping("/promotions/active/{id}")
+    @APIMessage("Active Promotion successfully")
+    public ResponseEntity<Void> activePromotion(@PathVariable("id") Long id) throws IdInvalidException {
         this.promotionService.isActive(id);
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok().build();
     }
 
-    @PutMapping("promotions/deactive/{id}")
-    public ResponseEntity<Void> deactivePromotion(@PathVariable ("id") Long id) {
+    @PutMapping("/promotions/deactive/{id}")
+    @APIMessage("Deactive Promotion successfully")
+    public ResponseEntity<Void> deactivePromotion(@PathVariable("id") Long id) throws IdInvalidException {
         this.promotionService.deActive(id);
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/promotions")

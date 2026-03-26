@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -13,5 +15,5 @@ public class ReqUpdateAttributeDTO {
     private Long id;
     private String name;
     private boolean active;
-    private Long categoryId;
+    private List<Long> categoryIds;
 }

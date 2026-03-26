@@ -1,21 +1,22 @@
 package com.tuna.ecommerce.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tuna.ecommerce.domain.Address;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.Coupon;
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.OrderItem;
+import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
-import com.tuna.ecommerce.domain.request.order.ReqCreateOrderDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CouponRepository;
@@ -26,11 +27,13 @@ import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import com.tuna.ecommerce.service.NotificationService;
 
 import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
+@Transactional
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -41,19 +44,22 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final AddressService addressService;
     private final GHTKService ghtkService;
+    private final NotificationService notificationService;
 
-
-    public Order createOder(ReqCheckoutDTO req) throws IdInvalidException{
+    public Order createOder(ReqCheckoutDTO req) throws IdInvalidException {
         String email = this.securityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
-        String couponCode=req.getCouponCode();
-        Address address= this.addressService.getAddressById(req.getAddressId());
-
-        List<CartItem> cartItems= cartItemRepository.findByIdIn(req.getCartItemId());
-        if (cartItems.isEmpty()) {
-            throw new RuntimeException("cart empty");
+        Address address = this.addressService.getAddressById(req.getAddressId());
+        if (address == null) {
+            throw new IdInvalidException("Address not found with id: " + req.getAddressId());
         }
-        Order order= new Order();
+
+        List<CartItem> cartItems = cartItemRepository.findByIdIn(req.getCartItemId());
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Cart is empty");
+        }
+
+        Order order = new Order();
         order.setUser(user);
         order.setReceiverName(address.getReceiverName());
         order.setPhone(address.getPhone());
@@ -61,88 +67,161 @@ public class OrderService {
         order.setDistrict(address.getDistrict());
         order.setWard(address.getWard());
         order.setShippingAddress(address.getDetail());
-
-        order.setDiscountPrice(BigDecimal.valueOf(0.0));
-        order.setStatus(OrderStatusEnum.PENDDING);
-        order.setShippingAddress(address.getDetail());
+        order.setStatus(OrderStatusEnum.PENDING);
         order.setPaymentStatus(PaymentStatusEnum.UNPAID);
+        order.setDiscountPrice(BigDecimal.ZERO);
 
-        List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal total=BigDecimal.ZERO;
+        BigDecimal subTotal = BigDecimal.ZERO;
+        for (CartItem i : cartItems) {
+            Product product = i.getProduct();
+            if (product.getStock() < i.getQuantity()) {
+                throw new RuntimeException("Product " + product.getName() + " is out of stock. Available: " + product.getStock());
+            }
 
-        for(CartItem i: cartItems){
-            OrderItem orderItem=new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(i.getProduct());
+            // Decrement stock
+            product.setStock(product.getStock() - i.getQuantity());
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setProduct(product);
             orderItem.setQuantity(i.getQuantity());
             orderItem.setPrice(i.getUnitPrice());
             orderItem.setSubTotal(i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
-            total=total.add(orderItem.getSubTotal());
-            orderItems.add(orderItem);
+            subTotal = subTotal.add(orderItem.getSubTotal());
+
+            order.addOrderItem(orderItem);
         }
 
-        int weight= this.cartService.calculateTotalWeight(cartItems);
-        int shippingFee= this.ghtkService.calculateFee(address.getProvince(),address.getDistrict() ,weight);
+        order.setTotalPrice(subTotal);
 
-        if (total.compareTo(BigDecimal.valueOf(500000))>0) {
-            order.setShippingFee(0);
-        }else{
+        // Shipping logic
+        int weight = this.cartService.calculateTotalWeight(cartItems);
+        int shippingFeeRaw = this.ghtkService.calculateFee(address.getProvince(), address.getDistrict(), weight);
+        BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO : BigDecimal.valueOf(shippingFeeRaw);
+        order.setShippingFee(shippingFee.intValue());
 
-            order.setShippingFee(shippingFee);
-        }
+        // Coupon logic
+        String couponCode = req.getCouponCode();
+        if (couponCode != null && !couponCode.isBlank()) {
+            Coupon coupon = this.couponRepository.findByCode(couponCode)
+                    .orElseThrow(() -> new IdInvalidException("Coupon code not found: " + couponCode));
 
-        order.setTotalPrice(total);
-        order.setItems(orderItems);
-
-        if (couponCode!=null && !couponCode.isBlank()) {
-            Coupon coupon=this.couponRepository.findByCode(couponCode).orElseThrow(()-> new IdInvalidException("Coupon code not found"));
-            if (coupon.getUsedCount()>coupon.getUsageLimit()) {
+            if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
                 throw new IdInvalidException("Coupon usage limit reached");
             }
-            if (coupon.getMinOrderValue() !=null && order.getTotalPrice().compareTo(coupon.getMinOrderValue()) < 0 ) {
-                throw new IdInvalidException("Coupon usage condition not met");
+            if (coupon.getMinOrderValue() != null && subTotal.compareTo(coupon.getMinOrderValue()) < 0) {
+                throw new IdInvalidException("Order value does not meet coupon requirement");
+            }
+            if (coupon.getStatus() != com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE) {
+                throw new IdInvalidException("Coupon is not active");
             }
             if (coupon.getEndDate().isBefore(LocalDateTime.now())) {
                 throw new IdInvalidException("Coupon is expired");
             }
-            BigDecimal discountPrice=calculateDiscount(coupon, order.getTotalPrice());
-            order.setDiscountPrice(discountPrice);
-            order.setFinalPrice(order.getTotalPrice().subtract(discountPrice));
-            coupon.setUsedCount(coupon.getUsedCount()+1);
+
+            BigDecimal discountAmount = calculateDiscount(coupon, subTotal);
+            order.setDiscountPrice(discountAmount);
+            coupon.setUsedCount(coupon.getUsedCount() + 1);
             this.couponRepository.save(coupon);
         }
 
+        // Final Price = subTotal + shippingFee - discountPrice
+        BigDecimal finalPrice = subTotal.add(shippingFee).subtract(order.getDiscountPrice());
+        order.setFinalPrice(finalPrice);
+
         this.cartItemRepository.deleteAll(cartItems);
+        Order savedOrder = this.orderRepository.save(order);
 
-        return this.orderRepository.save(order);
+        // Gửi thông báo cho User
+        this.notificationService.createNotification(
+            user, 
+            "Đặt hàng thành công", 
+            "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.", 
+            "ORDER_SUCCESS"
+        );
+
+        return savedOrder;
     }
 
-    public Order getOrder(Long id){
-    Optional<Order> orderOptional= this.orderRepository.findById(id);
-    return orderOptional.isPresent() ? orderOptional.get() : null;
+    public Order getOrder(Long id) {
+        Optional<Order> orderOptional = this.orderRepository.findById(id);
+        return orderOptional.isPresent() ? orderOptional.get() : null;
     }
 
-    public ResGetOrderDTO convertToResGetOderDTO(Order order){
-        ResGetOrderDTO res=new ResGetOrderDTO();
-        ResGetOrderDTO.UserInner userInner=new ResGetOrderDTO.UserInner();
-
+    public ResGetOrderDTO convertToResGetOderDTO(Order order) {
+        ResGetOrderDTO res = new ResGetOrderDTO();
         res.setId(order.getId());
 
-        userInner.setId(order.getUser().getId());
-        userInner.setName(order.getUser().getName());
-        userInner.setEmail(order.getUser().getEmail());
-        res.setUser(userInner);
+        if (order.getUser() != null) {
+            ResGetOrderDTO.UserInner userInner = new ResGetOrderDTO.UserInner();
+            userInner.setId(order.getUser().getId());
+            userInner.setName(order.getUser().getName());
+            userInner.setEmail(order.getUser().getEmail());
+            res.setUser(userInner);
+        }
 
         res.setStatus(order.getStatus());
         res.setTotalPrice(order.getFinalPrice());
         res.setPaymentStatus(order.getPaymentStatus());
         res.setShippingAddress(order.getShippingAddress());
-        res.setTransactionID(order.getPayment().getTransactionId());
+
+        if (order.getPayment() != null) {
+            res.setTransactionID(order.getPayment().getTransactionId());
+        }
         return res;
     }
 
-        private BigDecimal calculateDiscount(Coupon coupon, BigDecimal total) {
-        return coupon.getType() == CouponTypeEnum.PERCENT
-                ? coupon.getValue().multiply(total).divide(BigDecimal.valueOf(100))  : coupon.getValue();
+    private BigDecimal calculateDiscount(Coupon coupon, BigDecimal total) {
+        BigDecimal discount;
+        if (coupon.getType() == CouponTypeEnum.PERCENT) {
+            discount = coupon.getValue().multiply(total).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+            if (coupon.getMaxDiscountValue() != null && discount.compareTo(coupon.getMaxDiscountValue()) > 0) {
+                discount = coupon.getMaxDiscountValue();
+            }
+        } else {
+            discount = coupon.getValue();
+        }
+        return discount;
+    }
+
+    public Order handleUpdateStatus(Long id, OrderStatusEnum status) throws IdInvalidException {
+        Order order = this.getOrder(id);
+        if (order == null) {
+            throw new IdInvalidException("Order not found with id: " + id);
+        }
+
+        order.setStatus(status);
+        order = this.orderRepository.save(order);
+
+        // Gửi thông báo tự động dựa trên trạng thái mới
+        String title = "";
+        String message = "";
+        String type = "ORDER_STATUS_UPDATE";
+
+        switch (status) {
+            case CONFIRMED:
+                title = "Đơn hàng đã được xác nhận";
+                message = "Đơn hàng #" + order.getId() + " của bạn đã được xác nhận.";
+                break;
+            case DELIVERING:
+                title = "Đơn hàng đang được giao";
+                message = "Đơn hàng #" + order.getId() + " đang trên đường tới bạn.";
+                break;
+            case DELIVERED:
+                title = "Giao hàng thành công";
+                message = "Đơn hàng #" + order.getId() + " đã được giao thành công. Cảm ơn bạn!";
+                break;
+            case CANCELLED:
+                title = "Đơn hàng đã bị hủy";
+                message = "Rất tiếc, đơn hàng #" + order.getId() + " của bạn đã bị hủy.";
+                break;
+            default:
+                break;
+        }
+
+        if (!title.isEmpty()) {
+            this.notificationService.createNotification(order.getUser(), title, message, type);
+        }
+
+        return order;
     }
 }

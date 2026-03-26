@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.request.category.ReqCreateCategoryDTO;
@@ -19,9 +20,10 @@ import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
+@Transactional
 public class CategoryService {
-    private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
 
     public Category handleCreate(ReqCreateCategoryDTO req){
         Category category=new Category();
@@ -79,8 +81,8 @@ public class CategoryService {
         return rs;
     }
 
-    public boolean findByName(String name){
-        return this.productRepository.existsByName(name);
+    public boolean findByName(String name) {
+        return this.categoryRepository.existsByName(name);
     }
 
     public Category getCategoryByName(String name){

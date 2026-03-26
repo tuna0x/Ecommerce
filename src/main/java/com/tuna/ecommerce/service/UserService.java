@@ -80,6 +80,10 @@ public class UserService {
     public void handleDelete(Long id){
         this.userRepository.deleteById(id);
     }
+
+    public List<User> handleGetAllUsers() {
+        return this.userRepository.findAll();
+    }
     public ResCreateUser convertToResCreateUser(User user){
         ResCreateUser res=new ResCreateUser();
         res.setId(user.getId());

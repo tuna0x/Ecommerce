@@ -14,6 +14,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -30,7 +31,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", indexes = { @Index(name = "idx_product_name", columnList = "name") })
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -53,7 +54,7 @@ public class Product {
     @JsonIgnore
     private ProductDetail productDetail;
 
-    @OneToMany(mappedBy = "product",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     List<ProductImage> images = new ArrayList<>();
 
@@ -69,13 +70,17 @@ public class Product {
     @JsonIgnore
     List<OrderItem> orderItems;
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    List<ProductAttributeValue> productAttributeValues= new ArrayList<>();
+    List<ProductAttributeValue> productAttributeValues = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<ProductPromotion> productPromotions;
+    
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    List<Review> reviews = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "brand_id")
@@ -107,5 +112,15 @@ public class Product {
         public void removeImage(ProductImage productImage){
         images.remove(productImage);
         productImage.setProduct(null);
+    }
+
+    public void addProductAttributeValue(ProductAttributeValue productAttributeValue) {
+        this.productAttributeValues.add(productAttributeValue);
+        productAttributeValue.setProduct(this);
+    }
+
+    public void removeProductAttributeValue(ProductAttributeValue productAttributeValue) {
+        this.productAttributeValues.remove(productAttributeValue);
+        productAttributeValue.setProduct(null);
     }
 }

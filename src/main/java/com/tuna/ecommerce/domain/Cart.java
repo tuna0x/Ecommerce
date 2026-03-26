@@ -3,10 +3,12 @@ package com.tuna.ecommerce.domain;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -38,9 +40,24 @@ public class Cart {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
-    @OneToMany(mappedBy = "cart",fetch =  FetchType.LAZY)
+    @OneToMany(mappedBy = "cart", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<CartItem> items;
+    private List<CartItem> items = new ArrayList<>();
+
+    public void addCartItem(CartItem item) {
+        if (this.items == null) {
+            this.items = new ArrayList<>();
+        }
+        this.items.add(item);
+        item.setCart(this);
+    }
+
+    public void removeCartItem(CartItem item) {
+        if (this.items != null) {
+            this.items.remove(item);
+            item.setCart(null);
+        }
+    }
 
     private Instant createdAt;
     private Instant updatedAt;

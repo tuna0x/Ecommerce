@@ -47,9 +47,11 @@ public class Coupon {
     private Instant updatedAt;
 
         @PrePersist
-    public void handleBeforeCreate(){
+    public void handleBeforeCreate() {
         this.createdAt = Instant.now();
-         this.code="COUPON-"+RandomStringUtils.randomAlphanumeric(6).toUpperCase();
+        if (this.code == null || this.code.isBlank()) {
+            this.code = "COUPON-" + RandomStringUtils.randomAlphanumeric(6).toUpperCase();
+        }
     }
 
         @PreUpdate

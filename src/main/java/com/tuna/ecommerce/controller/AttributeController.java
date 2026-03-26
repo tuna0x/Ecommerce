@@ -1,10 +1,19 @@
 package com.tuna.ecommerce.controller;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.Attribute;
-import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.attribute.ReqCreateAttributeDTO;
 import com.tuna.ecommerce.domain.request.attribute.ReqUpdateAttributeDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
@@ -16,20 +25,6 @@ import com.turkraft.springfilter.boot.Filter;
 
 import lombok.AllArgsConstructor;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-
-
-
 @RestController
 @RequestMapping("/api/v1")
 @AllArgsConstructor
@@ -38,52 +33,42 @@ public class AttributeController {
 
     @APIMessage("Create new attribute")
     @PostMapping("/attributes")
-    public ResponseEntity<ResAttributeDTO> postMethodName(@RequestBody ReqCreateAttributeDTO req) throws IdInvalidException {
-        // if (this.attributeService.existsByName(attribute.getName())) {
-        //     throw new IdInvalidException("attribute name is exists");
-        // }
-        Attribute attribute= this.attributeService.createAttribute(req);
+    public ResponseEntity<ResAttributeDTO> createAttribute(@RequestBody ReqCreateAttributeDTO req) throws IdInvalidException {
+        Attribute attribute = this.attributeService.createAttribute(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.attributeService.convertAttributeDTO(attribute));
     }
 
     @APIMessage("Update attribute")
     @PutMapping("/attributes")
-    public ResponseEntity<ResAttributeDTO> updateAttribute(@RequestBody ReqUpdateAttributeDTO attribute) throws IdInvalidException {
-        Attribute updatedAttribute = this.attributeService.getAttributeById(attribute.getId());
-        if (updatedAttribute == null) {
-            throw new IdInvalidException("attribute id is invalid");
-        }
-        // if (this.attributeService.existsByName(attribute.getName())) {
-        //     throw new IdInvalidException("attribute name is exists");
-        // }
-        updatedAttribute= this.attributeService.updateAttribute(attribute);
+    public ResponseEntity<ResAttributeDTO> updateAttribute(@RequestBody ReqUpdateAttributeDTO req) throws IdInvalidException {
+        Attribute updatedAttribute = this.attributeService.updateAttribute(req);
         return ResponseEntity.ok().body(this.attributeService.convertAttributeDTO(updatedAttribute));
     }
 
-    @GetMapping("/attributes/{id}")
     @APIMessage("Get attribute by id")
-    public ResponseEntity<ResAttributeDTO> getAttributeById(@PathVariable ("id") Long id) throws IdInvalidException {
+    @GetMapping("/attributes/{id}")
+    public ResponseEntity<ResAttributeDTO> getAttributeById(@PathVariable("id") Long id) throws IdInvalidException {
         Attribute attribute = this.attributeService.getAttributeById(id);
-        if (attribute==null) {
-            throw new IdInvalidException("attribute id is invalid");
+        if (attribute == null) {
+            throw new IdInvalidException("Attribute not found with id: " + id);
         }
         return ResponseEntity.ok().body(this.attributeService.convertAttributeDTO(attribute));
     }
-    
-    @GetMapping("/attributes")
+
     @APIMessage("Get all attributes with filter and pagination")
-     public ResponseEntity<ResultPaginationDTO> getAllUser(@Filter Specification<Attribute> spec,Pageable page) {
+    @GetMapping("/attributes")
+    public ResponseEntity<ResultPaginationDTO> getAllAttributes(@Filter Specification<Attribute> spec, Pageable page) {
         return ResponseEntity.ok().body(this.attributeService.getAllAttribute(spec, page));
     }
 
-        @DeleteMapping("/attributes/{id}")
-    @APIMessage("Get attribute by id")
-    public ResponseEntity<Void> deleteAttributeById(@PathVariable ("id") Long id) throws IdInvalidException {
+    @APIMessage("Delete attribute")
+    @DeleteMapping("/attributes/{id}")
+    public ResponseEntity<Void> deleteAttributeById(@PathVariable("id") Long id) throws IdInvalidException {
         Attribute attribute = this.attributeService.getAttributeById(id);
-        if (attribute==null) {
-            throw new IdInvalidException("attribute id is invalid");
+        if (attribute == null) {
+            throw new IdInvalidException("Attribute not found with id: " + id);
         }
         this.attributeService.deleteAttribute(id);
-        return ResponseEntity.ok().body(null);
+        return ResponseEntity.noContent().build();
     }
 }
