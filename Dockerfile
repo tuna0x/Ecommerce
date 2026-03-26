@@ -8,7 +8,7 @@ COPY src ./src
 RUN mvn package -DskipTests
 
 # Run stage
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk-focal
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
