@@ -21,6 +21,8 @@ public class ResProductDTO {
     private String name;
     private String description;
     private BigDecimal originalPrice;
+    private BigDecimal discountPrice;
+    private BigDecimal finalPrice;
     private int stock;
     private int weight;
     private String thumbnail;

@@ -60,7 +60,7 @@ public class ReviewService {
     }
 
     public ResultPaginationDTO getReviewsByProduct(Long productId, Pageable pageable) {
-        Page<Review> pageReview = reviewRepository.findByProductId(productId, pageable);
+        Page<Review> pageReview = reviewRepository.findByProductIdOrderByCreatedAtDesc  (productId, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
 

@@ -20,7 +20,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     boolean existsByName(String name);
 
-    List<Product> findTop8ByCategoryIdAndIdNot(Long categoryId, Long id);
+    List<Product> findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(Long categoryId, Long id);
 
     @Query("SELECT p.originalPrice FROM Product p WHERE p.id = :id")
     Optional<Double> findOriginalPriceById(@Param("id") Long id);

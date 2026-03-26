@@ -28,6 +28,7 @@ import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductImageRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.ReviewRepository;
+import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import lombok.AllArgsConstructor;
@@ -44,6 +45,7 @@ public class ProductService {
     private final CloudinaryService cloudinaryService;
     private final ProductImageRepository productImageRepository;
     private final BrandService brandService;
+    private final PricingService pricingService;
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
@@ -179,7 +181,7 @@ public class ProductService {
         if (product == null || product.getCategory() == null) {
             return new ArrayList<>();
         }
-        List<Product> related = this.productRepository.findTop8ByCategoryIdAndIdNot(product.getCategory().getId(), id);
+        List<Product> related = this.productRepository.findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(product.getCategory().getId(), id);
         return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
@@ -230,6 +232,12 @@ public class ProductService {
 
         res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
         res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
+
+        if (this.pricingService != null) {
+            ResPriceResultDTO priceResult = this.pricingService.calculatePrice(product);
+            res.setDiscountPrice(priceResult.getDiscountPrice());
+            res.setFinalPrice(priceResult.getFinalPrice());
+        }
 
         return res;
     }

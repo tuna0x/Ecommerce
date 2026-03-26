@@ -139,6 +139,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get reviews by product", "/api/v1/reviews/product/{productId}", "GET", "REVIEWS"));
             arr.add(new Permission("Delete a review", "/api/v1/reviews/{id}", "DELETE", "REVIEWS"));
 
+            arr.add(new Permission("Send chat message", "/api/v1/chat", "POST", "CHAT"));
+            arr.add(new Permission("Get chat history", "/api/v1/chat/history", "GET", "CHAT"));
+
             this.permissionRepository.saveAll(arr);
         }
 
