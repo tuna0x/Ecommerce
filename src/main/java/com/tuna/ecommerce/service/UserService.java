@@ -29,9 +29,12 @@ public class UserService {
 
 
     public User handleCreate(User user){
-        if (user.getRole()!=null) {
+        if (user.getRole() != null && user.getRole().getId() != 0) {
             Role role = this.roleService.fetchById(user.getRole().getId());
             user.setRole(role);
+        } else {
+            Role defaultRole = this.roleService.fetchByName("ROLE_USER");
+            user.setRole(defaultRole);
         }
         return this.userRepository.save(user);
     }
@@ -138,6 +141,12 @@ public class UserService {
         user.setName(req.getName());
         user.setEmail(req.getEmail());
         user.setPassword(req.getPassword());
+        
+        Role userRole = this.roleService.fetchByName("ROLE_USER");
+        if (userRole != null) {
+            user.setRole(userRole);
+        }
+        
         return this.userRepository.save(user);
     }
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -38,7 +39,8 @@ public class Role {
     @NotBlank(message = "Name is not blank")
     private String name;
     private String description;
-    private Boolean active;
+    @Column(name = "is_active")
+    private Boolean active = true;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

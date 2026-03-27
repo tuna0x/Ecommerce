@@ -1,4 +1,4 @@
-package com.tuna.ecommerce.domain.request.brand;
+package com.tuna.ecommerce.domain.request.banner;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +9,6 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReqUpdateBrandDTO extends ReqCreateBrandDTO {
+public class ReqUpdateBannerDTO extends ReqCreateBannerDTO {
     private Long id;
 }

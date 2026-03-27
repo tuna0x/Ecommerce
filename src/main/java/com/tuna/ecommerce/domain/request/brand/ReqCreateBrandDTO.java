@@ -11,5 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReqCreateBrandDTO {
     private String name;
+    private String description;
     private String image;
+    private org.springframework.web.multipart.MultipartFile file;
 }

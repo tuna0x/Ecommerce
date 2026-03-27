@@ -8,9 +8,14 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import org.springframework.transaction.annotation.Transactional;
+import com.tuna.ecommerce.domain.Banner;
+import com.tuna.ecommerce.domain.Brand;
 import com.tuna.ecommerce.domain.Permission;
 import com.tuna.ecommerce.domain.Role;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.repository.BannerRepository;
+import com.tuna.ecommerce.repository.BrandRepository;
 import com.tuna.ecommerce.repository.PermissionRepository;
 import com.tuna.ecommerce.repository.RoleRepository;
 import com.tuna.ecommerce.repository.UserRepository;
@@ -22,22 +27,30 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BrandRepository brandRepository;
+    private final BannerRepository bannerRepository;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
-            UserRepository userRepository, PasswordEncoder passwordEncoder) {
+            UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
+            BannerRepository bannerRepository) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.brandRepository = brandRepository;
+        this.bannerRepository = bannerRepository;
     }
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
         System.out.println(">>> START INIT DATABASE");
 
         long countPermissions = this.permissionRepository.count();
         long countRoles = this.roleRepository.count();
         long countUsers = this.userRepository.count();
+        long countBrands = this.brandRepository.count();
+        long countBanners = this.bannerRepository.count();
 
         if (countPermissions == 0) {
             ArrayList<Permission> arr = new ArrayList<>();
@@ -89,17 +102,30 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get a attribute by id", "/api/v1/attributes/{id}", "GET", "ATTRIBUTES"));
             arr.add(new Permission("Get attributes with pagination", "/api/v1/attributes", "GET", "ATTRIBUTES"));
 
+            arr.add(new Permission("Create a banner", "/api/v1/banners", "POST", "BANNERS"));
+            arr.add(new Permission("Update a banner", "/api/v1/banners", "PUT", "BANNERS"));
+            arr.add(new Permission("Delete a banner", "/api/v1/banners/{id}", "DELETE", "BANNERS"));
+            arr.add(new Permission("Get a banner by id", "/api/v1/banners/{id}", "GET", "BANNERS"));
+            arr.add(new Permission("Get banners with pagination", "/api/v1/banners", "GET", "BANNERS"));
+            arr.add(new Permission("Toggle banner active status", "/api/v1/banners/{id}/active", "PATCH", "BANNERS"));
+
             arr.add(new Permission("Create a attribute value", "/api/v1/attributes-values", "POST", "ATTRIBUTE VALUE"));
             arr.add(new Permission("Update a attribute value", "/api/v1/attributes-values", "PUT", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE"));
-            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET", "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE",
+                    "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET",
+                    "ATTRIBUTE VALUE"));
+            arr.add(new Permission("Get attribute values with pagination", "/api/v1/attributes-values", "GET",
+                    "ATTRIBUTE VALUE"));
 
             arr.add(new Permission("Create a product detail", "/api/v1/product-detail", "POST", "PRODUCT DETAIL"));
             arr.add(new Permission("Update a product detail", "/api/v1/product-detail", "PUT", "PRODUCT DETAIL"));
-            arr.add(new Permission("Delete a product detail", "/api/v1/product-detail/{id}", "DELETE", "PRODUCT DETAIL"));
-            arr.add(new Permission("Get a product detail by id", "/api/v1/product-detail/{id}", "GET", "PRODUCT DETAIL"));
-            arr.add(new Permission("Get product-detail with pagination", "/api/v1/product-detail", "GET", "PRODUCT DETAIL"));
+            arr.add(new Permission("Delete a product detail", "/api/v1/product-detail/{id}", "DELETE",
+                    "PRODUCT DETAIL"));
+            arr.add(new Permission("Get a product detail by id", "/api/v1/product-detail/{id}", "GET",
+                    "PRODUCT DETAIL"));
+            arr.add(new Permission("Get product-detail with pagination", "/api/v1/product-detail", "GET",
+                    "PRODUCT DETAIL"));
 
             // Coupons & Promotions
             arr.add(new Permission("Create a coupon", "/api/v1/coupons", "POST", "COUPONS"));
@@ -115,7 +141,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Get promotions with pagination", "/api/v1/promotions", "GET", "PROMOTIONS"));
             arr.add(new Permission("Active a promotion", "/api/v1/promotions/active/{id}", "POST", "PROMOTIONS"));
             arr.add(new Permission("Deactive a promotion", "/api/v1/promotions/deactive/{id}", "POST", "PROMOTIONS"));
-            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST", "PRODUCT PROMOTIONS"));
+            arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST",
+                    "PRODUCT PROMOTIONS"));
 
             // User Operations (Common for Admin & User)
             arr.add(new Permission("Create a address", "/api/v1/addresses", "POST", "ADDRESSES"));
@@ -147,7 +174,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         if (countRoles == 0) {
             List<Permission> allPermissions = this.permissionRepository.findAll();
-            
+
             // 1. SUPER_ADMIN Role
             Role adminRole = new Role();
             adminRole.setName("SUPER_ADMIN");
@@ -166,24 +193,23 @@ public class DatabaseInitializer implements CommandLineRunner {
             List<Permission> userPermissions = allPermissions.stream().filter(p -> {
                 String method = p.getMethod();
                 String url = p.getApiPath();
-                
+
                 // USER can GET products, categories, brands, attributes, etc.
-                boolean isGetPublic = method.equals("GET") && (
-                    url.startsWith("/api/v1/products") || 
-                    url.startsWith("/api/v1/categories") || 
-                    url.startsWith("/api/v1/brands") ||
-                    url.startsWith("/api/v1/attributes") ||
-                    url.startsWith("/api/v1/product-detail") ||
-                    url.startsWith("/api/v1/price") ||
-                    url.startsWith("/api/v1/reviews/product")
-                );
+                boolean isGetPublic = method.equals("GET") && (url.startsWith("/api/v1/products") ||
+                        url.startsWith("/api/v1/categories") ||
+                        url.startsWith("/api/v1/brands") ||
+                        url.startsWith("/api/v1/attributes") ||
+                        url.startsWith("/api/v1/product-detail") ||
+                        url.startsWith("/api/v1/price") ||
+                        url.startsWith("/api/v1/banners") ||
+                        url.startsWith("/api/v1/reviews/product"));
 
                 // USER has full access to Cart, Address, Order, Payment Confirm
-                boolean isUserOwnData = url.startsWith("/api/v1/cart") || 
-                                       url.startsWith("/api/v1/addresses") || 
-                                       url.startsWith("/api/v1/order") || 
-                                       url.startsWith("/api/v1/payment") ||
-                                       url.startsWith("/api/v1/reviews");
+                boolean isUserOwnData = url.startsWith("/api/v1/cart") ||
+                        url.startsWith("/api/v1/addresses") ||
+                        url.startsWith("/api/v1/order") ||
+                        url.startsWith("/api/v1/payment") ||
+                        url.startsWith("/api/v1/reviews");
 
                 return isGetPublic || isUserOwnData;
             }).collect(Collectors.toList());
@@ -202,7 +228,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             admin.setName("SUPER ADMIN");
             admin.setPassword(this.passwordEncoder.encode("123456"));
             Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
-            if (adminRole != null) admin.setRole(adminRole);
+            if (adminRole != null)
+                admin.setRole(adminRole);
             this.userRepository.save(admin);
 
             // Create Regular User
@@ -214,8 +241,24 @@ public class DatabaseInitializer implements CommandLineRunner {
             normalUser.setName("REGULAR USER");
             normalUser.setPassword(this.passwordEncoder.encode("123456"));
             Role userRole = this.roleRepository.findByName("ROLE_USER");
-            if (userRole != null) normalUser.setRole(userRole);
+            if (userRole != null)
+                normalUser.setRole(userRole);
             this.userRepository.save(normalUser);
+        }
+
+        // Sync extra permissions even if table not empty
+        boolean isExistToggleBanner = this.permissionRepository.existsByModuleAndApiPathAndMethod("BANNERS", "/api/v1/banners/{id}/active", "PATCH");
+        if (!isExistToggleBanner) {
+            Permission p = new Permission("Toggle banner active status", "/api/v1/banners/{id}/active", "PATCH", "BANNERS");
+            this.permissionRepository.save(p);
+            
+            // Add to SUPER_ADMIN role
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+                System.out.println(">>> ADDED Toggle Banner Permission TO SUPER_ADMIN");
+            }
         }
     }
 }
