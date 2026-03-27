@@ -1,6 +1,5 @@
 package com.tuna.ecommerce.service;
 
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,30 +20,61 @@ import lombok.AllArgsConstructor;
 @Transactional
 public class BrandService {
     private final BrandRepository brandRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public Brand handleCreate(ReqCreateBrandDTO req) {
+    public Brand handleCreate(ReqCreateBrandDTO req, org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
         Brand newBrand = new Brand();
         newBrand.setName(req.getName());
+        newBrand.setDescription(req.getDescription());
         newBrand.setImage(req.getImage());
+        
+        if (file != null && !file.isEmpty()) {
+            java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+            newBrand.setImage(uploadResult.get("secure_url").toString());
+            newBrand.setPublicId(uploadResult.get("public_id").toString());
+        }
+        
         return this.brandRepository.save(newBrand);
     }
 
-    public Brand handleGetById(long id) {
+    public Brand handleGetById(Long id) {
+        if (id == null) return null;
         return this.brandRepository.findById(id).orElse(null);
     }
 
-    public Brand handleUpdate(ReqUpdateBrandDTO req) {
+    public Brand handleUpdate(ReqUpdateBrandDTO req, org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        if (req == null || req.getId() == null) {
+            return null;
+        }
         Brand cur = this.handleGetById(req.getId());
         if (cur != null) {
             cur.setName(req.getName());
-            cur.setImage(req.getImage());
+            cur.setDescription(req.getDescription());
+            
+            if (file != null && !file.isEmpty()) {
+                // Delete old image if exists
+                if (cur.getPublicId() != null) {
+                    this.cloudinaryService.deleteFile(cur.getPublicId());
+                }
+                
+                java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+                cur.setImage(uploadResult.get("secure_url").toString());
+                cur.setPublicId(uploadResult.get("public_id").toString());
+            }
+            
             return this.brandRepository.save(cur);
         }
         return null;
     }
 
-    public void handleDelete(long id) {
-        this.brandRepository.deleteById(id);
+    public void handleDelete(Long id) throws java.io.IOException {
+        Brand cur = this.handleGetById(id);
+        if (cur != null) {
+            if (cur.getPublicId() != null) {
+                this.cloudinaryService.deleteFile(cur.getPublicId());
+            }
+            this.brandRepository.deleteById(id);
+        }
     }
 
     public ResultPaginationDTO handleGetAll(Specification<Brand> spec, Pageable page) {
@@ -61,7 +91,7 @@ public class BrandService {
         return rs;
     }
 
-    public boolean findByName(String name) {
-        return this.brandRepository.findByName(name);
+    public boolean existsByName(String name) {
+        return this.brandRepository.existsByName(name);
     }
 }

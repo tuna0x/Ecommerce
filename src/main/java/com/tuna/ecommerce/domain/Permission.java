@@ -6,6 +6,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -39,6 +40,9 @@ public class Permission {
     private String method;
     @NotBlank(message = "Module is not blank")
     private String module;
+
+    @Column(name = "is_active")
+    private Boolean active = true;
 
     private Instant createdAt;
     private Instant updatedAt;
