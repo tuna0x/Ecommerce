@@ -18,17 +18,21 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReqCreatePromotionDTO {
+public class ReqUpdatePromotionDTO {
+    private Long id;
     private String name;
     private String description;
 
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
+
     private BigDecimal value;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startAt;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endAt;
 

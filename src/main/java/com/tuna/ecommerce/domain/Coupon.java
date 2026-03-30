@@ -33,6 +33,8 @@ public class Coupon {
     private Long id;
     @NotNull
     private String code;
+    private String name;
+    private String description;
     private CouponTypeEnum type;
     private BigDecimal value;
     private LocalDateTime startDate;

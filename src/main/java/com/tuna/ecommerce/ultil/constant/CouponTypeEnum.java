@@ -2,5 +2,6 @@ package com.tuna.ecommerce.ultil.constant;
 
 public enum CouponTypeEnum {
     PERCENT,
-    FIXED
+    FIXED,
+    FREE_SHIPPING
 }

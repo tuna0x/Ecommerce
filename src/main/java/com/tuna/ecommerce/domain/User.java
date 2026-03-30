@@ -52,6 +52,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private GenderEnum gender;
 
+    @Column(name = "is_active")
+    private Boolean active = true;
+
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
     private Instant createdAt;

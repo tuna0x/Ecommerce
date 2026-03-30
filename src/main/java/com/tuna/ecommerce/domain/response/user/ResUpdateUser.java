@@ -23,4 +23,15 @@ public class ResUpdateUser {
     private Instant updatedAt;
     private String createdBy;
     private String updateBy;
+    private Boolean active;
+    private RoleUser role;
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class RoleUser {
+        private Long id;
+        private String name;
+    }
 }

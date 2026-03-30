@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -79,9 +80,32 @@ public class UserController {
 
     @GetMapping("/users")
     @APIMessage("Get all users successfully")
-    public ResponseEntity<ResultPaginationDTO> getAllUser(@Filter Specification<User> spec,Pageable page) {
+    public ResponseEntity<ResultPaginationDTO> getAllUser(@Filter Specification<User> spec, Pageable page) {
         return ResponseEntity.ok().body(this.userService.handleGetAll(spec, page));
     }
 
+    @PatchMapping("/users/{id}/active")
+    @APIMessage("Toggle user active status successfully")
+    public ResponseEntity<ResUpdateUser> toggleActive(@PathVariable("id") Long id, @RequestBody User user)
+            throws IdInvalidException {
+        User cur = this.userService.handleToggleActive(id, user.getActive());
+        if (cur == null) {
+            throw new IdInvalidException("User id invalid");
+        }
+        return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
+    }
 
+    @PatchMapping("/users/{id}/role")
+    @APIMessage("Update user role successfully")
+    public ResponseEntity<ResUpdateUser> updateRole(@PathVariable("id") Long id, @RequestBody User user)
+            throws IdInvalidException {
+        if (user.getRole() == null || user.getRole().getId() == 0) {
+            throw new IdInvalidException("Role invalid");
+        }
+        User cur = this.userService.handleUpdateRole(id, user.getRole().getId());
+        if (cur == null) {
+            throw new IdInvalidException("User id invalid");
+        }
+        return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
+    }
 }

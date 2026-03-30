@@ -13,6 +13,10 @@ import com.tuna.ecommerce.domain.Promotion;
 public interface ProductPromotionRepository extends JpaRepository<ProductPromotion, Long> {
     boolean existsByProductIdAndPromotionId(Long productId, Long promotionId);
 
+    List<ProductPromotion> findByPromotionId(Long promotionId);
+
+    void deleteByPromotionId(Long promotionId);
+
  @Query("""
         SELECT pp
         FROM ProductPromotion pp
