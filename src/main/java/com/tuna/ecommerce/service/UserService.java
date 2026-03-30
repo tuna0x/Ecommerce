@@ -87,35 +87,91 @@ public class UserService {
     public List<User> handleGetAllUsers() {
         return this.userRepository.findAll();
     }
-    public ResCreateUser convertToResCreateUser(User user){
-        ResCreateUser res=new ResCreateUser();
+    public ResCreateUser convertToResCreateUser(User user) {
+        ResCreateUser res = new ResCreateUser();
         res.setId(user.getId());
         res.setName(user.getName());
         res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
         res.setGender(user.getGender());
         res.setAge(user.getAge());
+        res.setCreatedAt(user.getCreatedAt());
+        res.setUpdatedAt(user.getUpdatedAt());
+        res.setCreatedBy(user.getCreatedBy());
+        res.setUpdateBy(user.getUpdatedBy());
+        res.setActive(user.getActive());
+        if (user.getRole() != null) {
+            ResCreateUser.RoleUser roleRes = new ResCreateUser.RoleUser();
+            roleRes.setId(user.getRole().getId());
+            roleRes.setName(user.getRole().getName());
+            res.setRole(roleRes);
+        }
         return res;
     }
-    public ResUpdateUser convertToResUpdateUser(User user){
-        ResUpdateUser res= new ResUpdateUser();
+
+    public ResUpdateUser convertToResUpdateUser(User user) {
+        ResUpdateUser res = new ResUpdateUser();
         res.setId(user.getId());
         res.setName(user.getName());
         res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
         res.setGender(user.getGender());
         res.setAge(user.getAge());
+        res.setCreatedAt(user.getCreatedAt());
+        res.setUpdatedAt(user.getUpdatedAt());
+        res.setCreatedBy(user.getCreatedBy());
+        res.setUpdateBy(user.getUpdatedBy());
+        res.setActive(user.getActive());
+        if (user.getRole() != null) {
+            ResUpdateUser.RoleUser roleRes = new ResUpdateUser.RoleUser();
+            roleRes.setId(user.getRole().getId());
+            roleRes.setName(user.getRole().getName());
+            res.setRole(roleRes);
+        }
         return res;
     }
-    public ResFetchUser convertToResFetchUser(User user){
-        ResFetchUser res=new ResFetchUser();
+
+    public ResFetchUser convertToResFetchUser(User user) {
+        ResFetchUser res = new ResFetchUser();
         res.setId(user.getId());
         res.setName(user.getName());
         res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
         res.setGender(user.getGender());
         res.setAge(user.getAge());
+        res.setCreatedAt(user.getCreatedAt());
+        res.setUpdatedAt(user.getUpdatedAt());
+        res.setCreatedBy(user.getCreatedBy());
+        res.setUpdateBy(user.getUpdatedBy());
+        res.setActive(user.getActive());
+        if (user.getRole() != null) {
+            ResFetchUser.RoleUser roleRes = new ResFetchUser.RoleUser();
+            roleRes.setId(user.getRole().getId());
+            roleRes.setName(user.getRole().getName());
+            res.setRole(roleRes);
+        }
         return res;
+    }
+
+    public User handleToggleActive(Long id, boolean active) {
+        User user = this.getUserById(id);
+        if (user != null) {
+            user.setActive(active);
+            user = this.userRepository.save(user);
+        }
+        return user;
+    }
+
+    public User handleUpdateRole(Long id, Long roleId) {
+        User user = this.getUserById(id);
+        if (user != null) {
+            Role role = this.roleService.fetchById(roleId);
+            if (role != null) {
+                user.setRole(role);
+                user = this.userRepository.save(user);
+            }
+        }
+        return user;
     }
     public boolean exitsByEmail(String email){
         return this.userRepository.existsByEmail(email);

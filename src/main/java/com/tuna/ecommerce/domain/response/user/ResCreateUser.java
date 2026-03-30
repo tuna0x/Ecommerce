@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -23,5 +24,16 @@ public class ResCreateUser {
     private Instant updatedAt;
     private String createdBy;
     private String updateBy;
+    private Boolean active;
+    private RoleUser role;
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class RoleUser {
+        private Long id;
+        private String name;
+    }
 
 }

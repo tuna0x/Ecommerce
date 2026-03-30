@@ -144,6 +144,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             arr.add(new Permission("Assign promotion to product", "/api/v1/product-promotions", "POST",
                     "PRODUCT PROMOTIONS"));
 
+            arr.add(new Permission("Get assigned products", "/api/v1/promotions/{id}/products", "GET", "PROMOTIONS"));
+            arr.add(new Permission("Assign products to promotion", "/api/v1/promotions/{id}/products", "POST",
+                    "PROMOTIONS"));
+            arr.add(new Permission("Assign all products to promotion", "/api/v1/promotions/{id}/products/all", "POST",
+                    "PROMOTIONS"));
+
             // User Operations (Common for Admin & User)
             arr.add(new Permission("Create a address", "/api/v1/addresses", "POST", "ADDRESSES"));
             arr.add(new Permission("Update a address", "/api/v1/addresses", "PUT", "ADDRESSES"));
@@ -247,17 +253,105 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
 
         // Sync extra permissions even if table not empty
-        boolean isExistToggleBanner = this.permissionRepository.existsByModuleAndApiPathAndMethod("BANNERS", "/api/v1/banners/{id}/active", "PATCH");
+        boolean isExistToggleBanner = this.permissionRepository.existsByModuleAndApiPathAndMethod("BANNERS",
+                "/api/v1/banners/{id}/active", "PATCH");
         if (!isExistToggleBanner) {
-            Permission p = new Permission("Toggle banner active status", "/api/v1/banners/{id}/active", "PATCH", "BANNERS");
+            Permission p = new Permission("Toggle banner active status", "/api/v1/banners/{id}/active", "PATCH",
+                    "BANNERS");
             this.permissionRepository.save(p);
-            
+
             // Add to SUPER_ADMIN role
             Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
             if (adminRole != null) {
                 adminRole.getPermissions().add(p);
                 this.roleRepository.save(adminRole);
                 System.out.println(">>> ADDED Toggle Banner Permission TO SUPER_ADMIN");
+            }
+        }
+
+        boolean isExistToggleUser = this.permissionRepository.existsByModuleAndApiPathAndMethod("USERS",
+                "/api/v1/users/{id}/active", "PATCH");
+        if (!isExistToggleUser) {
+            Permission p = new Permission("Toggle user active status", "/api/v1/users/{id}/active", "PATCH", "USERS");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+                System.out.println(">>> ADDED Toggle User Permission TO SUPER_ADMIN");
+            }
+        }
+
+        boolean isExistUpdateRole = this.permissionRepository.existsByModuleAndApiPathAndMethod("USERS",
+                "/api/v1/users/{id}/role", "PATCH");
+        if (!isExistUpdateRole) {
+            Permission p = new Permission("Update user role", "/api/v1/users/{id}/role", "PATCH", "USERS");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+                System.out.println(">>> ADDED Update Role Permission TO SUPER_ADMIN");
+            }
+        }
+
+        // Sync Promotion PATCH active
+        boolean isExistTogglePromo = this.permissionRepository.existsByModuleAndApiPathAndMethod("PROMOTIONS",
+                "/api/v1/promotions/{id}/active", "PATCH");
+        if (!isExistTogglePromo) {
+            Permission p = new Permission("Toggle promotion active status", "/api/v1/promotions/{id}/active", "PATCH",
+                    "PROMOTIONS");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+        }
+
+        // Sync Coupon PATCH active & DELETE
+        boolean isExistToggleCoupon = this.permissionRepository.existsByModuleAndApiPathAndMethod("COUPONS",
+                "/api/v1/coupons/{id}/active", "PATCH");
+        if (!isExistToggleCoupon) {
+            Permission p = new Permission("Toggle coupon active status", "/api/v1/coupons/{id}/active", "PATCH",
+                    "COUPONS");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+        }
+
+        boolean isExistDeleteCoupon = this.permissionRepository.existsByModuleAndApiPathAndMethod("COUPONS",
+                "/api/v1/coupons/{id}", "DELETE");
+        if (!isExistDeleteCoupon) {
+            Permission p = new Permission("Delete a coupon", "/api/v1/coupons/{id}", "DELETE", "COUPONS");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+        }
+
+        // Sync Promotion Product Management
+        String[][] promoProductPerms = {
+                { "Get assigned products", "/api/v1/promotions/{id}/products", "GET" },
+                { "Assign products to promotion", "/api/v1/promotions/{id}/products", "POST" },
+                { "Assign all products to promotion", "/api/v1/promotions/{id}/products/all", "POST" }
+        };
+
+        for (String[] perm : promoProductPerms) {
+            boolean exists = this.permissionRepository.existsByModuleAndApiPathAndMethod("PROMOTIONS", perm[1], perm[2]);
+            if (!exists) {
+                Permission p = new Permission(perm[0], perm[1], perm[2], "PROMOTIONS");
+                this.permissionRepository.save(p);
+                Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+                if (adminRole != null) {
+                    adminRole.getPermissions().add(p);
+                    this.roleRepository.save(adminRole);
+                }
             }
         }
     }

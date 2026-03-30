@@ -1,9 +1,9 @@
 package com.tuna.ecommerce.domain.request.coupon;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.tuna.ecommerce.ultil.constant.CouponStatus;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 
@@ -19,10 +19,14 @@ import lombok.Setter;
 public class ReqUpdateCouponDTO {
     private Long id;
     private String code;
+    private String name;
+    private String description;
     private CouponTypeEnum type;
     private BigDecimal value;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate startDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate endDate;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
     private Integer usageLimit;

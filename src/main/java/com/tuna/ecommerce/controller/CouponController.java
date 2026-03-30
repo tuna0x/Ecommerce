@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
@@ -60,9 +62,32 @@ public class CouponController {
     }
 
     @GetMapping("/coupons")
-    @APIMessage("Get all coupons successfully")
-    public ResponseEntity<ResultPaginationDTO> getAllCoupon(@Filter Specification<Coupon> spec, Pageable page) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.couponService.handleGetAll(spec, page));
+    @APIMessage("Get coupons successfully")
+    public ResponseEntity<ResultPaginationDTO> getAllCoupons(@Filter Specification<Coupon> spec, Pageable page) {
+        return ResponseEntity.ok(this.couponService.handleGetAll(spec, page));
     }
 
+    @DeleteMapping("/coupons/{id}")
+    @APIMessage("Delete coupon successfully")
+    public ResponseEntity<Void> deleteCoupon(@PathVariable("id") Long id) throws IdInvalidException {
+        if (this.couponService.getById(id) == null) {
+            throw new IdInvalidException("coupon not found");
+        }
+        this.couponService.deleteCoupon(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/coupons/{id}/active")
+    @APIMessage("Toggle coupon active status")
+    public ResponseEntity<Void> toggleStatus(@PathVariable("id") Long id, @RequestParam("active") boolean active)
+            throws IdInvalidException {
+        Coupon coupon = this.couponService.getById(id);
+        if (coupon == null) {
+            throw new IdInvalidException("coupon not found");
+        }
+        this.couponService.toggleStatus(id,
+                active ? com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE
+                        : com.tuna.ecommerce.ultil.constant.CouponStatus.DISABLED);
+        return ResponseEntity.ok().build();
+    }
 }

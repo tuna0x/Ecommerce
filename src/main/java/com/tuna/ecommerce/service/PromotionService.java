@@ -1,5 +1,8 @@
 package com.tuna.ecommerce.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -11,6 +14,7 @@ import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.request.promotion.ReqAssignPromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqCreatePromotionDTO;
+import com.tuna.ecommerce.domain.request.promotion.ReqUpdatePromotionDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
@@ -31,11 +35,15 @@ public class PromotionService {
 
     public Promotion createPromotion(ReqCreatePromotionDTO req) {
         Promotion promotion = new Promotion();
+        promotion.setName(req.getName());
+        promotion.setDescription(req.getDescription());
         promotion.setType(req.getType());
+        promotion.setValue(req.getValue());
+        promotion.setMinOrderValue(req.getMinOrderValue());
+        promotion.setMaxDiscountValue(req.getMaxDiscountValue());
         promotion.setStartAt(req.getStartAt());
         promotion.setEndAt(req.getEndAt());
-        promotion.setValue(req.getValue());
-        promotion.setActive(false);
+        promotion.setActive(req.isActive());
         return promotionRepository.save(promotion);
     }
 
@@ -68,14 +76,20 @@ public class PromotionService {
         return promotionRepository.findById(id).orElse(null);
     }
 
-    public Promotion updatePromotion(Promotion promotion) {
-        Promotion existingPromotion = this.getPromotionById(promotion.getId());
-        if (existingPromotion != null) {
-            existingPromotion.setType(promotion.getType());
-            existingPromotion.setValue(promotion.getValue());
-            existingPromotion.setStartAt(promotion.getStartAt());
-            existingPromotion.setEndAt(promotion.getEndAt());
-            return this.promotionRepository.save(existingPromotion);
+    public Promotion updatePromotion(ReqUpdatePromotionDTO dto) {
+        if (dto.getId() == null) return null;
+        Promotion current = this.getPromotionById(dto.getId());
+        if (current != null) {
+            current.setName(dto.getName());
+            current.setDescription(dto.getDescription());
+            current.setType(dto.getType());
+            current.setValue(dto.getValue());
+            current.setMinOrderValue(dto.getMinOrderValue());
+            current.setMaxDiscountValue(dto.getMaxDiscountValue());
+            current.setStartAt(dto.getStartAt());
+            current.setEndAt(dto.getEndAt());
+            current.setActive(dto.isActive());
+            return this.promotionRepository.save(current);
         }
         return null;
     }
@@ -125,5 +139,62 @@ public class PromotionService {
 
     public boolean existById(Long id) {
         return this.promotionRepository.existsById(id);
+    }
+
+    public List<Product> getProductsByPromotionId(Long promotionId) {
+        return this.productPromotionRepository.findByPromotionId(promotionId)
+                .stream()
+                .map(ProductPromotion::getProduct)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void assignProductsToPromotion(Long promotionId, List<Long> productIds) throws IdInvalidException {
+        Promotion promotion = this.getPromotionById(promotionId);
+        if (promotion == null) {
+            throw new IdInvalidException("Promotion not found with id: " + promotionId);
+        }
+
+        // 1. Clear current assignments
+        this.productPromotionRepository.deleteByPromotionId(promotionId);
+
+        // 2. Add new ones
+        if (productIds != null && !productIds.isEmpty()) {
+            List<ProductPromotion> newAssignments = productIds.stream()
+                    .map(pid -> {
+                        Product p = this.productRepository.findById(pid).orElse(null);
+                        if (p != null) {
+                            ProductPromotion pp = new ProductPromotion();
+                            pp.setProduct(p);
+                            pp.setPromotion(promotion);
+                            return pp;
+                        }
+                        return null;
+                    })
+                    .filter(pp -> pp != null)
+                    .collect(Collectors.toList());
+            this.productPromotionRepository.saveAll(newAssignments);
+        }
+    }
+
+    @Transactional
+    public void assignAllProductsToPromotion(Long promotionId) throws IdInvalidException {
+        Promotion promotion = this.getPromotionById(promotionId);
+        if (promotion == null) {
+            throw new IdInvalidException("Promotion not found with id: " + promotionId);
+        }
+
+        this.productPromotionRepository.deleteByPromotionId(promotionId);
+
+        List<Product> allProducts = this.productRepository.findAll();
+        List<ProductPromotion> newAssignments = allProducts.stream()
+                .map(p -> {
+                    ProductPromotion pp = new ProductPromotion();
+                    pp.setProduct(p);
+                    pp.setPromotion(promotion);
+                    return pp;
+                })
+                .collect(Collectors.toList());
+        this.productPromotionRepository.saveAll(newAssignments);
     }
 }
