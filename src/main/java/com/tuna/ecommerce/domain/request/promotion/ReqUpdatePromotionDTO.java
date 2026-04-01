@@ -36,6 +36,6 @@ public class ReqUpdatePromotionDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endAt;
 
-    @JsonProperty("isActive")
-    private boolean isActive;
+    @JsonProperty("active")
+    private boolean active;
 }
