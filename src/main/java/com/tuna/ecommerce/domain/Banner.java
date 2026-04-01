@@ -34,6 +34,8 @@ public class Banner {
     @NotBlank(message = "title is not blank")
     private String title;
 
+    private String subtitle;
+
     private String image;
     private String publicId;
     private String link;
