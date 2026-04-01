@@ -27,6 +27,7 @@ public class RestLoginDTO {
         private Long id;
         private String email;
         private String name;
+        private String image;
         private Role role;
 
     }
@@ -47,5 +48,6 @@ public class RestLoginDTO {
         private Long id;
         private String email;
         private String name;
+        private String image;
     }
 }

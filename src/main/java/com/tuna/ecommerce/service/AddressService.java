@@ -14,7 +14,6 @@ import com.tuna.ecommerce.domain.request.address.ReqCreateAddressDTO;
 import com.tuna.ecommerce.domain.request.address.ReqUpdateAddressDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.address.ResAddressDTO;
-import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.repository.AddressRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
@@ -24,11 +23,10 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class AddressService {
     private final AddressRepository addressRepository;
-    private final SecurityUtil securityUtil;
     private final UserService userService;
 
-    public User findByUser(){
-        String email =this.securityUtil.getCurrentUserLogin().isPresent() ? this.securityUtil.getCurrentUserLogin().get():null;
+    public User findByUser() {
+        String email = SecurityUtil.getCurrentUserLogin().isPresent() ? SecurityUtil.getCurrentUserLogin().get() : null;
         return this.userService.findByUsername(email);
     }
 
@@ -36,15 +34,24 @@ public class AddressService {
 
         User user= this.findByUser();
 
-        Address address= new Address();
+        Address address = new Address();
         address.setReceiverName(req.getReceiverName());
         address.setPhone(req.getPhone());
         address.setProvince(req.getProvince());
         address.setDistrict(req.getDistrict());
         address.setWard(req.getWard());
         address.setDetail(req.getDetail());
-        address.setDefault(false);
+        address.setDefault(req.isDefault());
         address.setUser(user);
+
+        if (req.isDefault()) {
+            List<Address> addresses = this.addressRepository.findByUserId(user.getId());
+            for (Address add : addresses) {
+                add.setDefault(false);
+            }
+            this.addressRepository.saveAll(addresses);
+        }
+
         return this.addressRepository.save(address);
     }
 
@@ -52,53 +59,79 @@ public class AddressService {
         return this.addressRepository.findById(id).orElse(null);
     }
 
-    public Address UpdateAddress(ReqUpdateAddressDTO req){
-        Address address= this.getAddressById(req.getId());
-        if (address!=null) {
-        address.setReceiverName(req.getReceiverName());
-        address.setPhone(req.getPhone());
-        address.setProvince(req.getProvince());
-        address.setDistrict(req.getDistrict());
-        address.setWard(req.getWard());
-        address.setDetail(req.getDetail());
-        address=this.addressRepository.save(address);
+    public Address UpdateAddress(ReqUpdateAddressDTO req) {
+        User user = this.findByUser();
+        Address address = this.getAddressById(req.getId());
+        if (address != null && address.getUser().getId().equals(user.getId())) {
+            address.setReceiverName(req.getReceiverName());
+            address.setPhone(req.getPhone());
+            address.setProvince(req.getProvince());
+            address.setDistrict(req.getDistrict());
+            address.setWard(req.getWard());
+            address.setDetail(req.getDetail());
+
+            if (req.isDefault() && !address.isDefault()) {
+                List<Address> addresses = this.addressRepository.findByUserId(user.getId());
+                for (Address add : addresses) {
+                    add.setDefault(false);
+                }
+                this.addressRepository.saveAll(addresses);
+                address.setDefault(true);
+            } else if (!req.isDefault() && address.isDefault()) {
+                // If unsetting default, we might want to ensure at least one remains default, 
+                // but for now we follow the request.
+                address.setDefault(false);
+            }
+
+            address = this.addressRepository.save(address);
         }
         return address;
     }
 
-        public ResultPaginationDTO getAllAddress(Specification<Address> spec, Pageable page) {
-        Page<Address> address = this.addressRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
+    public ResultPaginationDTO getAllAddress(Specification<Address> spec, Pageable page) {
+        User user = this.findByUser();
+        Specification<Address> userSpec = (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("user").get("id"),
+                user.getId());
+
+        Specification<Address> combinedSpec = (spec == null) ? userSpec : spec.and(userSpec);
+
+        Page<Address> address = this.addressRepository.findAll(combinedSpec, page);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(address.getNumber() + 1);
         meta.setPageSize(address.getSize());
         meta.setPages(address.getTotalPages());
         meta.setTotal(address.getTotalElements());
 
-        List<ResAddressDTO> list=address.getContent().stream().map(item->this.convertToAddressDTO(item)).collect(Collectors.toList());
+        List<ResAddressDTO> list = address.getContent().stream().map(item -> this.convertToAddressDTO(item))
+                .collect(Collectors.toList());
 
         rs.setMeta(meta);
         rs.setResult(list);
         return rs;
     }
 
-    public void deleteById(Long id){
-        this.addressRepository.deleteById(id);
+    public void deleteById(Long id) {
+        User user = this.findByUser();
+        Address address = this.getAddressById(id);
+        if (address != null && address.getUser().getId().equals(user.getId())) {
+            this.addressRepository.deleteById(id);
+        }
     }
 
-    public void setDefaultAddress(long addressId){
-        User user= this.findByUser();
+    public void setDefaultAddress(long addressId) {
+        User user = this.findByUser();
+        Address targetAddress = this.getAddressById(addressId);
 
-        List<Address> addresses= this.addressRepository.findByUserId(user.getId());
+        if (targetAddress != null && targetAddress.getUser().getId().equals(user.getId())) {
+            List<Address> addresses = this.addressRepository.findByUserId(user.getId());
 
-        for(Address add: addresses){
-            add.setDefault(false);
+            for (Address add : addresses) {
+                add.setDefault(add.getId().equals(addressId));
+            }
+
+            addressRepository.saveAll(addresses);
         }
-
-     Address address= this.addressRepository.findById(addressId).orElse(null);
-    address.setDefault(true);
-    addressRepository.saveAll(addresses);
-
     }
 
     public ResAddressDTO convertToAddressDTO(Address address){
@@ -114,11 +147,13 @@ public class AddressService {
         res.setDetail(address.getDetail());
         res.setDefault(address.isDefault());
 
-        User user= this.findByUser();
+        User user = this.findByUser();
         userInner.setId(user.getId());
         userInner.setEmail(user.getEmail());
-        userInner.setName(user.getName());
+        if (user.getUserProfile() != null) {
+            userInner.setName(user.getUserProfile().getName());
+        }
         res.setUserInner(userInner);
-    return res;
+        return res;
     }
 }

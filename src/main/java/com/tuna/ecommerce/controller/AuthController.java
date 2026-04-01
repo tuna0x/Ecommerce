@@ -28,7 +28,7 @@ import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @RequestMapping("/api/v1")
 @RestController
@@ -64,11 +64,14 @@ public class AuthController {
     RestLoginDTO res=new RestLoginDTO();
         User curUserDB=this.userService.findByUsername(loginDTO.getUsername());
         if (curUserDB!=null) {
-            RestLoginDTO.UserLogin userLogin=new RestLoginDTO.UserLogin(
-                curUserDB.getId(),
-                curUserDB.getEmail(),
-                curUserDB.getName(),
-                curUserDB.getRole());
+            RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin();
+            userLogin.setId(curUserDB.getId());
+            userLogin.setEmail(curUserDB.getEmail());
+            userLogin.setRole(curUserDB.getRole());
+            if (curUserDB.getUserProfile() != null) {
+                userLogin.setName(curUserDB.getUserProfile().getName());
+                userLogin.setImage(curUserDB.getUserProfile().getImage());
+            }
             res.setUser(userLogin);
 
         }
@@ -105,10 +108,13 @@ public class AuthController {
          RestLoginDTO.UserLogin userLogin=new RestLoginDTO.UserLogin();
          RestLoginDTO.UserGetAccount userGetAccount=new RestLoginDTO.UserGetAccount();
 
-            if (curUser!=null) {
+            if (curUser != null) {
                 userLogin.setId(curUser.getId());
                 userLogin.setEmail(curUser.getEmail());
-                userLogin.setName(curUser.getName());
+                if (curUser.getUserProfile() != null) {
+                    userLogin.setName(curUser.getUserProfile().getName());
+                    userLogin.setImage(curUser.getUserProfile().getImage());
+                }
                 userGetAccount.setUser(userLogin);
             }
         return ResponseEntity.ok().body(userGetAccount);
@@ -135,14 +141,16 @@ public class AuthController {
         // issue new token/ set refresh token as cookies
         RestLoginDTO res=new RestLoginDTO();
         User curUserDB=this.userService.findByUsername(email);
-        if (curUserDB!=null) {
-            RestLoginDTO.UserLogin userLogin=new RestLoginDTO.UserLogin(
-                curUserDB.getId(),
-                curUserDB.getEmail(),
-                curUserDB.getName(),
-                curUserDB.getRole());
-                res.setUser(userLogin);
-
+        if (curUserDB != null) {
+            RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin();
+            userLogin.setId(curUserDB.getId());
+            userLogin.setEmail(curUserDB.getEmail());
+            userLogin.setRole(curUserDB.getRole());
+            if (curUserDB.getUserProfile() != null) {
+                userLogin.setName(curUserDB.getUserProfile().getName());
+                userLogin.setImage(curUserDB.getUserProfile().getImage());
+            }
+            res.setUser(userLogin);
         }
            String access_token= this.securityUtil.createAccessToken(email,res);
         res.setAccessToken(access_token);
@@ -170,9 +178,9 @@ public class AuthController {
     @PostMapping("/auth/logout")
     @APIMessage("User logged out successfully")
     public ResponseEntity<Void> logout() throws IdInvalidException{
-        String email= SecurityUtil.getCurrentUserLogin().isPresent() ? SecurityUtil.getCurrentUserLogin().get() :null;
-        if (email.equals("")) {
-            throw new IdInvalidException("Access token ko hợp lệ");
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null || email.isEmpty()) {
+            throw new IdInvalidException("Access token không hợp lệ");
         }
         this.userService.updateUserToken(null, email);
 

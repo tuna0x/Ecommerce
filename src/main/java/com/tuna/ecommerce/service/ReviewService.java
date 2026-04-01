@@ -80,7 +80,10 @@ public class ReviewService {
         res.setId(review.getId());
         res.setRating(review.getRating());
         res.setComment(review.getComment());
-        res.setUserName(review.getUser().getName());
+        if (review.getUser().getUserProfile() != null) {
+            res.setUserName(review.getUser().getUserProfile().getName());
+            res.setUserImage(review.getUser().getUserProfile().getImage());
+        }
         res.setCreatedAt(review.getCreatedAt());
         return res;
     }

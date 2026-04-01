@@ -9,11 +9,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
-import com.tuna.ecommerce.domain.Banner;
-import com.tuna.ecommerce.domain.Brand;
 import com.tuna.ecommerce.domain.Permission;
 import com.tuna.ecommerce.domain.Role;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.domain.UserProfile;
 import com.tuna.ecommerce.repository.BannerRepository;
 import com.tuna.ecommerce.repository.BrandRepository;
 import com.tuna.ecommerce.repository.PermissionRepository;
@@ -49,8 +48,6 @@ public class DatabaseInitializer implements CommandLineRunner {
         long countPermissions = this.permissionRepository.count();
         long countRoles = this.roleRepository.count();
         long countUsers = this.userRepository.count();
-        long countBrands = this.brandRepository.count();
-        long countBanners = this.bannerRepository.count();
 
         if (countPermissions == 0) {
             ArrayList<Permission> arr = new ArrayList<>();
@@ -228,11 +225,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Create Admin
             User admin = new User();
             admin.setEmail("admin@gmail.com");
-            admin.setAddress("HA NOI");
-            admin.setAge(20);
-            admin.setGender(GenderEnum.MALE);
-            admin.setName("SUPER ADMIN");
             admin.setPassword(this.passwordEncoder.encode("123456"));
+
+            UserProfile adminProfile = new UserProfile();
+            adminProfile.setName("SUPER ADMIN");
+            adminProfile.setAge(20);
+            adminProfile.setGender(GenderEnum.MALE);
+            adminProfile.setImage("https://ui-avatars.com/api/?name=Super+Admin&background=random");
+            adminProfile.setUser(admin);
+            admin.setUserProfile(adminProfile);
+
             Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
             if (adminRole != null)
                 admin.setRole(adminRole);
@@ -241,11 +243,16 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Create Regular User
             User normalUser = new User();
             normalUser.setEmail("user@gmail.com");
-            normalUser.setAddress("HA NOI");
-            normalUser.setAge(18);
-            normalUser.setGender(GenderEnum.FEMALE);
-            normalUser.setName("REGULAR USER");
             normalUser.setPassword(this.passwordEncoder.encode("123456"));
+
+            UserProfile userProfile = new UserProfile();
+            userProfile.setName("REGULAR USER");
+            userProfile.setAge(18);
+            userProfile.setGender(GenderEnum.FEMALE);
+            userProfile.setImage("https://ui-avatars.com/api/?name=Regular+User&background=random");
+            userProfile.setUser(normalUser);
+            normalUser.setUserProfile(userProfile);
+
             Role userRole = this.roleRepository.findByName("ROLE_USER");
             if (userRole != null)
                 normalUser.setRole(userRole);
