@@ -28,8 +28,11 @@ public class BannerService {
     public Banner handleCreate(ReqCreateBannerDTO req, MultipartFile file) throws IOException {
         Banner banner = new Banner();
         banner.setTitle(req.getTitle());
+        banner.setSubtitle(req.getSubtitle());
+        banner.setDescription(req.getDescription());
         banner.setLink(req.getLink());
         banner.setPosition(req.getPosition());
+        banner.setOrder(req.getOrder());
         banner.setActive(req.getIsActive());
         banner.setStartDate(req.getStartDate());
         banner.setEndDate(req.getEndDate());
@@ -48,6 +51,8 @@ public class BannerService {
         Banner cur = this.handleGetById(req.getId());
         if (cur != null) {
             cur.setTitle(req.getTitle());
+            cur.setSubtitle(req.getSubtitle());
+            cur.setDescription(req.getDescription());
             cur.setLink(req.getLink());
             cur.setPosition(req.getPosition());
             cur.setOrder(req.getOrder());
@@ -60,8 +65,10 @@ public class BannerService {
                     this.cloudinaryService.deleteFile(cur.getPublicId());
                 }
                 Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
-                cur.setImage(uploadResult.get("secure_url").toString());
-                cur.setPublicId(uploadResult.get("public_id").toString());
+                if (uploadResult != null && uploadResult.get("secure_url") != null) {
+                    cur.setImage(uploadResult.get("secure_url").toString());
+                    cur.setPublicId(uploadResult.get("public_id").toString());
+                }
             }
 
             return this.bannerRepository.save(cur);
