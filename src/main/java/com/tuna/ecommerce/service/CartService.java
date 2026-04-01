@@ -118,7 +118,9 @@ public class CartService {
         if (cart.getUser() != null) {
             ResGetCart.UserInner resUser = new ResGetCart.UserInner();
             resUser.setId(cart.getUser().getId());
-            resUser.setName(cart.getUser().getName());
+            if (cart.getUser().getUserProfile() != null) {
+                resUser.setName(cart.getUser().getUserProfile().getName());
+            }
             res.setUser(resUser);
         }
 
@@ -141,7 +143,9 @@ public class CartService {
         if (cart.getUser() != null) {
             ResAddToCart.UserInner resUser = new ResAddToCart.UserInner();
             resUser.setId(cart.getUser().getId());
-            resUser.setName(cart.getUser().getName());
+            if (cart.getUser().getUserProfile() != null) {
+                resUser.setName(cart.getUser().getUserProfile().getName());
+            }
             res.setUser(resUser);
         }
 

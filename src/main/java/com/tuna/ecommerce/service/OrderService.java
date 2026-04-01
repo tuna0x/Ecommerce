@@ -154,7 +154,9 @@ public class OrderService {
         if (order.getUser() != null) {
             ResGetOrderDTO.UserInner userInner = new ResGetOrderDTO.UserInner();
             userInner.setId(order.getUser().getId());
-            userInner.setName(order.getUser().getName());
+            if (order.getUser().getUserProfile() != null) {
+                userInner.setName(order.getUser().getUserProfile().getName());
+            }
             userInner.setEmail(order.getUser().getEmail());
             res.setUser(userInner);
         }

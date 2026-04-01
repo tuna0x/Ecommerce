@@ -20,6 +20,7 @@ import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.domain.response.user.ResUpdateUser;
+import com.tuna.ecommerce.domain.request.user.ReqUpdateUserDTO;
 import com.tuna.ecommerce.service.UserService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -50,12 +51,12 @@ public class UserController {
     }
 
     @PutMapping("/users")
-    @APIMessage("Update user successfully")
-    public ResponseEntity<ResUpdateUser> updateUser(@RequestBody User user) throws IdInvalidException {
-        if (this.userService.getUserById(user.getId())==null) {
-            throw new IdInvalidException("user is valid");
+    @APIMessage("Update user profile successfully")
+    public ResponseEntity<ResUpdateUser> updateUser(@RequestBody ReqUpdateUserDTO userDto) throws IdInvalidException {
+        if (this.userService.getUserById(userDto.getId())==null) {
+            throw new IdInvalidException("user id is invalid");
         }
-        User cur=this.userService.handleCreate(user);
+        User cur=this.userService.handleUpdateProfile(userDto);
         return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
     }
 

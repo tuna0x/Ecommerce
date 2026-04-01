@@ -11,15 +11,17 @@ import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Role;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.domain.UserProfile;
+import com.tuna.ecommerce.ultil.constant.GenderEnum;
 import com.tuna.ecommerce.domain.request.auth.ReqRegisterDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.domain.response.user.ResUpdateUser;
+import com.tuna.ecommerce.domain.request.user.ReqUpdateUserDTO;
 import com.tuna.ecommerce.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
-
 
 @Service
 @AllArgsConstructor
@@ -27,8 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
 
-
-    public User handleCreate(User user){
+    public User handleCreate(User user) {
         if (user.getRole() != null && user.getRole().getId() != 0) {
             Role role = this.roleService.fetchById(user.getRole().getId());
             user.setRole(role);
@@ -36,70 +37,130 @@ public class UserService {
             Role defaultRole = this.roleService.fetchByName("ROLE_USER");
             user.setRole(defaultRole);
         }
+
+        // Initialize UserProfile if not present
+        if (user.getUserProfile() != null) {
+            user.getUserProfile().setUser(user);
+        }
+
         return this.userRepository.save(user);
     }
 
-    public User getUserById(Long id){
-        Optional<User> user=this.userRepository.findById(id);
-        return user.isPresent() ? user.get() : null;
+    public User getUserById(Long id) {
+        Optional<User> userOptional = this.userRepository.findById(id);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            // Lazy initialization for existing users without profile
+            if (user.getUserProfile() == null) {
+                UserProfile profile = new UserProfile();
+                profile.setUser(user);
+                // Try to set a default name from email if needed, or leave blank
+                profile.setName("User_" + user.getId());
+                user.setUserProfile(profile);
+                this.userRepository.save(user);
+            }
+            return user;
+        }
+        return null;
     }
 
-    public User handleUpdate(User user){
-        User curUser =getUserById(user.getId());
-        if (curUser !=null) {
-            curUser.setId(user.getId());
-            curUser.setName(user.getName());
-            curUser.setAddress(user.getAddress());
+    public User handleUpdate(User user) {
+        User curUser = getUserById(user.getId());
+        if (curUser != null) {
             curUser.setEmail(user.getEmail());
-            curUser.setGender(user.getGender());
-            curUser.setPassword(user.getPassword());
+            if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+                curUser.setPassword(user.getPassword());
+            }
 
-            if (user.getRole()!=null) {
-            Role role = this.roleService.fetchById(user.getRole().getId());
-            curUser.setRole(role);
-        }
+            if (user.getUserProfile() != null) {
+                UserProfile curProfile = curUser.getUserProfile();
+                if (user.getUserProfile().getName() != null) curProfile.setName(user.getUserProfile().getName());
+                if (user.getUserProfile().getAge() != 0) curProfile.setAge(user.getUserProfile().getAge());
+                if (user.getUserProfile().getGender() != null) {
+                    try {
+                        curProfile.setGender(user.getUserProfile().getGender());
+                    } catch (Exception e) {
+                        // Handle potential enum mapping issues if needed
+                    }
+                }
+                if (user.getUserProfile().getImage() != null) curProfile.setImage(user.getUserProfile().getImage());
+            }
 
-            user=this.userRepository.save(curUser);
+            if (user.getRole() != null) {
+                Role role = this.roleService.fetchById(user.getRole().getId());
+                curUser.setRole(role);
+            }
+
+            curUser = this.userRepository.save(curUser);
         }
-        return user;
+        return curUser;
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<User> spec, Pageable page){
-        Page<User> user= this.userRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
+    public User handleUpdateProfile(ReqUpdateUserDTO req) {
+        User curUser = getUserById(req.getId());
+        if (curUser != null) {
+            UserProfile curProfile = curUser.getUserProfile();
+            if (req.getName() != null) curProfile.setName(req.getName());
+            if (req.getAge() != 0) curProfile.setAge(req.getAge());
+            if (req.getGender() != null) {
+                try {
+                    curProfile.setGender(GenderEnum.valueOf(req.getGender().toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    // Ignore or handle invalid gender string
+                }
+            }
+            if (req.getImage() != null) curProfile.setImage(req.getImage());
+            
+            curUser = this.userRepository.save(curUser);
+        }
+        return curUser;
+    }
+
+    public ResultPaginationDTO handleGetAll(Specification<User> spec, Pageable page) {
+        Page<User> user = this.userRepository.findAll(spec, page);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
         meta.setPage(user.getNumber() + 1);
         meta.setPageSize(user.getSize());
         meta.setPages(user.getTotalPages());
         meta.setTotal(user.getTotalElements());
 
-        List<ResFetchUser> list=user.getContent().stream().map(item->this.convertToResFetchUser(item)).collect(Collectors.toList());
+        List<ResFetchUser> list = user.getContent().stream()
+                .map(item -> this.convertToResFetchUser(item))
+                .collect(Collectors.toList());
 
         rs.setMeta(meta);
         rs.setResult(list);
         return rs;
     }
 
-    public void handleDelete(Long id){
+    public void handleDelete(Long id) {
         this.userRepository.deleteById(id);
     }
 
     public List<User> handleGetAllUsers() {
         return this.userRepository.findAll();
     }
+
     public ResCreateUser convertToResCreateUser(User user) {
         ResCreateUser res = new ResCreateUser();
         res.setId(user.getId());
-        res.setName(user.getName());
-        res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
-        res.setGender(user.getGender());
-        res.setAge(user.getAge());
+
+        UserProfile profile = user.getUserProfile();
+        if (profile != null) {
+            res.setName(profile.getName());
+            res.setGender(profile.getGender());
+            res.setAge(profile.getAge());
+            res.setImage(profile.getImage());
+        }
+
         res.setCreatedAt(user.getCreatedAt());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+
         if (user.getRole() != null) {
             ResCreateUser.RoleUser roleRes = new ResCreateUser.RoleUser();
             roleRes.setId(user.getRole().getId());
@@ -112,16 +173,22 @@ public class UserService {
     public ResUpdateUser convertToResUpdateUser(User user) {
         ResUpdateUser res = new ResUpdateUser();
         res.setId(user.getId());
-        res.setName(user.getName());
-        res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
-        res.setGender(user.getGender());
-        res.setAge(user.getAge());
+
+        UserProfile profile = user.getUserProfile();
+        if (profile != null) {
+            res.setName(profile.getName());
+            res.setGender(profile.getGender());
+            res.setAge(profile.getAge());
+            res.setImage(profile.getImage());
+        }
+
         res.setCreatedAt(user.getCreatedAt());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+
         if (user.getRole() != null) {
             ResUpdateUser.RoleUser roleRes = new ResUpdateUser.RoleUser();
             roleRes.setId(user.getRole().getId());
@@ -134,16 +201,22 @@ public class UserService {
     public ResFetchUser convertToResFetchUser(User user) {
         ResFetchUser res = new ResFetchUser();
         res.setId(user.getId());
-        res.setName(user.getName());
-        res.setAddress(user.getAddress());
         res.setEmail(user.getEmail());
-        res.setGender(user.getGender());
-        res.setAge(user.getAge());
+
+        UserProfile profile = user.getUserProfile();
+        if (profile != null) {
+            res.setName(profile.getName());
+            res.setGender(profile.getGender());
+            res.setAge(profile.getAge());
+            res.setImage(profile.getImage());
+        }
+
         res.setCreatedAt(user.getCreatedAt());
         res.setUpdatedAt(user.getUpdatedAt());
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+
         if (user.getRole() != null) {
             ResFetchUser.RoleUser roleRes = new ResFetchUser.RoleUser();
             roleRes.setId(user.getRole().getId());
@@ -173,10 +246,12 @@ public class UserService {
         }
         return user;
     }
-    public boolean exitsByEmail(String email){
+
+    public boolean exitsByEmail(String email) {
         return this.userRepository.existsByEmail(email);
     }
-    public User findByUsername(String email){
+
+    public User findByUsername(String email) {
         return this.userRepository.findByEmail(email);
     }
 
@@ -189,20 +264,24 @@ public class UserService {
     }
 
     public User getUserByRefreshTokenAndEmail(String token, String email) {
-        return this.userRepository.findByRefreshTokenAndEmail(token,email);
+        return this.userRepository.findByRefreshTokenAndEmail(token, email);
     }
 
-    public User register(ReqRegisterDTO req){
-        User user=new User();
-        user.setName(req.getName());
+    public User register(ReqRegisterDTO req) {
+        User user = new User();
         user.setEmail(req.getEmail());
         user.setPassword(req.getPassword());
-        
+
+        UserProfile profile = new UserProfile();
+        profile.setName(req.getName());
+        profile.setUser(user);
+        user.setUserProfile(profile);
+
         Role userRole = this.roleService.fetchByName("ROLE_USER");
         if (userRole != null) {
             user.setRole(userRole);
         }
-        
+
         return this.userRepository.save(user);
     }
 }

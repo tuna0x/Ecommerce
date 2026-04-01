@@ -16,9 +16,9 @@ public class ResFetchUser {
     private Long id;
     private String name;
     private String email;
-    private String address;
     private int age;
     private GenderEnum gender;
+    private String image;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
