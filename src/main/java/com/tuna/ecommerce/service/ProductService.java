@@ -122,6 +122,23 @@ public class ProductService {
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         cur.setBrand(brand);
 
+        // Update Attributes
+        if (product.getAttributeValue() != null) {
+            // Remove old ones
+            cur.getProductAttributeValues().clear();
+            
+            // Add new ones
+            for (Long id : product.getAttributeValue()) {
+                AttributeValue attributeValue = this.attributeValueRepository.findById(id).orElse(null);
+                if (attributeValue != null) {
+                    ProductAttributeValue pav = new ProductAttributeValue();
+                    pav.setProduct(cur);
+                    pav.setAttributeValue(attributeValue);
+                    cur.getProductAttributeValues().add(pav);
+                }
+            }
+        }
+
         if (files != null && !files.isEmpty()) {
             // Delete old images only if new images are provided (optional logic, could be
             // different)

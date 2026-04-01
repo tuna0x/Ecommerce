@@ -22,7 +22,7 @@ public interface ProductPromotionRepository extends JpaRepository<ProductPromoti
         FROM ProductPromotion pp
         JOIN FETCH pp.promotion p
         WHERE pp.product.id = :productId
-          AND p.isActive = true
+          AND p.active = true
           AND (p.startAt IS NULL OR p.startAt <= CURRENT_TIMESTAMP)
           AND (p.endAt IS NULL OR p.endAt >= CURRENT_TIMESTAMP)
     """)

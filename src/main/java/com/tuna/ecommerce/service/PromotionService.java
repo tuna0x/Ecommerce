@@ -131,10 +131,6 @@ public class PromotionService {
         productPromotion.setProduct(product);
         productPromotion.setPromotion(promotion);
         this.productPromotionRepository.save(productPromotion);
-        
-        // Ensure promotion marked as active if applied to a product
-        promotion.setActive(true);
-        this.promotionRepository.save(promotion);
     }
 
     public boolean existById(Long id) {
