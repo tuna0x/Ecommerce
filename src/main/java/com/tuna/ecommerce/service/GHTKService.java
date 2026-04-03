@@ -46,7 +46,7 @@ public class GHTKService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public Integer calculateFee(String province, String district, Integer weight) {
+    public Integer calculateFee(String province, String district, double weight) {
         try {
             // Using a standard URL builder pattern
             String api = UriComponentsBuilder.fromUriString(url + "/services/shipment/fee")
@@ -54,7 +54,7 @@ public class GHTKService {
                     .queryParam("pick_district", pickDistrict)
                     .queryParam("province", province)
                     .queryParam("district", district)
-                    .queryParam("weight", weight)
+                    .queryParam("weight", (int) weight)
                     .build()
                     .encode()
                     .toUriString();
@@ -123,7 +123,7 @@ public class GHTKService {
                 for (OrderItem item : order.getItems()) {
                     Map<String, Object> p = new HashMap<>();
                     p.put("name", item.getProduct() != null ? item.getProduct().getName() : "Sản phẩm");
-                    p.put("weight", 0.5); 
+                    p.put("weight", item.getProductVariant() != null ? item.getProductVariant().getWeight() : 0.5); 
                     p.put("quantity", item.getQuantity());
                     p.put("price", item.getPrice() != null ? item.getPrice().intValue() : 0);
                     products.add(p);

@@ -43,6 +43,11 @@ public class CartItem {
     private int quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
+
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

@@ -33,6 +33,30 @@ public class ResProductDTO {
     private Double averageRating;
     private Long reviewCount;
     private int soldCount;
+    private List<ProductVariantInner> variants;
+
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProductVariantInner {
+        private Long id;
+        private String sku;
+        private BigDecimal price;
+        private int stock;
+        private double weight;
+        private List<VariantAttributeInner> variantAttributes;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class VariantAttributeInner {
+        private String name;
+        private String value;
+    }
 
 
     @Getter
@@ -60,6 +84,8 @@ public class ResProductDTO {
     public static class ValueInner {
         private Long id;
         private String value;
+        private Long attributeId;
+        private String attributeName;
     }
 
 

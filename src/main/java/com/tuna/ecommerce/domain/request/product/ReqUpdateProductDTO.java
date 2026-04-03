@@ -22,8 +22,19 @@ public class ReqUpdateProductDTO {
     private String description;
     private BigDecimal originalPrice;
     private int stock;
-    private int weight;
     private List<Long> attributeValue;
     private Long categoryId;
     private Long brandId;
+    private List<String> image; // List of existing image URLs to keep
+    private List<VariantDTO> variants;
+
+    @Getter
+    @Setter
+    public static class VariantDTO {
+        private String sku;
+        private BigDecimal price;
+        private int stock;
+        private double weight;
+        private List<Long> attributeValues;
+    }
 }

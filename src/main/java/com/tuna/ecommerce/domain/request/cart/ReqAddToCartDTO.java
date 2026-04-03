@@ -14,6 +14,9 @@ import lombok.Setter;
 public class ReqAddToCartDTO {
     @NotNull(message = "Product id is required")
     private Long productId;
-    @Min(value = 1,message = "Quantity must be at least 1")
-    private int quantity=1;
+    
+    @Min(value = 1, message = "Quantity must be at least 1")
+    private int quantity = 1;
+
+    private Long variantId;
 }
