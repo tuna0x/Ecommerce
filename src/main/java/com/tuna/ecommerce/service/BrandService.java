@@ -27,6 +27,8 @@ public class BrandService {
         newBrand.setName(req.getName());
         newBrand.setDescription(req.getDescription());
         newBrand.setImage(req.getImage());
+        newBrand.setIsFeatured(req.getIsFeatured() != null ? req.getIsFeatured() : false);
+        newBrand.setActive(req.getActive() != null ? req.getActive() : true);
         
         if (file != null && !file.isEmpty()) {
             java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
@@ -50,6 +52,8 @@ public class BrandService {
         if (cur != null) {
             cur.setName(req.getName());
             cur.setDescription(req.getDescription());
+            cur.setIsFeatured(req.getIsFeatured() != null ? req.getIsFeatured() : false);
+            cur.setActive(req.getActive() != null ? req.getActive() : true);
             
             if (file != null && !file.isEmpty()) {
                 // Delete old image if exists

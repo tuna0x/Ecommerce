@@ -32,6 +32,7 @@ public class ResProductDTO {
     private List<ValueInner> attributeValue;
     private Double averageRating;
     private Long reviewCount;
+    private int soldCount;
 
 
     @Getter

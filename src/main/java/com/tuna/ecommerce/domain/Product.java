@@ -62,6 +62,8 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    private int soldCount = 0;
+
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<CartItem> cartItems;

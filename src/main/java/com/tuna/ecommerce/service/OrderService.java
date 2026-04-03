@@ -78,8 +78,9 @@ public class OrderService {
                 throw new RuntimeException("Product " + product.getName() + " is out of stock. Available: " + product.getStock());
             }
 
-            // Decrement stock
+            // Decrement stock and increment sold count
             product.setStock(product.getStock() - i.getQuantity());
+            product.setSoldCount(product.getSoldCount() + i.getQuantity());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
