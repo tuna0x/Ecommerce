@@ -249,6 +249,7 @@ public class ProductService {
 
         res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
         res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
+        res.setSoldCount(product.getSoldCount());
 
         if (this.pricingService != null) {
             ResPriceResultDTO priceResult = this.pricingService.calculatePrice(product);

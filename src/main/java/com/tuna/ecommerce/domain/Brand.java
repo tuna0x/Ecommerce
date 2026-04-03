@@ -42,6 +42,9 @@ public class Brand {
     @Column(name = "is_active")
     private Boolean active = true;
 
+    @Column(name = "is_featured")
+    private Boolean isFeatured = false;
+
     private String image;
     private String publicId;
     private Instant createdAt;
