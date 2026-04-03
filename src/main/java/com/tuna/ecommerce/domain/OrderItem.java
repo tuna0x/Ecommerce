@@ -33,6 +33,10 @@ public class OrderItem {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @ManyToOne
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
+
     private int quantity;
     private BigDecimal price;
     private BigDecimal subTotal;

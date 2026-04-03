@@ -84,6 +84,7 @@ public class OrderService {
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
+            orderItem.setProductVariant(i.getProductVariant());
             orderItem.setQuantity(i.getQuantity());
             orderItem.setPrice(i.getUnitPrice());
             orderItem.setSubTotal(i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
@@ -95,8 +96,8 @@ public class OrderService {
         order.setTotalPrice(subTotal);
 
         // Shipping logic
-        int weight = this.cartService.calculateTotalWeight(cartItems);
-        int shippingFeeRaw = this.ghtkService.calculateFee(address.getProvince(), address.getDistrict(), weight);
+        double weight = this.cartService.calculateTotalWeight(cartItems);
+        int shippingFeeRaw = this.ghtkService.calculateFee(address.getProvince(), address.getDistrict(), (int) weight);
         BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO : BigDecimal.valueOf(shippingFeeRaw);
         order.setShippingFee(shippingFee.intValue());
 

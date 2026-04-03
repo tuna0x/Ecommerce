@@ -1,6 +1,7 @@
 package com.tuna.ecommerce.service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,8 @@ import com.tuna.ecommerce.repository.ProductImageRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.ReviewRepository;
 import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
+import com.tuna.ecommerce.domain.ProductVariant;
+import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import lombok.AllArgsConstructor;
@@ -46,6 +49,7 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final BrandService brandService;
     private final PricingService pricingService;
+    private final ProductVariantRepository productVariantRepository;
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
@@ -59,7 +63,6 @@ public class ProductService {
         newProduct.setOriginalPrice(product.getOriginalPrice());
         newProduct.setStock(product.getStock());
         newProduct.setCategory(category);
-        newProduct.setWeight(product.getWeight());
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         if (brand != null) {
@@ -94,7 +97,29 @@ public class ProductService {
             }
         }
 
-        return newProduct;
+        if (product.getVariants() != null) {
+            for (ReqCreateProductDTO.VariantDTO vDto : product.getVariants()) {
+                ProductVariant variant = new ProductVariant();
+                variant.setProduct(newProduct);
+                variant.setSku(vDto.getSku());
+                variant.setPrice(vDto.getPrice());
+                variant.setStock(vDto.getStock());
+                variant.setWeight(vDto.getWeight());
+                
+                if (vDto.getAttributeValues() != null) {
+                    List<AttributeValue> avs = vDto.getAttributeValues().stream()
+                        .map(id -> this.attributeValueRepository.findById(id).orElse(null))
+                        .filter(av -> av != null)
+                        .collect(Collectors.toList());
+                    variant.setAttributeValues(avs);
+                }
+                this.productVariantRepository.save(variant);
+                newProduct.getVariants().add(variant);
+            }
+        }
+
+        this.syncProductWithVariants(newProduct);
+        return this.productRepository.save(newProduct);
     }
 
     public Product handleGetById(long id) {
@@ -117,7 +142,6 @@ public class ProductService {
         cur.setOriginalPrice(product.getOriginalPrice());
         cur.setStock(product.getStock());
         cur.setCategory(category);
-        cur.setWeight(product.getWeight());
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         cur.setBrand(brand);
@@ -139,15 +163,59 @@ public class ProductService {
             }
         }
 
-        if (files != null && !files.isEmpty()) {
-            // Delete old images only if new images are provided (optional logic, could be
-            // different)
+        // Update Variants
+        if (product.getVariants() != null) {
+            // Clear old variants (orphanRemoval will handle deletion if configured, else manual delete)
+            cur.getVariants().clear();
+            
+            for (ReqUpdateProductDTO.VariantDTO vDto : product.getVariants()) {
+                ProductVariant variant = new ProductVariant();
+                variant.setProduct(cur);
+                variant.setSku(vDto.getSku());
+                variant.setPrice(vDto.getPrice());
+                variant.setStock(vDto.getStock());
+                variant.setWeight(vDto.getWeight());
+                
+                if (vDto.getAttributeValues() != null) {
+                    List<AttributeValue> avs = vDto.getAttributeValues().stream()
+                        .map(id -> this.attributeValueRepository.findById(id).orElse(null))
+                        .filter(av -> av != null)
+                        .collect(Collectors.toList());
+                    variant.setAttributeValues(avs);
+                }
+                cur.getVariants().add(variant);
+            }
+        }
+
+        // Update Images (Selective Deletion)
+        if (product.getImage() != null) {
+            List<String> keepUrls = product.getImage();
+            List<ProductImage> toDelete = cur.getImages().stream()
+                    .filter(img -> !keepUrls.contains(img.getImageUrl()))
+                    .collect(Collectors.toList());
+
+            for (ProductImage img : toDelete) {
+                try {
+                    this.cloudinaryService.deleteFile(img.getPublicId());
+                } catch (Exception e) {
+                    // Log or handle deletion error
+                }
+                this.productImageRepository.delete(img);
+                cur.getImages().remove(img);
+            }
+        } else if (files != null && !files.isEmpty()) {
+            // Legacy behavior: if no keep-list provided but new files are, clear all
             for (ProductImage img : new ArrayList<>(cur.getImages())) {
-                this.cloudinaryService.deleteFile(img.getPublicId());
+                try {
+                    this.cloudinaryService.deleteFile(img.getPublicId());
+                } catch (Exception e) {
+                }
                 this.productImageRepository.delete(img);
             }
             cur.getImages().clear();
+        }
 
+        if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
                 ProductImage image = new ProductImage();
@@ -159,7 +227,34 @@ public class ProductService {
             }
         }
 
+        this.syncProductWithVariants(cur);
         return this.productRepository.save(cur);
+    }
+
+    private void syncProductWithVariants(Product product) {
+        if (product.getVariants() == null || product.getVariants().isEmpty()) {
+            return;
+        }
+
+        BigDecimal minPrice = null;
+        int totalStock = 0;
+
+        for (ProductVariant variant : product.getVariants()) {
+            // Price synchronization (using originalPrice as the base display price)
+            if (variant.getPrice() != null) {
+                if (minPrice == null || variant.getPrice().compareTo(minPrice) < 0) {
+                    minPrice = variant.getPrice();
+                }
+            }
+            
+            // Stock synchronization (sum of all variants)
+            totalStock += variant.getStock();
+        }
+
+        if (minPrice != null) {
+            product.setOriginalPrice(minPrice);
+        }
+        product.setStock(totalStock);
     }
 
     public void handleDelete(long id) throws IOException {
@@ -212,7 +307,6 @@ public class ProductService {
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
         res.setStock(product.getStock());
-        res.setWeight(product.getWeight());
 
         if (product.getImages() != null) {
             List<String> imageUrls = product.getImages().stream()
@@ -241,10 +335,37 @@ public class ProductService {
                         ResProductDTO.ValueInner v = new ResProductDTO.ValueInner();
                         v.setId(pav.getAttributeValue().getId());
                         v.setValue(pav.getAttributeValue().getValue());
+                        v.setAttributeId(pav.getAttributeValue().getAttribute().getId());
+                        v.setAttributeName(pav.getAttributeValue().getAttribute().getName());
                         return v;
                     })
                     .collect(Collectors.toList());
             res.setAttributeValue(valueInners);
+        }
+
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            List<ResProductDTO.ProductVariantInner> variantInners = product.getVariants().stream()
+                    .map(v -> {
+                        ResProductDTO.ProductVariantInner vi = new ResProductDTO.ProductVariantInner();
+                        vi.setId(v.getId());
+                        vi.setSku(v.getSku());
+                        vi.setPrice(v.getPrice());
+                        vi.setStock(v.getStock());
+                        vi.setWeight(v.getWeight());
+                        
+                        List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
+                            .map(av -> {
+                                ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
+                                va.setName(av.getAttribute().getName());
+                                va.setValue(av.getValue());
+                                return va;
+                            })
+                            .collect(Collectors.toList());
+                        vi.setVariantAttributes(vaInners);
+                        return vi;
+                    })
+                    .collect(Collectors.toList());
+            res.setVariants(variantInners);
         }
 
         res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));

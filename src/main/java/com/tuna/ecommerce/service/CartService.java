@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.tuna.ecommerce.domain.Cart;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.Product;
+import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.cart.ReqAddToCartDTO;
 import com.tuna.ecommerce.domain.request.cart.ReqUpdateQuantityDTO;
@@ -19,24 +20,25 @@ import com.tuna.ecommerce.domain.response.cart.ResAddToCart;
 import com.tuna.ecommerce.domain.response.cart.ResGetCart;
 import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CartRepository;
+import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Transactional
 public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductService productService;
-    private final SecurityUtil securityUtil;
     private final UserRepository userRepository;
+    private final ProductVariantRepository productVariantRepository;
 
     public Cart getOrCreateCart() {
-        String email = this.securityUtil.getCurrentUserLogin().orElse(null);
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         if (email == null) return null;
 
         User user = this.userRepository.findByEmail(email);
@@ -61,24 +63,34 @@ public class CartService {
             throw new IdInvalidException("Product not found with id: " + req.getProductId());
         }
 
-        // Check if item already exists in cart using stream or repository
-        // Stream approach is safe here because cart items are usually few
+        ProductVariant variant = null;
+        if (req.getVariantId() != null) {
+            variant = this.productVariantRepository.findById(req.getVariantId())
+                    .orElseThrow(() -> new IdInvalidException("Variant not found with id: " + req.getVariantId()));
+        }
+
+        final ProductVariant finalVariant = variant;
+
+        // Check if item already exists in cart with SAME product AND SAME variant
         CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(req.getProductId()))
+                .filter(item -> item.getProduct().getId().equals(req.getProductId()) &&
+                               (finalVariant == null ? item.getProductVariant() == null : 
+                                finalVariant.getId().equals(item.getProductVariant() != null ? item.getProductVariant().getId() : null)))
                 .findFirst()
                 .orElse(null);
 
-        BigDecimal price = product.getOriginalPrice();
+        BigDecimal price = variant != null && variant.getPrice() != null ? variant.getPrice() : product.getOriginalPrice();
+        
         if (cartItem == null) {
             cartItem = new CartItem();
             cartItem.setProduct(product);
             cartItem.setQuantity(req.getQuantity());
             cartItem.setUnitPrice(price);
             cartItem.setTotalPrice(price.multiply(BigDecimal.valueOf(req.getQuantity())));
+            cartItem.setProductVariant(variant);
             cart.addCartItem(cartItem);
         } else {
             cartItem.setQuantity(cartItem.getQuantity() + req.getQuantity());
-            // Sync price to latest
             cartItem.setUnitPrice(price);
             cartItem.setTotalPrice(price.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
         }
@@ -94,9 +106,8 @@ public class CartService {
         if (req.getQuantity() <= 0) {
             cart.removeCartItem(item);
         } else {
-            BigDecimal price = item.getProduct().getOriginalPrice();
+            BigDecimal price = item.getUnitPrice();
             item.setQuantity(req.getQuantity());
-            item.setUnitPrice(price); // Sync with current price
             item.setTotalPrice(price.multiply(BigDecimal.valueOf(req.getQuantity())));
         }
 
@@ -130,7 +141,11 @@ public class CartService {
                         new ResGetCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName()),
                         x.getUnitPrice(),
                         x.getQuantity(),
-                        x.getTotalPrice()))
+                        x.getTotalPrice(),
+                        x.getProductVariant() != null ? x.getProductVariant().getId() : null,
+                        x.getProductVariant() != null ? x.getProductVariant().getAttributeValues().stream()
+                                .map(av -> new ResGetCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getValue()))
+                                .collect(Collectors.toList()) : null))
                 .collect(Collectors.toList());
         res.setItem(list);
         return res;
@@ -155,19 +170,23 @@ public class CartService {
                         new ResAddToCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName()),
                         x.getUnitPrice(),
                         x.getQuantity(),
-                        x.getTotalPrice()))
+                        x.getTotalPrice(),
+                        x.getProductVariant() != null ? x.getProductVariant().getId() : null,
+                        x.getProductVariant() != null ? x.getProductVariant().getAttributeValues().stream()
+                                .map(av -> new ResAddToCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getValue()))
+                                .collect(Collectors.toList()) : null))
                 .collect(Collectors.toList());
         res.setItem(list);
         return res;
     }
 
-    public Integer calculateTotalWeight(List<CartItem> items) {
-        if (items == null) return 0;
-        int totalWeight = 0;
+    public double calculateTotalWeight(List<CartItem> items) {
+        if (items == null) return 0.0;
+        double totalWeight = 0.0;
         for (CartItem item : items) {
-            Product product = item.getProduct();
-            if (product != null && product.getWeight() != null) {
-                totalWeight += product.getWeight() * item.getQuantity();
+            ProductVariant variant = item.getProductVariant();
+            if (variant != null) {
+                totalWeight += variant.getWeight() * item.getQuantity();
             }
         }
         return totalWeight;

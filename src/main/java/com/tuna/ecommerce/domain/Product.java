@@ -16,8 +16,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
@@ -44,7 +42,6 @@ public class Product {
     private String name;
     private BigDecimal originalPrice;
     private int stock;
-    private Integer weight;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
@@ -56,7 +53,11 @@ public class Product {
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    List<ProductImage> images = new ArrayList<>();
+    private List<ProductImage> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<ProductVariant> variants = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "category_id")
@@ -114,6 +115,16 @@ public class Product {
         public void removeImage(ProductImage productImage){
         images.remove(productImage);
         productImage.setProduct(null);
+    }
+
+    public void addVariant(ProductVariant variant) {
+        variants.add(variant);
+        variant.setProduct(this);
+    }
+
+    public void removeVariant(ProductVariant variant) {
+        variants.remove(variant);
+        variant.setProduct(null);
     }
 
     public void addProductAttributeValue(ProductAttributeValue productAttributeValue) {

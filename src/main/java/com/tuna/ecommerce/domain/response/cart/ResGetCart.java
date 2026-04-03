@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import com.tuna.ecommerce.domain.ProductImage;
+import java.util.ArrayList;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,6 +38,17 @@ public class ResGetCart {
     private BigDecimal unitPrice;
     private int quantity;
     private BigDecimal totalPrice;
+    private Long variantId;
+    private List<VariantAttributeInner> variantAttributes;
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class VariantAttributeInner {
+        private String name;
+        private String value;
+    }
 
         @AllArgsConstructor
         @NoArgsConstructor
