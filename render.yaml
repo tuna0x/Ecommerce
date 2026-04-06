@@ -8,7 +8,7 @@ services:
     plan: free # Sử dụng gói Free của Render
     envVars:
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/defaultdb?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
+        value: jdbc:mysql://mysqlfortuna-ecommercewithtuna.j.aivencloud.com:14863/ecommerce?sslMode=REQUIRED&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
       - key: SPRING_DATASOURCE_USERNAME
         value: avnadmin
       - key: SPRING_DATASOURCE_PASSWORD

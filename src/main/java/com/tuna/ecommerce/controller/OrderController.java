@@ -65,6 +65,14 @@ public class OrderController {
         return ResponseEntity.ok().body(this.orderService.fetchOrdersByUser(pageable));
     }
 
+    @GetMapping("/order/admin/all")
+    @APIMessage("admin get all orders")
+    public ResponseEntity<ResultPaginationDTO> getAllOrders(
+            Pageable pageable,
+            @RequestParam(value = "status", required = false) OrderStatusEnum status) {
+        return ResponseEntity.ok().body(this.orderService.fetchAllOrders(pageable, status));
+    }
+
     @PutMapping("/order/{id}/status")
     @APIMessage("update order status")
     public ResponseEntity<Order> updateOrderStatus(@PathVariable("id") Long id, @RequestParam("status") OrderStatusEnum status) throws IdInvalidException {

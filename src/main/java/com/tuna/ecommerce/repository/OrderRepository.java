@@ -28,6 +28,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    Page<Order> findByStatusOrderByCreatedAtDesc(com.tuna.ecommerce.ultil.constant.OrderStatusEnum status, Pageable pageable);
+
     @Query("SELECT COUNT(o) > 0 FROM Order o JOIN o.items i WHERE o.user.id = :userId AND i.product.id = :productId AND o.status = 'DELIVERED'")
     boolean hasPurchasedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 

@@ -66,13 +66,38 @@ public class OrderService {
 
         rs.setMeta(mt);
 
-        // Convert list Order to ResGetOrderDTO
         List<ResGetOrderDTO> listOrder = pageOrder.getContent()
                 .stream().map(item -> this.convertToResGetOderDTO(item))
                 .collect(java.util.stream.Collectors.toList());
 
         rs.setResult(listOrder);
 
+        return rs;
+    }
+
+    public ResultPaginationDTO fetchAllOrders(Pageable pageable, OrderStatusEnum status) {
+        Page<Order> pageOrder;
+        if (status != null) {
+            pageOrder = this.orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
+        } else {
+            pageOrder = this.orderRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(pageOrder.getTotalPages());
+        mt.setTotal(pageOrder.getTotalElements());
+
+        rs.setMeta(mt);
+
+        List<ResGetOrderDTO> listOrder = pageOrder.getContent()
+                .stream().map(item -> this.convertToResGetOderDTO(item))
+                .collect(java.util.stream.Collectors.toList());
+
+        rs.setResult(listOrder);
         return rs;
     }
 
