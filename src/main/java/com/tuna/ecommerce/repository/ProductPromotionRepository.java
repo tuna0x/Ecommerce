@@ -27,4 +27,14 @@ public interface ProductPromotionRepository extends JpaRepository<ProductPromoti
           AND (p.endAt IS NULL OR p.endAt >= :now)
     """)
     List<ProductPromotion> findActiveByProductId(Long productId, java.time.LocalDateTime now);
+
+    @Query("""
+        SELECT pp
+        FROM ProductPromotion pp
+        JOIN FETCH pp.promotion p
+        WHERE p.active = true
+          AND (p.startAt IS NULL OR p.startAt <= :now)
+          AND (p.endAt IS NULL OR p.endAt >= :now)
+    """)
+    List<ProductPromotion> findAllActive(java.time.LocalDateTime now);
 }

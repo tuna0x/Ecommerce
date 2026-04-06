@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class PricingService {
     private final ProductPromotionRepository productPromotionRepository;
+    private final com.tuna.ecommerce.repository.PromotionRepository promotionRepository;
 
     /**
      * Calculates the best discount (highest value) among all applicable promotions.
@@ -65,8 +66,10 @@ public class PricingService {
         }
 
         BigDecimal originalPrice = product.getOriginalPrice();
-        List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(),
-                java.time.LocalDateTime.now());
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        // 1. Specific Product Promotions
+        List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(), now);
 
         List<Promotion> promotions = new ArrayList<>();
         if (productPromos != null) {
@@ -74,6 +77,20 @@ public class PricingService {
                 if (pp.getPromotion() != null) {
                     promotions.add(pp.getPromotion());
                 }
+            }
+        }
+
+        // 2. Global Promotions
+        List<Promotion> globalPromos = this.promotionRepository.findActiveGlobal(now);
+        if (globalPromos != null) {
+            promotions.addAll(globalPromos);
+        }
+
+        // 3. Category Promotions
+        if (product.getCategory() != null) {
+            List<Promotion> categoryPromos = this.promotionRepository.findActiveByCategoryId(product.getCategory().getId(), now);
+            if (categoryPromos != null) {
+                promotions.addAll(categoryPromos);
             }
         }
 

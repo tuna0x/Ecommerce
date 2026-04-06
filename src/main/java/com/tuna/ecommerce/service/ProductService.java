@@ -36,6 +36,7 @@ import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
+import com.tuna.ecommerce.repository.PromotionRepository;
 
 import lombok.AllArgsConstructor;
 
@@ -54,6 +55,7 @@ public class ProductService {
     private final PricingService pricingService;
     private final ProductVariantRepository productVariantRepository;
     private final ProductPromotionRepository productPromotionRepository;
+    private final PromotionRepository promotionRepository;
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
@@ -304,6 +306,72 @@ public class ProductService {
         return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
+    public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        // 1. Check for Global Promotions
+        List<Promotion> globalPromos = this.promotionRepository.findActiveGlobal(now);
+        if (globalPromos != null && !globalPromos.isEmpty()) {
+            // If any global promotion is active, all products are in "Flash Sale"
+            Page<Product> allProducts = this.productRepository.findAll(pageable);
+            return this.convertToResultPaginationDTO(allProducts);
+        }
+
+        // 2. Collect Category IDs with active promotions
+        List<Category> allCategories = this.categoryService.handleGetAll();
+        List<Long> categoryIds = new ArrayList<>();
+        if (allCategories != null) {
+            for (Category cat : allCategories) {
+                List<Promotion> catPromos = this.promotionRepository.findActiveByCategoryId(cat.getId(), now);
+                if (catPromos != null && !catPromos.isEmpty()) {
+                    categoryIds.add(cat.getId());
+                }
+            }
+        }
+
+        // 3. Collect Product IDs with active specific promotions
+        List<ProductPromotion> productPromos = this.productPromotionRepository.findAllActive(now);
+        List<Long> productIds = productPromos.stream()
+                .filter(pp -> pp.getProduct() != null)
+                .map(pp -> pp.getProduct().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 4. Query products by Category OR Product ID
+        if (categoryIds.isEmpty() && productIds.isEmpty()) {
+            return new ResultPaginationDTO(); // Empty result
+        }
+
+        // Ensure lists are not empty for IN clause if one is empty
+        if (categoryIds.isEmpty())
+            categoryIds.add(-1L);
+        if (productIds.isEmpty())
+            productIds.add(-1L);
+
+        Page<Product> flashSaleProducts = this.productRepository.findByCategoryIdInOrIdIn(categoryIds, productIds,
+                pageable);
+        return this.convertToResultPaginationDTO(flashSaleProducts);
+    }
+
+    private ResultPaginationDTO convertToResultPaginationDTO(Page<Product> page) {
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(page.getNumber() + 1);
+        mt.setPageSize(page.getSize());
+        mt.setPages(page.getTotalPages());
+        mt.setTotal(page.getTotalElements());
+
+        rs.setMeta(mt);
+
+        List<ResProductDTO> list = page.getContent().stream()
+                .map(item -> this.convertToResProductDTO(item))
+                .collect(Collectors.toList());
+
+        rs.setResult(list);
+        return rs;
+    }
+
     public double findByOriginalPrice(long id) {
         return this.productRepository.findOriginalPriceById(id).orElse(0.0);
     }
@@ -431,7 +499,7 @@ public class ProductService {
 
         for (MultipartFile file : files) {
 
-            Map uploadResult = cloudinaryService.uploadFile(file);
+            Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
 
             ProductImage image = new ProductImage();
             image.setImageUrl(uploadResult.get("secure_url").toString());

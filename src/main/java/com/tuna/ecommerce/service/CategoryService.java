@@ -67,6 +67,10 @@ public class CategoryService {
         this.categoryRepository.deleteById(id);
     }
 
+    public List<Category> handleGetAll() {
+        return this.categoryRepository.findAll();
+    }
+
     public ResultPaginationDTO handleGetAll(Specification<Category> spec,Pageable page){
          Page<Category> category= this.categoryRepository.findAll(spec, page);
         ResultPaginationDTO rs=new ResultPaginationDTO();
