@@ -22,6 +22,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     List<Product> findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(Long categoryId, Long id);
 
+    @EntityGraph(attributePaths = { "category", "brand" })
+    Page<Product> findByCategoryIdInOrIdIn(List<Long> categoryIds, List<Long> productIds, Pageable pageable);
+
     @Query("SELECT p.originalPrice FROM Product p WHERE p.id = :id")
     Optional<Double> findOriginalPriceById(@Param("id") Long id);
 

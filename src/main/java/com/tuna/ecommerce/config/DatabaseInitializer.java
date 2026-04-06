@@ -19,6 +19,11 @@ import com.tuna.ecommerce.repository.PermissionRepository;
 import com.tuna.ecommerce.repository.RoleRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.constant.GenderEnum;
+import com.tuna.ecommerce.repository.PromotionRepository;
+import com.tuna.ecommerce.domain.Promotion;
+import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 public class DatabaseInitializer implements CommandLineRunner {
@@ -28,16 +33,18 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final BrandRepository brandRepository;
     private final BannerRepository bannerRepository;
+    private final PromotionRepository promotionRepository;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
-            BannerRepository bannerRepository) {
+            BannerRepository bannerRepository, PromotionRepository promotionRepository) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.brandRepository = brandRepository;
         this.bannerRepository = bannerRepository;
+        this.promotionRepository = promotionRepository;
     }
 
     @Override
@@ -146,6 +153,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                     "PROMOTIONS"));
             arr.add(new Permission("Assign all products to promotion", "/api/v1/promotions/{id}/products/all", "POST",
                     "PROMOTIONS"));
+            arr.add(new Permission("Get flash sale products", "/api/v1/products/flash-sale", "GET", "PRODUCTS"));
 
             // User Operations (Common for Admin & User)
             arr.add(new Permission("Create a address", "/api/v1/addresses", "POST", "ADDRESSES"));
@@ -360,6 +368,23 @@ public class DatabaseInitializer implements CommandLineRunner {
                     this.roleRepository.save(adminRole);
                 }
             }
+        }
+
+        // Create a Global Promotion if none exists
+        long countPromotions = this.promotionRepository.count();
+        if (countPromotions == 0) {
+            Promotion globalPromo = new Promotion();
+            globalPromo.setName("Mừng khai trương");
+            globalPromo.setDescription("Giảm giá 10% toàn bộ cửa hàng");
+            globalPromo.setType(PromotionTypeEnum.PERCENT);
+            globalPromo.setValue(BigDecimal.valueOf(10));
+            globalPromo.setActive(true);
+            globalPromo.setGlobal(true);
+            globalPromo.setStartAt(LocalDateTime.now().minusDays(1));
+            globalPromo.setEndAt(LocalDateTime.now().plusDays(30));
+            
+            this.promotionRepository.save(globalPromo);
+            System.out.println(">>> CREATED DEFAULT GLOBAL PROMOTION");
         }
     }
 }
