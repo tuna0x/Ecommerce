@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.controller;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.Payment;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
+import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.service.OrderService;
@@ -38,8 +40,8 @@ public class OrderController {
         Payment payment;
         switch (reqCheckoutDTO.getPaymentMethod()) {
             case COD:
-                payment = this.paymentService.createCODPayment(order.getId());
-                return ResponseEntity.ok().body(payment);
+                this.paymentService.createCODPayment(order.getId());
+                return ResponseEntity.ok().body(this.orderService.convertToResGetOderDTO(order));
             case VNPAY:
                 payment = this.paymentService.createPendingVNPayPayment(order.getId());
                 ResPaymentVNPAYDTO res = this.paymentService.createVnPayPayment(request, payment.getId());
@@ -55,6 +57,12 @@ public class OrderController {
     public ResponseEntity<ResGetOrderDTO> getOrder(@PathVariable("id") Long id) {
         Order order = this.orderService.getOrder(id);
         return ResponseEntity.ok().body(this.orderService.convertToResGetOderDTO(order));
+    }
+
+    @GetMapping("/order/me")
+    @APIMessage("get orders by user")
+    public ResponseEntity<ResultPaginationDTO> getMyOrders(Pageable pageable) {
+        return ResponseEntity.ok().body(this.orderService.fetchOrdersByUser(pageable));
     }
 
     @PutMapping("/order/{id}/status")

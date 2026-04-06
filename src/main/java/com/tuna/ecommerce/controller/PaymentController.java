@@ -47,19 +47,26 @@ public class PaymentController {
 
     @GetMapping("/payment/vn-pay-callback")
     @APIMessage("Handle VNPay callback")
-    public ResponseEntity<ResPaymentVNPAYDTO> payCallbackHandler(HttpServletRequest req) throws IdInvalidException {
+    public ResponseEntity<Void> payCallbackHandler(HttpServletRequest req) throws IdInvalidException {
         String vnp_TxnRef = req.getParameter("vnp_TxnRef");
         String vnp_ResponseCode = req.getParameter("vnp_ResponseCode");
         String vnp_TransactionNo = req.getParameter("vnp_TransactionNo");
 
+        // Frontend URL base (could be moved to application.yml)
+        String frontendRedirectUrl = "http://localhost:5173/payment-result";
+
         if (vnp_TxnRef == null) {
-            throw new IdInvalidException("Missing vnp_TxnRef");
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Missing_vnp_TxnRef"))
+                .build();
         }
 
         Long paymentId = Long.valueOf(vnp_TxnRef);
         Payment payment = this.paymentService.findById(paymentId);
         if (payment == null) {
-            throw new IdInvalidException("Payment not found");
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Payment_not_found"))
+                .build();
         }
 
         payment.setTransactionId(vnp_TransactionNo);
@@ -70,12 +77,15 @@ public class PaymentController {
             order.setStatus(OrderStatusEnum.CONFIRMED);
             this.orderRepository.save(order);
             this.paymentService.save(payment);
-            return ResponseEntity.ok().body(new ResPaymentVNPAYDTO("00", "Payment Successful", ""));
+            
+            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId=" + vnp_TransactionNo;
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
             payment.setStatus(OrderStatusEnum.CANCELLED);
-            // Optional: Re-stock items if failed? For now just mark as failed.
             this.paymentService.save(payment);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ResPaymentVNPAYDTO(vnp_ResponseCode, "Payment Failed", ""));
+
+            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + payment.getOrder().getId() + "&transactionId=" + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         }
     }
 }

@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import com.tuna.ecommerce.domain.OrderItem;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
+import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CouponRepository;
@@ -45,6 +48,33 @@ public class OrderService {
     private final AddressService addressService;
     private final GHTKService ghtkService;
     private final NotificationService notificationService;
+
+    public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
+        String email = this.securityUtil.getCurrentUserLogin().orElse(null);
+        User user = this.userService.findByUsername(email);
+        
+        Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
+        
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+
+        mt.setPages(pageOrder.getTotalPages());
+        mt.setTotal(pageOrder.getTotalElements());
+
+        rs.setMeta(mt);
+
+        // Convert list Order to ResGetOrderDTO
+        List<ResGetOrderDTO> listOrder = pageOrder.getContent()
+                .stream().map(item -> this.convertToResGetOderDTO(item))
+                .collect(java.util.stream.Collectors.toList());
+
+        rs.setResult(listOrder);
+
+        return rs;
+    }
 
     public Order createOder(ReqCheckoutDTO req) throws IdInvalidException {
         String email = this.securityUtil.getCurrentUserLogin().orElse(null);
@@ -165,12 +195,37 @@ public class OrderService {
 
         res.setStatus(order.getStatus());
         res.setTotalPrice(order.getFinalPrice());
+        res.setReceiverName(order.getReceiverName());
+        res.setPhone(order.getPhone());
         res.setPaymentStatus(order.getPaymentStatus());
         res.setShippingAddress(order.getShippingAddress());
 
         if (order.getPayment() != null) {
             res.setTransactionID(order.getPayment().getTransactionId());
+            if (order.getPayment().getMethod() != null) {
+                res.setPaymentMethod(order.getPayment().getMethod().name());
+            }
         }
+        res.setCreatedAt(order.getCreatedAt());
+
+        if (order.getItems() != null) {
+            List<ResGetOrderDTO.OrderItemInner> itemDTOs = order.getItems().stream().map(item -> {
+                ResGetOrderDTO.OrderItemInner itemDTO = new ResGetOrderDTO.OrderItemInner();
+                itemDTO.setProductId(item.getProduct().getId());
+                itemDTO.setProductName(item.getProduct().getName());
+                itemDTO.setQuantity(item.getQuantity());
+                itemDTO.setPrice(item.getPrice());
+                
+                // Get first image if available
+                if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+                    itemDTO.setProductImage(item.getProduct().getImages().get(0).getImageUrl());
+                }
+                
+                return itemDTO;
+            }).collect(java.util.stream.Collectors.toList());
+            res.setItems(itemDTOs);
+        }
+
         return res;
     }
 
