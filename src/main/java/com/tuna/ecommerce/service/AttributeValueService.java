@@ -34,7 +34,7 @@ public class AttributeValueService {
         }
 
         AttributeValue newAttributeValue = new AttributeValue();
-        newAttributeValue.setValue(req.getValue());
+        newAttributeValue.setAttributeValue(req.getAttributeValue());
         newAttributeValue.setAttribute(attribute);
         return this.attributeValueRepository.save(newAttributeValue);
     }
@@ -49,7 +49,7 @@ public class AttributeValueService {
             throw new IdInvalidException("Attribute value not found with id: " + req.getId());
         }
 
-        curValue.setValue(req.getValue());
+        curValue.setAttributeValue(req.getAttributeValue());
         Attribute attribute = this.attributeService.getAttributeById(req.getAttributeId());
         if (attribute != null) {
             curValue.setAttribute(attribute);
@@ -79,14 +79,14 @@ public class AttributeValueService {
         this.attributeValueRepository.deleteById(id);
     }
 
-    public boolean existsByAttributeIdAndValue(Long attributeId, String value) {
-        return this.attributeValueRepository.existsByAttributeIdAndValue(attributeId, value);
+    public boolean existsByAttributeIdAndValue(Long attributeId, String attributeValue) {
+        return this.attributeValueRepository.existsByAttributeIdAndAttributeValue(attributeId, attributeValue);
     }
 
     public ResAttributeValueDTO convertToAttributeValueDTO(AttributeValue attributeValue) {
         ResAttributeValueDTO res = new ResAttributeValueDTO();
         res.setId(attributeValue.getId());
-        res.setValue(attributeValue.getValue());
+        res.setAttributeValue(attributeValue.getAttributeValue());
 
         if (attributeValue.getAttribute() != null) {
             ResAttributeValueDTO.AttributeInner attr = new ResAttributeValueDTO.AttributeInner();

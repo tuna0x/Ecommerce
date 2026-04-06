@@ -56,7 +56,7 @@ public class ResProductDTO {
     @NoArgsConstructor
     public static class VariantAttributeInner {
         private String name;
-        private String value;
+        private String attributeValue;
     }
 
     @Getter
@@ -83,7 +83,7 @@ public class ResProductDTO {
     @NoArgsConstructor
     public static class ValueInner {
         private Long id;
-        private String value;
+        private String attributeValue;
         private Long attributeId;
         private String attributeName;
     }

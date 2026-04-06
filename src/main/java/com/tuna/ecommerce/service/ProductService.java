@@ -409,7 +409,7 @@ public class ProductService {
                     .map(pav -> {
                         ResProductDTO.ValueInner v = new ResProductDTO.ValueInner();
                         v.setId(pav.getAttributeValue().getId());
-                        v.setValue(pav.getAttributeValue().getValue());
+                        v.setAttributeValue(pav.getAttributeValue().getAttributeValue());
                         v.setAttributeId(pav.getAttributeValue().getAttribute().getId());
                         v.setAttributeName(pav.getAttributeValue().getAttribute().getName());
                         return v;
@@ -433,7 +433,7 @@ public class ProductService {
                                 .map(av -> {
                                     ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
                                     va.setName(av.getAttribute().getName());
-                                    va.setValue(av.getValue());
+                                    va.setAttributeValue(av.getAttributeValue());
                                     return va;
                                 })
                                 .collect(Collectors.toList());

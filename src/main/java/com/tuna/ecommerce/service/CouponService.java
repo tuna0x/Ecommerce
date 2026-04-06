@@ -57,7 +57,7 @@ public class CouponService {
         newCoupon.setName(req.getName());
         newCoupon.setDescription(req.getDescription());
         newCoupon.setType(req.getType());
-        newCoupon.setValue(req.getValue());
+        newCoupon.setDiscountValue(req.getDiscountValue());
         newCoupon.setStartDate(req.getStartDate() != null ? req.getStartDate().atStartOfDay() : null);
         newCoupon.setEndDate(req.getEndDate() != null ? req.getEndDate().atStartOfDay() : null);
         newCoupon.setMinOrderValue(req.getMinOrderValue());
@@ -90,7 +90,7 @@ public class CouponService {
             cur.setName(req.getName());
             cur.setDescription(req.getDescription());
             cur.setType(req.getType());
-            cur.setValue(req.getValue());
+            cur.setDiscountValue(req.getDiscountValue());
             cur.setStartDate(req.getStartDate() != null ? req.getStartDate().atStartOfDay() : null);
             cur.setEndDate(req.getEndDate() != null ? req.getEndDate().atStartOfDay() : null);
             cur.setMinOrderValue(req.getMinOrderValue());

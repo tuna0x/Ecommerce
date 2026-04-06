@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 public class ResAttributeValueDTO {
     private Long id;
-    private String value;
+    private String attributeValue;
     private AttributeInner attribute;
 
 

@@ -17,6 +17,7 @@ import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.request.category.ReqCreateCategoryDTO;
 import com.tuna.ecommerce.domain.request.category.ReqUpdateCategoryDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.category.ResCategoryDTO;
 import com.tuna.ecommerce.service.CategoryService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -36,22 +37,22 @@ public class CategoryController {
 
      @PostMapping("/categories")
      @APIMessage("Create new category")
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody ReqCreateCategoryDTO Category) throws IdInvalidException {
+    public ResponseEntity<ResCategoryDTO> createCategory(@Valid @RequestBody ReqCreateCategoryDTO Category) throws IdInvalidException {
         boolean check=this.categoryService.findByName(Category.getName());
         if (check==true) {
             throw new IdInvalidException("name's exists");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.categoryService.handleCreate(Category));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleCreate(Category)));
     }
 
     @PutMapping("/categories")
     @APIMessage("Update category")
-    public ResponseEntity<Category> updateCategory(@RequestBody ReqUpdateCategoryDTO Category) throws IdInvalidException{
+    public ResponseEntity<ResCategoryDTO> updateCategory(@RequestBody ReqUpdateCategoryDTO Category) throws IdInvalidException{
         Category cur= this.categoryService.handleGetById(Category.getId());
         if (cur == null) {
             throw new IdInvalidException("id is not exists");
         }
-        return ResponseEntity.ok().body(this.categoryService.handleUpdate(Category));
+        return ResponseEntity.ok().body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleUpdate(Category)));
     }
 
     @DeleteMapping("/categories/{id}")
@@ -67,12 +68,12 @@ public class CategoryController {
 
     @GetMapping("/categories/{id}")
     @APIMessage("Get category by id")
-    public ResponseEntity<Category> getCategoryById(@PathVariable ("id") long id) throws IdInvalidException{
+    public ResponseEntity<ResCategoryDTO> getCategoryById(@PathVariable ("id") long id) throws IdInvalidException{
         Category cur= this.categoryService.handleGetById(id);
         if (cur == null) {
             throw new IdInvalidException("id is not exists");
         }
-        return ResponseEntity.ok().body(this.categoryService.handleGetById(id));
+        return ResponseEntity.ok().body(this.categoryService.convertToResCategoryDTO(cur));
     }
 
     @GetMapping("/categories")

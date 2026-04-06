@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReqUpdateAttributesValueDTO {
     private Long id;
-    private String value;
+    private String attributeValue;
     private Long attributeId;
 
 }

@@ -21,7 +21,7 @@ public class ReqCreateCouponDTO {
     private String name;
     private String description;
     private CouponTypeEnum type;
-    private BigDecimal value;
+    private BigDecimal discountValue;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
     @JsonFormat(pattern = "yyyy-MM-dd")

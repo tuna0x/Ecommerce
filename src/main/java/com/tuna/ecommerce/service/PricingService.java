@@ -34,17 +34,17 @@ public class PricingService {
 
         for (Promotion prom : promotions) {
             BigDecimal currentDiscount = BigDecimal.ZERO;
-            if (prom.getType() == null || prom.getValue() == null)
+            if (prom.getType() == null || prom.getDiscountValue() == null)
                 continue;
 
             switch (prom.getType()) {
                 case PERCENT:
                     // Example: 10% discount on 100k = 10k
-                    currentDiscount = price.multiply(prom.getValue())
+                    currentDiscount = price.multiply(prom.getDiscountValue())
                             .divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
                     break;
                 case FIXED:
-                    currentDiscount = prom.getValue();
+                    currentDiscount = prom.getDiscountValue();
                     break;
                 default:
                     break;

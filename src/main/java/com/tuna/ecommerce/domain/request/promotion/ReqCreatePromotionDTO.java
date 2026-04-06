@@ -24,7 +24,7 @@ public class ReqCreatePromotionDTO {
 
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
-    private BigDecimal value;
+    private BigDecimal discountValue;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")

@@ -26,7 +26,7 @@ public class ReqUpdatePromotionDTO {
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
 
-    private BigDecimal value;
+    private BigDecimal discountValue;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
 

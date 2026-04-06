@@ -144,7 +144,7 @@ public class CartService {
                         x.getTotalPrice(),
                         x.getProductVariant() != null ? x.getProductVariant().getId() : null,
                         x.getProductVariant() != null ? x.getProductVariant().getAttributeValues().stream()
-                                .map(av -> new ResGetCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getValue()))
+                                .map(av -> new ResGetCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getAttributeValue()))
                                 .collect(Collectors.toList()) : null))
                 .collect(Collectors.toList());
         res.setItem(list);
@@ -173,7 +173,7 @@ public class CartService {
                         x.getTotalPrice(),
                         x.getProductVariant() != null ? x.getProductVariant().getId() : null,
                         x.getProductVariant() != null ? x.getProductVariant().getAttributeValues().stream()
-                                .map(av -> new ResAddToCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getValue()))
+                                .map(av -> new ResAddToCart.CartItemInner.VariantAttributeInner(av.getAttribute().getName(), av.getAttributeValue()))
                                 .collect(Collectors.toList()) : null))
                 .collect(Collectors.toList());
         res.setItem(list);

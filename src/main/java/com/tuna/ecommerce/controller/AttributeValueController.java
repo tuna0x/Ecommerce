@@ -34,7 +34,7 @@ public class AttributeValueController {
     @APIMessage("Attribute value created successfully")
     @PostMapping("/attributes-values")
     public ResponseEntity<ResAttributeValueDTO> createAttributeValue(@RequestBody ReqCreateAttributesValueDTO req) throws IdInvalidException {
-        if (this.attributeValueService.existsByAttributeIdAndValue(req.getAttributeId(), req.getValue())) {
+        if (this.attributeValueService.existsByAttributeIdAndValue(req.getAttributeId(), req.getAttributeValue())) {
             throw new IdInvalidException("Attribute value already exists for this attribute");
         }
         AttributeValue value = this.attributeValueService.createAttributeValue(req);
@@ -44,10 +44,10 @@ public class AttributeValueController {
     @APIMessage("Attribute value updated successfully")
     @PutMapping("/attributes-values")
     public ResponseEntity<ResAttributeValueDTO> updateAttributeValue(@RequestBody ReqUpdateAttributesValueDTO req) throws IdInvalidException {
-        if (this.attributeValueService.existsByAttributeIdAndValue(req.getAttributeId(), req.getValue())) {
+        if (this.attributeValueService.existsByAttributeIdAndValue(req.getAttributeId(), req.getAttributeValue())) {
             // Need to ensure it's not the same row being updated to the same value
             AttributeValue existing = this.attributeValueService.getAttributeValueById(req.getId());
-            if (existing != null && !existing.getValue().equals(req.getValue())) {
+            if (existing != null && !existing.getAttributeValue().equals(req.getAttributeValue())) {
                 throw new IdInvalidException("Attribute value already exists for this attribute");
             }
         }
