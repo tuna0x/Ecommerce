@@ -169,6 +169,9 @@ public class DatabaseInitializer implements CommandLineRunner {
 
             arr.add(new Permission("Create a order", "/api/v1/order/checkout", "POST", "ORDER"));
             arr.add(new Permission("Get order by id", "/api/v1/order/{id}", "GET", "ORDER"));
+            arr.add(new Permission("Get my orders with pagination", "/api/v1/order/me", "GET", "ORDER"));
+            arr.add(new Permission("Admin get all orders", "/api/v1/order/admin/all", "GET", "ORDER"));
+            arr.add(new Permission("Update order status", "/api/v1/order/{id}/status", "PUT", "ORDER"));
 
             arr.add(new Permission("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT"));
             arr.add(new Permission("Get Product price", "/api/v1/price/{id}", "GET", "PRICING PRODUCT"));
@@ -215,12 +218,15 @@ public class DatabaseInitializer implements CommandLineRunner {
                         url.startsWith("/api/v1/banners") ||
                         url.startsWith("/api/v1/reviews/product"));
 
-                // USER has full access to Cart, Address, Order, Payment Confirm
+                // USER has full access to Cart, Address, Payment Confirm, Reviews
+                // Only specific Order endpoints (NOT admin endpoints or status update)
                 boolean isUserOwnData = url.startsWith("/api/v1/cart") ||
                         url.startsWith("/api/v1/addresses") ||
-                        url.startsWith("/api/v1/order") ||
                         url.startsWith("/api/v1/payment") ||
-                        url.startsWith("/api/v1/reviews");
+                        url.startsWith("/api/v1/reviews") ||
+                        url.equals("/api/v1/order/checkout") ||
+                        url.equals("/api/v1/order/me") ||
+                        url.equals("/api/v1/order/{id}");
 
                 return isGetPublic || isUserOwnData;
             }).collect(Collectors.toList());
@@ -408,6 +414,34 @@ public class DatabaseInitializer implements CommandLineRunner {
                 this.roleRepository.save(userRole);
             }
             System.out.println(">>> ADDED My Orders Permission TO BOTH ADMIN & USER");
+        }
+
+        // Sync Admin All Orders permission
+        boolean isExistAdminOrderAll = this.permissionRepository.existsByModuleAndApiPathAndMethod("ORDER",
+                "/api/v1/order/admin/all", "GET");
+        if (!isExistAdminOrderAll) {
+            Permission p = new Permission("Admin get all orders", "/api/v1/order/admin/all", "GET", "ORDER");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+            System.out.println(">>> ADDED Admin All Orders Permission TO SUPER_ADMIN");
+        }
+
+        // Sync Update Order Status permission
+        boolean isExistUpdateOrderStatus = this.permissionRepository.existsByModuleAndApiPathAndMethod("ORDER",
+                "/api/v1/order/{id}/status", "PUT");
+        if (!isExistUpdateOrderStatus) {
+            Permission p = new Permission("Update order status", "/api/v1/order/{id}/status", "PUT", "ORDER");
+            this.permissionRepository.save(p);
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+            System.out.println(">>> ADDED Update Order Status Permission TO SUPER_ADMIN");
         }
     }
 }
