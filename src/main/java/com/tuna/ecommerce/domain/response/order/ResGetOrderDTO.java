@@ -20,6 +20,8 @@ public class ResGetOrderDTO {
     private long id;
     private UserInner user;
     private BigDecimal totalPrice;
+    private String receiverName;
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     private OrderStatusEnum status;
@@ -27,7 +29,22 @@ public class ResGetOrderDTO {
     @Enumerated(EnumType.STRING)
     private PaymentStatusEnum paymentStatus;
     private String ShippingAddress;
+    private String paymentMethod;
     private String transactionID;
+    private java.time.Instant createdAt;
+    private java.util.List<OrderItemInner> items;
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderItemInner {
+        private Long productId;
+        private String productName;
+        private String productImage;
+        private int quantity;
+        private java.math.BigDecimal price;
+    }
 
     @Getter
     @Setter

@@ -386,5 +386,28 @@ public class DatabaseInitializer implements CommandLineRunner {
             this.promotionRepository.save(globalPromo);
             System.out.println(">>> CREATED DEFAULT GLOBAL PROMOTION");
         }
+
+        // Sync My Orders permission
+        boolean isExistOrderMe = this.permissionRepository.existsByModuleAndApiPathAndMethod("ORDER",
+                "/api/v1/order/me", "GET");
+        if (!isExistOrderMe) {
+            Permission p = new Permission("Get my orders with pagination", "/api/v1/order/me", "GET", "ORDER");
+            this.permissionRepository.save(p);
+            
+            // Add to SUPER_ADMIN
+            Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
+            if (adminRole != null) {
+                adminRole.getPermissions().add(p);
+                this.roleRepository.save(adminRole);
+            }
+            
+            // Add to ROLE_USER
+            Role userRole = this.roleRepository.findByName("ROLE_USER");
+            if (userRole != null) {
+                userRole.getPermissions().add(p);
+                this.roleRepository.save(userRole);
+            }
+            System.out.println(">>> ADDED My Orders Permission TO BOTH ADMIN & USER");
+        }
     }
 }
