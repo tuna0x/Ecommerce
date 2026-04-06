@@ -26,7 +26,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
 @RestController
-@RequestMapping("api/v1")
+@RequestMapping("/api/v1")
 @AllArgsConstructor
 public class ProductDetailController {
     private final ProductDetailService  productDetailService;
@@ -69,7 +69,7 @@ public class ProductDetailController {
 
     @GetMapping("/product-detail")
     @APIMessage("Get all product-detail with filter and pagination")
-    public ResponseEntity<ResultPaginationDTO> getAllCategory(@Filter Specification<ProductDetail> spec, Pageable page) {
+    public ResponseEntity<ResultPaginationDTO> getAllProductDetails(@Filter Specification<ProductDetail> spec, Pageable page) {
         return ResponseEntity.ok().body(this.productDetailService.handleGetAll(spec, page));
     }
 }

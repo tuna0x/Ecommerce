@@ -10,6 +10,7 @@ import com.tuna.ecommerce.domain.ProductDetail;
 import com.tuna.ecommerce.domain.request.productDetail.ReqCreateProductDetailDTO;
 import com.tuna.ecommerce.domain.request.productDetail.ReqUpdateProductDetailDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.product.ResProductDetailDTO;
 import com.tuna.ecommerce.repository.ProductDetailRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -61,18 +62,36 @@ public class ProductDetailService {
 
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<ProductDetail> spec,Pageable page){
-        Page<ProductDetail> productDetail= this.productDetailRepository.findAll(spec, page);
-        ResultPaginationDTO rs=new ResultPaginationDTO();
-        ResultPaginationDTO.Meta meta=new ResultPaginationDTO.Meta();
-        meta.setPage(productDetail.getNumber() + 1);
-        meta.setPageSize(productDetail.getSize());
-        meta.setPages(productDetail.getTotalPages());
-        meta.setTotal(productDetail.getTotalElements());
+    public ResultPaginationDTO handleGetAll(Specification<ProductDetail> spec, Pageable page) {
+        Page<ProductDetail> productDetails = this.productDetailRepository.findAll(spec, page);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
+        meta.setPage(productDetails.getNumber() + 1);
+        meta.setPageSize(productDetails.getSize());
+        meta.setPages(productDetails.getTotalPages());
+        meta.setTotal(productDetails.getTotalElements());
 
         rs.setMeta(meta);
-        rs.setResult(productDetail.getContent());
+        rs.setResult(productDetails.getContent().stream()
+                .map(this::convertToResProductDetailDTO)
+                .collect(java.util.stream.Collectors.toList()));
         return rs;
+    }
+
+    public ResProductDetailDTO convertToResProductDetailDTO(ProductDetail productDetail) {
+        ResProductDetailDTO res = new ResProductDetailDTO();
+        res.setId(productDetail.getId());
+        res.setDescription(productDetail.getDescription());
+        res.setIngredient(productDetail.getIngredient());
+        res.setUsageGuide(productDetail.getUsageGuide());
+        res.setSpecification(productDetail.getSpecification());
+        if (productDetail.getProduct() != null) {
+            ResProductDetailDTO.ProductInner pInner = new ResProductDetailDTO.ProductInner();
+            pInner.setId(productDetail.getProduct().getId());
+            pInner.setName(productDetail.getProduct().getName());
+            res.setProduct(pInner);
+        }
+        return res;
     }
 
     public void deleteProductDetail(long id){

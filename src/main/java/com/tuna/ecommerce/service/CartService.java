@@ -50,6 +50,50 @@ public class CartService {
             cart.setUser(user);
             cart.setItems(new ArrayList<>());
             cart = this.cartRepository.save(cart);
+        } else {
+            java.util.Map<String, CartItem> uniqueItems = new java.util.HashMap<>();
+            List<CartItem> toRemove = new ArrayList<>();
+            boolean changed = false;
+
+            for (CartItem item : cart.getItems()) {
+                // 1. Dynamic Price Sync
+                com.tuna.ecommerce.domain.response.product.ResProductDTO productDTO = this.productService.convertToResProductDTO(item.getProduct());
+                BigDecimal currentPrice = productDTO.getFinalPrice();
+                if (item.getProductVariant() != null && productDTO.getVariants() != null) {
+                    for (com.tuna.ecommerce.domain.response.product.ResProductDTO.ProductVariantInner vi : productDTO.getVariants()) {
+                        if (vi.getId() == item.getProductVariant().getId()) {
+                            currentPrice = vi.getFinalPrice() != null ? vi.getFinalPrice() : vi.getPrice();
+                            break;
+                        }
+                    }
+                }
+                if (currentPrice != null && (item.getUnitPrice() == null || item.getUnitPrice().compareTo(currentPrice) != 0)) {
+                    item.setUnitPrice(currentPrice);
+                    item.setTotalPrice(currentPrice.multiply(java.math.BigDecimal.valueOf(item.getQuantity())));
+                    changed = true;
+                }
+
+                // 2. Duplicate Detection
+                String key = item.getProduct().getId() + "-" + (item.getProductVariant() != null ? item.getProductVariant().getId() : "null");
+                if (uniqueItems.containsKey(key)) {
+                    CartItem existing = uniqueItems.get(key);
+                    existing.setQuantity(existing.getQuantity() + item.getQuantity());
+                    if (existing.getUnitPrice() != null) {
+                        existing.setTotalPrice(existing.getUnitPrice().multiply(java.math.BigDecimal.valueOf(existing.getQuantity())));
+                    }
+                    toRemove.add(item);
+                    changed = true;
+                } else {
+                    uniqueItems.put(key, item);
+                }
+            }
+
+            if (changed) {
+                for (CartItem item : toRemove) {
+                    cart.removeCartItem(item);
+                }
+                cart = this.cartRepository.save(cart);
+            }
         }
         return cart;
     }
@@ -138,7 +182,10 @@ public class CartService {
         List<ResGetCart.CartItemInner> list = (cart.getItems() == null ? Collections.<CartItem>emptyList() : cart.getItems())
                 .stream().map(x -> new ResGetCart.CartItemInner(
                         x.getId(),
-                        new ResGetCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName()),
+                        new ResGetCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName(), 
+                            (x.getProduct().getImages() != null && !x.getProduct().getImages().isEmpty()) ? x.getProduct().getImages().get(0).getImageUrl() : "",
+                            x.getProduct().getBrand() != null ? x.getProduct().getBrand().getName() : "No Brand",
+                            x.getProductVariant() != null && x.getProductVariant().getPrice() != null ? x.getProductVariant().getPrice() : x.getProduct().getOriginalPrice()),
                         x.getUnitPrice(),
                         x.getQuantity(),
                         x.getTotalPrice(),
@@ -167,7 +214,10 @@ public class CartService {
         List<ResAddToCart.CartItemInner> list = (cart.getItems() == null ? Collections.<CartItem>emptyList() : cart.getItems())
                 .stream().map(x -> new ResAddToCart.CartItemInner(
                         x.getId(),
-                        new ResAddToCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName()),
+                        new ResAddToCart.CartItemInner.ProductIner(x.getProduct().getId(), x.getProduct().getName(),
+                            (x.getProduct().getImages() != null && !x.getProduct().getImages().isEmpty()) ? x.getProduct().getImages().get(0).getImageUrl() : "",
+                            x.getProduct().getBrand() != null ? x.getProduct().getBrand().getName() : "No Brand",
+                            x.getProductVariant() != null && x.getProductVariant().getPrice() != null ? x.getProductVariant().getPrice() : x.getProduct().getOriginalPrice()),
                         x.getUnitPrice(),
                         x.getQuantity(),
                         x.getTotalPrice(),

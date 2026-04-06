@@ -10,6 +10,7 @@ import java.util.List;
 public class ResAttributeDTO {
     private Long id;
     private String name;
+    private boolean active;
     private List<CategoryInner> categories;
 
     @Getter
