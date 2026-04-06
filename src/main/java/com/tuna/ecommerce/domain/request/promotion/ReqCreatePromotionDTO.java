@@ -24,7 +24,6 @@ public class ReqCreatePromotionDTO {
 
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
-    @JsonProperty("value")
     private BigDecimal discountValue;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;

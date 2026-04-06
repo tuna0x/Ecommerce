@@ -44,8 +44,8 @@ public class Promotion {
     private String description;
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
-    @JsonProperty("value")
     @Column(name = "discount_value")
+    @jakarta.validation.constraints.NotNull
     private BigDecimal discountValue;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;

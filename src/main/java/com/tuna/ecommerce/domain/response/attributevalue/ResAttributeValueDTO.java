@@ -1,6 +1,5 @@
 package com.tuna.ecommerce.domain.response.attributevalue;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import lombok.*;
 @Getter
@@ -9,7 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 public class ResAttributeValueDTO {
     private Long id;
-    @JsonProperty("value")
     private String attributeValue;
     private AttributeInner attribute;
 

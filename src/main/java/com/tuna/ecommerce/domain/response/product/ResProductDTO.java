@@ -7,7 +7,6 @@ import org.w3c.dom.Attr;
 
 import com.tuna.ecommerce.domain.Category;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -57,7 +56,6 @@ public class ResProductDTO {
     @NoArgsConstructor
     public static class VariantAttributeInner {
         private String name;
-        @JsonProperty("value")
         private String attributeValue;
     }
 
@@ -85,7 +83,6 @@ public class ResProductDTO {
     @NoArgsConstructor
     public static class ValueInner {
         private Long id;
-        @JsonProperty("value")
         private String attributeValue;
         private Long attributeId;
         private String attributeName;

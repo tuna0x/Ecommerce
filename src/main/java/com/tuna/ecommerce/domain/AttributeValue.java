@@ -39,7 +39,6 @@ public class AttributeValue {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @NotBlank(message = "Value is not blank")
-    @JsonProperty("value")
     @Column(name = "attribute_value")
     private String attributeValue;
 

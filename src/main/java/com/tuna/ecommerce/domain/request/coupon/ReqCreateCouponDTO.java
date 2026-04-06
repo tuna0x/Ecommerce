@@ -21,7 +21,6 @@ public class ReqCreateCouponDTO {
     private String name;
     private String description;
     private CouponTypeEnum type;
-    @com.fasterxml.jackson.annotation.JsonProperty("value")
     private BigDecimal discountValue;
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;

@@ -27,9 +27,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "categories", indexes = { 
-    @Index(name = "idx_category_name", columnList = "name"),
-    @Index(name = "idx_category_slug", columnList = "slug")
+@Table(name = "categories", indexes = {
+        @Index(name = "idx_category_name", columnList = "name"),
+        @Index(name = "idx_category_slug", columnList = "slug")
 })
 @Getter
 @Setter
@@ -44,7 +44,7 @@ public class Category {
     private String name;
     private String description;
     private String slug;
-    private boolean isActive;
+    private boolean active = true;
 
     private Instant createdAt;
     private Instant updatedAt;
@@ -55,11 +55,11 @@ public class Category {
     @JoinColumn(name = "parent_id")
     private Category parentCategory;
 
-    @OneToMany(mappedBy = "parentCategory",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "parentCategory", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Category> subCategories;
 
-    @OneToMany(mappedBy = "category",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Product> products;
 
@@ -67,23 +67,26 @@ public class Category {
     @JsonIgnore
     private List<Attribute> attributes;
 
-        @PrePersist
-    public void handleBeforeCreate(){
-        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    @PrePersist
+    public void handleBeforeCreate() {
+        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.createdAt = Instant.now();
         this.slug = toSlug(this.name);
 
     }
 
-        @PreUpdate
-    public void handleBeforeUpdate(){
-        this.updatedBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    @PreUpdate
+    public void handleBeforeUpdate() {
+        this.updatedBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.updatedAt = Instant.now();
         this.slug = toSlug(this.name);
 
     }
+
     private String toSlug(String input) {
         return Normalizer.normalize(input, Normalizer.Form.NFD)
                 .replaceAll("[^\\p{ASCII}]", "")

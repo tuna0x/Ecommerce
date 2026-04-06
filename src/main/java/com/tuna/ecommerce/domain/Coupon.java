@@ -38,8 +38,8 @@ public class Coupon {
     private String name;
     private String description;
     private CouponTypeEnum type;
-    @JsonProperty("value")
     @Column(name = "discount_value")
+    @NotNull
     private BigDecimal discountValue;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
