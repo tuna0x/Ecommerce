@@ -96,6 +96,7 @@ public class AttributeService {
         ResAttributeDTO res = new ResAttributeDTO();
         res.setId(attribute.getId());
         res.setName(attribute.getName());
+        res.setActive(attribute.isActive());
 
         if (attribute.getCategories() != null) {
             List<ResAttributeDTO.CategoryInner> listCate = attribute.getCategories().stream().map(item -> {
