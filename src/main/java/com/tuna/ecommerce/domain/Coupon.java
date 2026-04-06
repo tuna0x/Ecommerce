@@ -6,9 +6,11 @@ import java.time.LocalDateTime;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuna.ecommerce.ultil.constant.CouponStatus;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,7 +38,9 @@ public class Coupon {
     private String name;
     private String description;
     private CouponTypeEnum type;
-    private BigDecimal value;
+    @JsonProperty("value")
+    @Column(name = "discount_value")
+    private BigDecimal discountValue;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private BigDecimal minOrderValue;

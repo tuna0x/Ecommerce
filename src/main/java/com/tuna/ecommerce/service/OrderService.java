@@ -177,12 +177,12 @@ public class OrderService {
     private BigDecimal calculateDiscount(Coupon coupon, BigDecimal total) {
         BigDecimal discount;
         if (coupon.getType() == CouponTypeEnum.PERCENT) {
-            discount = coupon.getValue().multiply(total).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+            discount = coupon.getDiscountValue().multiply(total).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
             if (coupon.getMaxDiscountValue() != null && discount.compareTo(coupon.getMaxDiscountValue()) > 0) {
                 discount = coupon.getMaxDiscountValue();
             }
         } else {
-            discount = coupon.getValue();
+            discount = coupon.getDiscountValue();
         }
         return discount;
     }

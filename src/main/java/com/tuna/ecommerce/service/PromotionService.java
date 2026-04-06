@@ -38,7 +38,7 @@ public class PromotionService {
         promotion.setName(req.getName());
         promotion.setDescription(req.getDescription());
         promotion.setType(req.getType());
-        promotion.setValue(req.getValue());
+        promotion.setDiscountValue(req.getDiscountValue());
         promotion.setMinOrderValue(req.getMinOrderValue());
         promotion.setMaxDiscountValue(req.getMaxDiscountValue());
         promotion.setStartAt(req.getStartAt());
@@ -83,7 +83,7 @@ public class PromotionService {
             current.setName(dto.getName());
             current.setDescription(dto.getDescription());
             current.setType(dto.getType());
-            current.setValue(dto.getValue());
+            current.setDiscountValue(dto.getDiscountValue());
             current.setMinOrderValue(dto.getMinOrderValue());
             current.setMaxDiscountValue(dto.getMaxDiscountValue());
             current.setStartAt(dto.getStartAt());

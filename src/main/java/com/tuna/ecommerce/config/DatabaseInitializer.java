@@ -377,7 +377,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             globalPromo.setName("Mừng khai trương");
             globalPromo.setDescription("Giảm giá 10% toàn bộ cửa hàng");
             globalPromo.setType(PromotionTypeEnum.PERCENT);
-            globalPromo.setValue(BigDecimal.valueOf(10));
+            globalPromo.setDiscountValue(BigDecimal.valueOf(10));
             globalPromo.setActive(true);
             globalPromo.setGlobal(true);
             globalPromo.setStartAt(LocalDateTime.now().minusDays(1));

@@ -1,10 +1,13 @@
 package com.tuna.ecommerce.domain;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -29,14 +32,16 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "attribute_values", indexes = {
-    @Index(name = "idx_attribute_value", columnList = "value")
+    @Index(name = "idx_attribute_value", columnList = "attribute_value")
 })
 public class AttributeValue {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @NotBlank(message = "Value is not blank")
-    private String value;
+    @JsonProperty("value")
+    @Column(name = "attribute_value")
+    private String attributeValue;
 
     @ManyToOne
     @JoinColumn(name = "attribute_id")

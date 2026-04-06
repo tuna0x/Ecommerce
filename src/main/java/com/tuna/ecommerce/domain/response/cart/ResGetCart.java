@@ -6,6 +6,7 @@ import java.util.List;
 import com.tuna.ecommerce.domain.ProductImage;
 import java.util.ArrayList;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,7 +48,8 @@ public class ResGetCart {
     @Setter
     public static class VariantAttributeInner {
         private String name;
-        private String value;
+        @JsonProperty("value")
+        private String attributeValue;
     }
 
         @AllArgsConstructor

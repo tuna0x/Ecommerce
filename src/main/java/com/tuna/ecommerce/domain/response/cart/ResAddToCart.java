@@ -3,6 +3,7 @@ package com.tuna.ecommerce.domain.response.cart;
 import java.math.BigDecimal;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -44,7 +45,8 @@ public class ResAddToCart {
     @Setter
     public static class VariantAttributeInner {
         private String name;
-        private String value;
+        @JsonProperty("value")
+        private String attributeValue;
     }
 
         @AllArgsConstructor

@@ -10,6 +10,6 @@ import com.tuna.ecommerce.domain.Address;
 
 @Repository
 public interface AddressRepository extends JpaRepository<Address,Long>,JpaSpecificationExecutor<Address>{
-    Address findByUserAndIsDefaultTrue(Long userId);
+    Address findByUserIdAndIsDefaultTrue(Long userId);
     List<Address> findByUserId(Long userId);
 }

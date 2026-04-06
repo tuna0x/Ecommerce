@@ -7,9 +7,11 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -42,7 +44,9 @@ public class Promotion {
     private String description;
     @Enumerated(EnumType.STRING)
     private PromotionTypeEnum type;
-    private BigDecimal value;
+    @JsonProperty("value")
+    @Column(name = "discount_value")
+    private BigDecimal discountValue;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
