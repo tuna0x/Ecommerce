@@ -33,6 +33,9 @@ import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import com.tuna.ecommerce.domain.ProductPromotion;
+import com.tuna.ecommerce.domain.Promotion;
+import com.tuna.ecommerce.repository.ProductPromotionRepository;
 
 import lombok.AllArgsConstructor;
 
@@ -50,6 +53,7 @@ public class ProductService {
     private final BrandService brandService;
     private final PricingService pricingService;
     private final ProductVariantRepository productVariantRepository;
+    private final ProductPromotionRepository productPromotionRepository;
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
@@ -105,12 +109,12 @@ public class ProductService {
                 variant.setPrice(vDto.getPrice());
                 variant.setStock(vDto.getStock());
                 variant.setWeight(vDto.getWeight());
-                
+
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
-                        .map(id -> this.attributeValueRepository.findById(id).orElse(null))
-                        .filter(av -> av != null)
-                        .collect(Collectors.toList());
+                            .map(id -> this.attributeValueRepository.findById(id).orElse(null))
+                            .filter(av -> av != null)
+                            .collect(Collectors.toList());
                     variant.setAttributeValues(avs);
                 }
                 this.productVariantRepository.save(variant);
@@ -150,7 +154,7 @@ public class ProductService {
         if (product.getAttributeValue() != null) {
             // Remove old ones
             cur.getProductAttributeValues().clear();
-            
+
             // Add new ones
             for (Long id : product.getAttributeValue()) {
                 AttributeValue attributeValue = this.attributeValueRepository.findById(id).orElse(null);
@@ -165,9 +169,10 @@ public class ProductService {
 
         // Update Variants
         if (product.getVariants() != null) {
-            // Clear old variants (orphanRemoval will handle deletion if configured, else manual delete)
+            // Clear old variants (orphanRemoval will handle deletion if configured, else
+            // manual delete)
             cur.getVariants().clear();
-            
+
             for (ReqUpdateProductDTO.VariantDTO vDto : product.getVariants()) {
                 ProductVariant variant = new ProductVariant();
                 variant.setProduct(cur);
@@ -175,12 +180,12 @@ public class ProductService {
                 variant.setPrice(vDto.getPrice());
                 variant.setStock(vDto.getStock());
                 variant.setWeight(vDto.getWeight());
-                
+
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
-                        .map(id -> this.attributeValueRepository.findById(id).orElse(null))
-                        .filter(av -> av != null)
-                        .collect(Collectors.toList());
+                            .map(id -> this.attributeValueRepository.findById(id).orElse(null))
+                            .filter(av -> av != null)
+                            .collect(Collectors.toList());
                     variant.setAttributeValues(avs);
                 }
                 cur.getVariants().add(variant);
@@ -246,7 +251,7 @@ public class ProductService {
                     minPrice = variant.getPrice();
                 }
             }
-            
+
             // Stock synchronization (sum of all variants)
             totalStock += variant.getStock();
         }
@@ -263,7 +268,8 @@ public class ProductService {
             for (ProductImage img : product.getImages()) {
                 this.cloudinaryService.deleteFile(img.getPublicId());
             }
-            // Cascade.ALL + orphanRemoval handles ProductImage and ProductAttributeValue deletion
+            // Cascade.ALL + orphanRemoval handles ProductImage and ProductAttributeValue
+            // deletion
             this.productRepository.delete(product);
         }
     }
@@ -293,7 +299,8 @@ public class ProductService {
         if (product == null || product.getCategory() == null) {
             return new ArrayList<>();
         }
-        List<Product> related = this.productRepository.findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(product.getCategory().getId(), id);
+        List<Product> related = this.productRepository
+                .findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(product.getCategory().getId(), id);
         return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
@@ -343,6 +350,7 @@ public class ProductService {
             res.setAttributeValue(valueInners);
         }
 
+        // Map Variants first
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             List<ResProductDTO.ProductVariantInner> variantInners = product.getVariants().stream()
                     .map(v -> {
@@ -352,15 +360,15 @@ public class ProductService {
                         vi.setPrice(v.getPrice());
                         vi.setStock(v.getStock());
                         vi.setWeight(v.getWeight());
-                        
+
                         List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
-                            .map(av -> {
-                                ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
-                                va.setName(av.getAttribute().getName());
-                                va.setValue(av.getValue());
-                                return va;
-                            })
-                            .collect(Collectors.toList());
+                                .map(av -> {
+                                    ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
+                                    va.setName(av.getAttribute().getName());
+                                    va.setValue(av.getValue());
+                                    return va;
+                                })
+                                .collect(Collectors.toList());
                         vi.setVariantAttributes(vaInners);
                         return vi;
                     })
@@ -368,15 +376,52 @@ public class ProductService {
             res.setVariants(variantInners);
         }
 
+        // Calculate pricing for the main product and its variants
+        if (this.pricingService != null) {
+            // First, get active promotions for this product
+            List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(),
+                    java.time.LocalDateTime.now());
+            
+            List<Promotion> promotions = new ArrayList<>();
+            if (productPromos != null) {
+                for (ProductPromotion pp : productPromos) {
+                    if (pp.getPromotion() != null) {
+                        promotions.add(pp.getPromotion());
+                    }
+                }
+            }
+
+            // Main Product Price
+            ResPriceResultDTO mainPriceResult = this.pricingService.calculatePriceWithPromotions(product.getOriginalPrice(), promotions);
+            res.setDiscountPrice(mainPriceResult.getDiscountPrice());
+            res.setFinalPrice(mainPriceResult.getFinalPrice());
+
+            // Individual Variant Prices Calculation
+            if (res.getVariants() != null) {
+                for (ResProductDTO.ProductVariantInner vi : res.getVariants()) {
+                    // Calculate discount for this variant individual price
+                    ResPriceResultDTO vPriceRes = this.pricingService.calculatePriceWithPromotions(vi.getPrice(), promotions);
+                    vi.setDiscountPrice(vPriceRes.getDiscountPrice());
+                    vi.setFinalPrice(vPriceRes.getFinalPrice());
+                }
+            }
+        } else {
+            // Fallback if pricing service is missing
+            res.setFinalPrice(product.getOriginalPrice());
+            res.setDiscountPrice(BigDecimal.ZERO);
+            
+            // Set finalPrice for variants as their original price
+            if (res.getVariants() != null) {
+                for (ResProductDTO.ProductVariantInner vi : res.getVariants()) {
+                    vi.setFinalPrice(vi.getPrice());
+                    vi.setDiscountPrice(BigDecimal.ZERO);
+                }
+            }
+        }
+
         res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
         res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
         res.setSoldCount(product.getSoldCount());
-
-        if (this.pricingService != null) {
-            ResPriceResultDTO priceResult = this.pricingService.calculatePrice(product);
-            res.setDiscountPrice(priceResult.getDiscountPrice());
-            res.setFinalPrice(priceResult.getFinalPrice());
-        }
 
         return res;
     }
