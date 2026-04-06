@@ -33,7 +33,8 @@ public class PricingService {
 
         for (Promotion prom : promotions) {
             BigDecimal currentDiscount = BigDecimal.ZERO;
-            if (prom.getType() == null || prom.getValue() == null) continue;
+            if (prom.getType() == null || prom.getValue() == null)
+                continue;
 
             switch (prom.getType()) {
                 case PERCENT:
@@ -64,8 +65,9 @@ public class PricingService {
         }
 
         BigDecimal originalPrice = product.getOriginalPrice();
-        List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId());
-        
+        List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(),
+                java.time.LocalDateTime.now());
+
         List<Promotion> promotions = new ArrayList<>();
         if (productPromos != null) {
             for (ProductPromotion pp : productPromos) {
@@ -75,8 +77,19 @@ public class PricingService {
             }
         }
 
+        return this.calculatePriceWithPromotions(originalPrice, promotions);
+    }
+
+    /**
+     * Helper to calculate final price given an original price and a list of promotions.
+     */
+    public ResPriceResultDTO calculatePriceWithPromotions(BigDecimal originalPrice, List<Promotion> promotions) {
+        if (originalPrice == null) {
+            return new ResPriceResultDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+
         BigDecimal discount = this.calculateBestDiscount(originalPrice, promotions);
-        
+
         // Final price cannot be less than zero
         BigDecimal finalPrice = originalPrice.subtract(discount);
         if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {

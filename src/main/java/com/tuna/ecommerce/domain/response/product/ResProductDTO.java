@@ -35,7 +35,6 @@ public class ResProductDTO {
     private int soldCount;
     private List<ProductVariantInner> variants;
 
-
     @Getter
     @Setter
     @AllArgsConstructor
@@ -44,6 +43,8 @@ public class ResProductDTO {
         private Long id;
         private String sku;
         private BigDecimal price;
+        private BigDecimal discountPrice;
+        private BigDecimal finalPrice;
         private int stock;
         private double weight;
         private List<VariantAttributeInner> variantAttributes;
@@ -57,7 +58,6 @@ public class ResProductDTO {
         private String name;
         private String value;
     }
-
 
     @Getter
     @Setter
@@ -88,6 +88,4 @@ public class ResProductDTO {
         private String attributeName;
     }
 
-
 }
-
