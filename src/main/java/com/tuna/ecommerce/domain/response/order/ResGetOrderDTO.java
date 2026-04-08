@@ -33,6 +33,7 @@ public class ResGetOrderDTO {
     private String ShippingAddress;
     private String paymentMethod;
     private String transactionID;
+    private String paymentUrl;
     private java.time.Instant createdAt;
     private java.util.List<OrderItemInner> items;
 
@@ -53,8 +54,8 @@ public class ResGetOrderDTO {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class UserInner {
-    private Long id;
-    private String name;
-    private String email;
+        private Long id;
+        private String name;
+        private String email;
     }
 }

@@ -14,6 +14,10 @@ import java.time.Instant;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.servlet.http.HttpServletRequest;
+import com.tuna.ecommerce.ultil.constant.PaymentMethodEnum;
+import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
+import com.tuna.ecommerce.domain.Payment;
 
 import com.tuna.ecommerce.domain.Address;
 import com.tuna.ecommerce.domain.CartItem;
@@ -49,6 +53,7 @@ public class OrderService {
     private final GHTKService ghtkService;
     private final NotificationService notificationService;
     private final InventoryService inventoryService;
+    private final PaymentService paymentService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -59,7 +64,8 @@ public class OrderService {
             AddressService addressService,
             GHTKService ghtkService,
             NotificationService notificationService,
-            @Lazy InventoryService inventoryService) {
+            @Lazy InventoryService inventoryService,
+            @Lazy PaymentService paymentService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -69,14 +75,15 @@ public class OrderService {
         this.ghtkService = ghtkService;
         this.notificationService = notificationService;
         this.inventoryService = inventoryService;
+        this.paymentService = paymentService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
-        
+
         Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
-        
+
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
 
@@ -97,7 +104,8 @@ public class OrderService {
         return rs;
     }
 
-    public ResultPaginationDTO fetchAllOrders(Pageable pageable, OrderStatusEnum status, Instant startDate, Instant endDate) {
+    public ResultPaginationDTO fetchAllOrders(Pageable pageable, OrderStatusEnum status, Instant startDate,
+            Instant endDate) {
         Specification<Order> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (status != null) {
@@ -135,17 +143,17 @@ public class OrderService {
         return rs;
     }
 
-    public Order createOder(ReqCheckoutDTO req) throws IdInvalidException {
+    public ResGetOrderDTO createOder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
         Address address = this.addressService.getAddressById(req.getAddressId());
         if (address == null) {
-            throw new IdInvalidException("Address not found with id: " + req.getAddressId());
+            throw new IdInvalidException("Địa chỉ không tồn tại.");
         }
 
         List<CartItem> cartItems = cartItemRepository.findByIdIn(req.getCartItemId());
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new IdInvalidException("Giỏ hàng của bạn đang trống.");
         }
 
         Order order = new Order();
@@ -171,7 +179,7 @@ public class OrderService {
                 (variant != null) ? variant.getId() : null
             );
             if (currentStock < i.getQuantity()) {
-                throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
+                throw new IdInvalidException("Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
             }
 
             // Reserve from Inventory (Available -> Reserved)
@@ -206,19 +214,19 @@ public class OrderService {
         String couponCode = req.getCouponCode();
         if (couponCode != null && !couponCode.isBlank()) {
             Coupon coupon = this.couponRepository.findByCode(couponCode)
-                    .orElseThrow(() -> new IdInvalidException("Coupon code not found: " + couponCode));
+                    .orElseThrow(() -> new IdInvalidException("Mã giảm giá không tồn tại: " + couponCode));
 
             if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
-                throw new IdInvalidException("Coupon usage limit reached");
+                throw new IdInvalidException("Mã giảm giá đã hết lượt sử dụng");
             }
             if (coupon.getMinOrderValue() != null && subTotal.compareTo(coupon.getMinOrderValue()) < 0) {
-                throw new IdInvalidException("Order value does not meet coupon requirement");
+                throw new IdInvalidException("Đơn hàng chưa đủ giá trị tối thiểu để áp dụng mã.");
             }
             if (coupon.getStatus() != com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE) {
-                throw new IdInvalidException("Coupon is not active");
+                throw new IdInvalidException("Mã giảm giá không còn hoạt động");
             }
             if (coupon.getEndDate().isBefore(LocalDateTime.now())) {
-                throw new IdInvalidException("Coupon is expired");
+                throw new IdInvalidException("Mã giảm giá đã hết hạn");
             }
 
             BigDecimal discountAmount = calculateDiscount(coupon, subTotal);
@@ -227,12 +235,34 @@ public class OrderService {
             this.couponRepository.save(coupon);
         }
 
-        // Final Price = subTotal + shippingFee - discountPrice
         BigDecimal finalPrice = subTotal.add(shippingFee).subtract(order.getDiscountPrice());
         order.setFinalPrice(finalPrice);
-
-        this.cartItemRepository.deleteAll(cartItems);
         Order savedOrder = this.orderRepository.save(order);
+
+        // Payment Handling (Synchronous with Order Creation)
+        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
+        Payment payment;
+        switch (req.getPaymentMethod()) {
+            case VNPAY:
+                payment = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
+                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, payment.getId());
+                if (!"00".equals(vnpayRes.getCode())) {
+                    throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
+                }
+                resDTO.setPaymentUrl(vnpayRes.getPaymentUrl());
+                resDTO.setPaymentMethod("VNPAY");
+                break;
+            case COD:
+            default:
+                this.paymentService.createCODPayment(savedOrder.getId());
+                resDTO.setPaymentMethod("COD");
+                break;
+        }
+        // Finalize order to save payment association
+        this.orderRepository.save(savedOrder);
+
+        // Only clear cart if everything is successful
+        this.cartItemRepository.deleteAll(cartItems);
 
         // Gửi thông báo cho User
         this.notificationService.createNotification(
@@ -242,7 +272,7 @@ public class OrderService {
             "ORDER_SUCCESS"
         );
 
-        return savedOrder;
+        return resDTO;
     }
 
     public Order getOrder(Long id) {
@@ -288,12 +318,12 @@ public class OrderService {
                 itemDTO.setProductName(item.getProduct().getName());
                 itemDTO.setQuantity(item.getQuantity());
                 itemDTO.setPrice(item.getPrice());
-                
+
                 // Get first image if available
                 if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
                     itemDTO.setProductImage(item.getProduct().getImages().get(0).getImageUrl());
                 }
-                
+
                 return itemDTO;
             }).collect(java.util.stream.Collectors.toList());
             res.setItems(itemDTOs);
@@ -336,11 +366,10 @@ public class OrderService {
                 // Commit stock for each item
                 for (OrderItem item : order.getItems()) {
                     this.inventoryService.commitStock(
-                        item.getProduct().getId(),
-                        item.getProductVariant() != null ? item.getProductVariant().getId() : null,
-                        item.getQuantity(),
-                        "Xác nhận đơn hàng #" + order.getId()
-                    );
+                            item.getProduct().getId(),
+                            item.getProductVariant() != null ? item.getProductVariant().getId() : null,
+                            item.getQuantity(),
+                            "Xác nhận đơn hàng #" + order.getId());
                 }
                 break;
             case DELIVERING:
@@ -357,11 +386,10 @@ public class OrderService {
                 // Release stock back to available
                 for (OrderItem item : order.getItems()) {
                     this.inventoryService.releaseStock(
-                        item.getProduct().getId(),
-                        item.getProductVariant() != null ? item.getProductVariant().getId() : null,
-                        item.getQuantity(),
-                        "Hủy đơn hàng #" + order.getId()
-                    );
+                            item.getProduct().getId(),
+                            item.getProductVariant() != null ? item.getProductVariant().getId() : null,
+                            item.getQuantity(),
+                            "Hủy đơn hàng #" + order.getId());
                 }
                 break;
             default:

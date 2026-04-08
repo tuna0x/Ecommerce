@@ -32,7 +32,14 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @EntityGraph(attributePaths = { "category", "brand" })
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
-    @Override
     @EntityGraph(attributePaths = { "category", "brand", "images", "productAttributeValues" })
     Optional<Product> findById(Long id);
+
+    @Query("SELECT c.name as category, COUNT(p.id) as count, SUM(pv.price * i.stock) as value " +
+           "FROM Product p " +
+           "JOIN p.category c " +
+           "JOIN p.variants pv " +
+           "JOIN pv.inventory i " +
+           "GROUP BY c.id, c.name")
+    List<Object[]> findCategoryDistribution();
 }

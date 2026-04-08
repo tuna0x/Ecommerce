@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,7 +53,8 @@ public class PaymentService {
     private final OrderService orderService;
     private final NotificationService notificationService;
 
-    public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository, OrderService orderService, NotificationService notificationService) {
+    public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository,
+            OrderService orderService, NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
@@ -87,10 +87,14 @@ public class PaymentService {
 
     public ResPaymentVNPAYDTO createVnPayPayment(HttpServletRequest req, Long paymentId) {
         Payment payment = this.paymentRepository.findById(paymentId).orElse(null);
-        if (payment == null) return new ResPaymentVNPAYDTO("99", "Payment not found", null);
+        if (payment == null)
+            return new ResPaymentVNPAYDTO("99", "Payment not found", null);
 
         String vnp_TxnRef = String.valueOf(payment.getId());
         String vnp_IpAddr = VNPayUtil.getIpAddress(req);
+        if (vnp_IpAddr == null || vnp_IpAddr.equals("0:0:0:0:0:0:0:1") || vnp_IpAddr.equals("localhost")) {
+            vnp_IpAddr = "127.0.0.1";
+        }
 
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", vnp_Version);
@@ -99,7 +103,7 @@ public class PaymentService {
         vnp_Params.put("vnp_Amount", String.valueOf(payment.getAmount().multiply(new BigDecimal(100)).longValue()));
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "Thanh toan don hang:" + vnp_TxnRef);
+        vnp_Params.put("vnp_OrderInfo", "Thanh toan don hang " + vnp_TxnRef);
         vnp_Params.put("vnp_OrderType", orderType);
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
@@ -116,31 +120,23 @@ public class PaymentService {
 
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
-        Iterator<String> itr = fieldNames.iterator();
-        while (itr.hasNext()) {
-            String fieldName = itr.next();
+        java.util.StringJoiner queryJoiner = new java.util.StringJoiner("&");
+        java.util.StringJoiner hashJoiner = new java.util.StringJoiner("&");
+
+        for (String fieldName : fieldNames) {
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data
-                hashData.append(fieldName);
-                hashData.append('=');
-                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
-                // Build query
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII));
-                query.append('=');
-                query.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
-                if (itr.hasNext()) {
-                    query.append('&');
-                    hashData.append('&');
-                }
+                // Build hash data (NO Encode)
+                hashJoiner.add(fieldName + "=" + fieldValue);
+
+                // Build query (Encode with %20 for space)
+                queryJoiner.add(URLEncoder.encode(fieldName, StandardCharsets.UTF_8) + "=" + 
+                               URLEncoder.encode(fieldValue, StandardCharsets.UTF_8).replaceAll("\\+", "%20"));
             }
         }
-        String queryUrl = query.toString();
-        String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashData.toString());
-        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
-        String paymentUrl = vnp_PayUrl + "?" + queryUrl;
+
+        String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashJoiner.toString());
+        String paymentUrl = vnp_PayUrl + "?" + queryJoiner.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
 
         return new ResPaymentVNPAYDTO("00", "Success", paymentUrl);
     }
@@ -158,11 +154,10 @@ public class PaymentService {
 
         // Gửi thông báo thanh toán thành công
         this.notificationService.createNotification(
-            order.getUser(), 
-            "Thanh toán thành công", 
-            "Giao dịch cho đơn hàng #" + order.getId() + " của bạn đã được xác nhận thành công.", 
-            "PAYMENT_SUCCESS"
-        );
+                order.getUser(),
+                "Thanh toán thành công",
+                "Giao dịch cho đơn hàng #" + order.getId() + " của bạn đã được xác nhận thành công.",
+                "PAYMENT_SUCCESS");
 
         return payment;
     }
