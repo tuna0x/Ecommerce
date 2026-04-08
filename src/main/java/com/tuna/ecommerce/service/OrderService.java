@@ -8,7 +8,11 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import java.time.Instant;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tuna.ecommerce.domain.Address;
@@ -75,13 +79,23 @@ public class OrderService {
         return rs;
     }
 
-    public ResultPaginationDTO fetchAllOrders(Pageable pageable, OrderStatusEnum status) {
-        Page<Order> pageOrder;
-        if (status != null) {
-            pageOrder = this.orderRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-        } else {
-            pageOrder = this.orderRepository.findAllByOrderByCreatedAtDesc(pageable);
-        }
+    public ResultPaginationDTO fetchAllOrders(Pageable pageable, OrderStatusEnum status, Instant startDate, Instant endDate) {
+        Specification<Order> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
+            }
+            query.orderBy(cb.desc(root.get("createdAt")));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Order> pageOrder = this.orderRepository.findAll(spec, pageable);
 
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
@@ -219,6 +233,8 @@ public class OrderService {
         }
 
         res.setStatus(order.getStatus());
+        res.setSubTotal(order.getTotalPrice());
+        res.setShippingFee(order.getShippingFee());
         res.setTotalPrice(order.getFinalPrice());
         res.setReceiverName(order.getReceiverName());
         res.setPhone(order.getPhone());
@@ -307,5 +323,11 @@ public class OrderService {
         }
 
         return order;
+    }
+
+    public void handleBulkUpdateStatus(List<Long> ids, OrderStatusEnum status) throws IdInvalidException {
+        for (Long id : ids) {
+            this.handleUpdateStatus(id, status);
+        }
     }
 }

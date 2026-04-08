@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.Review;
+import com.tuna.ecommerce.domain.ReviewImage;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.review.ReqCreateReviewDTO;
 import com.tuna.ecommerce.domain.response.review.ResReviewDTO;
@@ -27,14 +28,18 @@ public class ReviewService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public Review createReview(ReqCreateReviewDTO req) throws IdInvalidException {
+    public Review createReview(ReqCreateReviewDTO req,
+            java.util.List<org.springframework.web.multipart.MultipartFile> files)
+            throws IdInvalidException, java.io.IOException {
         // 1. Check product exists
         Product product = productRepository.findById(req.getProductId())
                 .orElseThrow(() -> new IdInvalidException("Sản phẩm không tồn tại"));
 
         // 2. Check user exists (from security context)
-        String email = SecurityUtil.getCurrentUserLogin().orElseThrow(() -> new IdInvalidException("Người dùng chưa đăng nhập"));
+        String email = SecurityUtil.getCurrentUserLogin()
+                .orElseThrow(() -> new IdInvalidException("Người dùng chưa đăng nhập"));
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new IdInvalidException("Người dùng không tồn tại");
@@ -56,11 +61,22 @@ public class ReviewService {
         review.setRating(req.getRating());
         review.setComment(req.getComment());
 
+        if (files != null && !files.isEmpty()) {
+            for (org.springframework.web.multipart.MultipartFile file : files) {
+                java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+                ReviewImage image = new ReviewImage();
+                image.setImageUrl(uploadResult.get("secure_url").toString());
+                image.setPublicId(uploadResult.get("public_id").toString());
+                image.setReview(review);
+                review.getImages().add(image);
+            }
+        }
+
         return reviewRepository.save(review);
     }
 
     public ResultPaginationDTO getReviewsByProduct(Long productId, Pageable pageable) {
-        Page<Review> pageReview = reviewRepository.findByProductIdOrderByCreatedAtDesc  (productId, pageable);
+        Page<Review> pageReview = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
 
@@ -85,16 +101,19 @@ public class ReviewService {
             res.setUserImage(review.getUser().getUserProfile().getImage());
         }
         res.setCreatedAt(review.getCreatedAt());
+        if (review.getImages() != null) {
+            res.setImages(review.getImages().stream().map(com.tuna.ecommerce.domain.ReviewImage::getImageUrl).toList());
+        }
         return res;
     }
 
     public void deleteReview(Long id) throws IdInvalidException {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Đánh giá không tồn tại"));
-        
+
         String email = SecurityUtil.getCurrentUserLogin().orElse("");
         if (!review.getUser().getEmail().equals(email)) {
-             throw new IdInvalidException("Bạn không có quyền xóa đánh giá này");
+            throw new IdInvalidException("Bạn không có quyền xóa đánh giá này");
         }
 
         reviewRepository.delete(review);
