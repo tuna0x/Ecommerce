@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuna.ecommerce.ultil.constant.CouponStatus;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 
@@ -31,5 +32,6 @@ public class ReqCreateCouponDTO {
     private Integer usageLimit;
     private Integer usedCount;
     private CouponStatus status;
+    @JsonProperty("isPublic")
     private boolean isPublic;
 }

@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -16,6 +17,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -42,7 +44,6 @@ public class ProductVariant {
 
     private String sku;
     private BigDecimal price; // Price override for this variant
-    private int stock;
     private double weight;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -52,6 +53,10 @@ public class ProductVariant {
         inverseJoinColumns = @JoinColumn(name = "attribute_value_id")
     )
     private List<AttributeValue> attributeValues = new ArrayList<>();
+
+    @OneToOne(mappedBy = "productVariant", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Inventory inventory;
 
     private Instant createdAt;
     private Instant updatedAt;

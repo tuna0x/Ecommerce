@@ -12,4 +12,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long>,JpaSpecifi
 
     boolean existsByCode(String code);
     Optional<Coupon> findByCode(String code);
+
+    @org.springframework.data.jpa.repository.Query("SELECT c FROM Coupon c WHERE c.isPublic = true")
+    java.util.List<Coupon> findByIsPublicTrue();
 }

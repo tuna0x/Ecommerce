@@ -48,6 +48,7 @@ public class Coupon {
     private Integer usageLimit;
     private Integer usedCount;
     private CouponStatus status;
+    @JsonProperty("isPublic")
     private boolean isPublic;
     private Instant createdAt;
     private Instant updatedAt;

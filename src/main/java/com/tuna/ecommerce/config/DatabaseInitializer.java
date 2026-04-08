@@ -17,6 +17,7 @@ import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.UserProfile;
 import com.tuna.ecommerce.repository.BannerRepository;
 import com.tuna.ecommerce.repository.BrandRepository;
+import com.tuna.ecommerce.repository.CouponRepository;
 import com.tuna.ecommerce.repository.PermissionRepository;
 import com.tuna.ecommerce.repository.PromotionRepository;
 import com.tuna.ecommerce.repository.RoleRepository;
@@ -33,10 +34,12 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final BrandRepository brandRepository;
     private final BannerRepository bannerRepository;
     private final PromotionRepository promotionRepository;
+    private final CouponRepository couponRepository;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
-            BannerRepository bannerRepository, PromotionRepository promotionRepository) {
+            BannerRepository bannerRepository, PromotionRepository promotionRepository,
+            CouponRepository couponRepository) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -44,6 +47,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         this.brandRepository = brandRepository;
         this.bannerRepository = bannerRepository;
         this.promotionRepository = promotionRepository;
+        this.couponRepository = couponRepository;
     }
 
     @Override
@@ -119,6 +123,38 @@ public class DatabaseInitializer implements CommandLineRunner {
             globalPromo.setEndAt(LocalDateTime.now().plusDays(30));
             this.promotionRepository.save(globalPromo);
             System.out.println(">>> CREATED DEFAULT GLOBAL PROMOTION");
+        }
+
+        // 5. Create Default Coupons if none exist
+        if (this.couponRepository.count() == 0) {
+            com.tuna.ecommerce.domain.Coupon c1 = new com.tuna.ecommerce.domain.Coupon();
+            c1.setName("Chào mừng bạn mới");
+            c1.setDescription("Giảm 50k cho đơn hàng đầu tiên");
+            c1.setCode("WELCOME50");
+            c1.setType(com.tuna.ecommerce.ultil.constant.CouponTypeEnum.FIXED);
+            c1.setDiscountValue(BigDecimal.valueOf(50000));
+            c1.setMinOrderValue(BigDecimal.valueOf(200000));
+            c1.setStartDate(LocalDateTime.now().minusDays(1));
+            c1.setEndDate(LocalDateTime.now().plusDays(90));
+            c1.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
+            c1.setPublic(true);
+            this.couponRepository.save(c1);
+
+            com.tuna.ecommerce.domain.Coupon c2 = new com.tuna.ecommerce.domain.Coupon();
+            c2.setName("Siêu sale mùa hè");
+            c2.setDescription("Giảm 15% tối đa 100k");
+            c2.setCode("SUMMER15");
+            c2.setType(com.tuna.ecommerce.ultil.constant.CouponTypeEnum.PERCENT);
+            c2.setDiscountValue(BigDecimal.valueOf(15));
+            c2.setMaxDiscountValue(BigDecimal.valueOf(100000));
+            c2.setMinOrderValue(BigDecimal.valueOf(300000));
+            c2.setStartDate(LocalDateTime.now().minusDays(1));
+            c2.setEndDate(LocalDateTime.now().plusDays(30));
+            c2.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
+            c2.setPublic(true);
+            this.couponRepository.save(c2);
+
+            System.out.println(">>> CREATED DEFAULT COUPONS");
         }
 
         System.out.println(">>> FINISH INIT DATABASE");
@@ -213,6 +249,11 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get coupons with pagination", "/api/v1/coupons", "GET", "COUPONS", false));
         perms.add(new PermDef("Toggle coupon active status", "/api/v1/coupons/{id}/active", "PATCH", "COUPONS", false));
 
+        // USER COUPONS (WALLET)
+        perms.add(new PermDef("Collect a coupon", "/api/v1/user-coupons/collect/{id}", "POST", "USER COUPONS", true));
+        perms.add(new PermDef("Get my coupons", "/api/v1/user-coupons/my", "GET", "USER COUPONS", true));
+        perms.add(new PermDef("Get available coupons", "/api/v1/user-coupons/available", "GET", "USER COUPONS", true));
+
         // PROMOTIONS
         perms.add(new PermDef("Create a promotion", "/api/v1/promotions", "POST", "PROMOTIONS", false));
         perms.add(new PermDef("Update a promotion", "/api/v1/promotions", "PUT", "PROMOTIONS", false));
@@ -262,6 +303,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         // CHAT
         perms.add(new PermDef("Send chat message", "/api/v1/chat", "POST", "CHAT", true));
         perms.add(new PermDef("Get chat history", "/api/v1/chat/history", "GET", "CHAT", true));
+
+        // INVENTORY
+        perms.add(new PermDef("Get inventory with pagination", "/api/v1/inventory", "GET", "INVENTORY", false));
+        perms.add(new PermDef("Manual stock adjustment", "/api/v1/inventory/adjust", "POST", "INVENTORY", false));
+        perms.add(new PermDef("Bulk stock adjustment", "/api/v1/inventory/bulk-adjust", "POST", "INVENTORY", false));
+        perms.add(new PermDef("Get inventory logs", "/api/v1/inventory/{id}/logs", "GET", "INVENTORY", false));
 
         boolean updated = false;
         for (PermDef def : perms) {

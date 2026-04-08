@@ -41,7 +41,6 @@ public class Product {
     @NotBlank(message = "name is not blank")
     private String name;
     private BigDecimal originalPrice;
-    private int stock;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
@@ -136,4 +135,5 @@ public class Product {
         this.productAttributeValues.remove(productAttributeValue);
         productAttributeValue.setProduct(null);
     }
+
 }

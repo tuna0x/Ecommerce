@@ -27,34 +27,52 @@ import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CouponRepository;
-import com.tuna.ecommerce.repository.OrderItemRepository;
 import com.tuna.ecommerce.repository.OrderRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
-import com.tuna.ecommerce.service.NotificationService;
 
-import lombok.AllArgsConstructor;
+import com.tuna.ecommerce.domain.ProductVariant;
+import org.springframework.context.annotation.Lazy;
 
 @Service
-@AllArgsConstructor
 @Transactional
 public class OrderService {
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final CartService cartService;
-    private final SecurityUtil securityUtil;
     private final UserService userService;
     private final CartItemRepository cartItemRepository;
     private final CouponRepository couponRepository;
     private final AddressService addressService;
     private final GHTKService ghtkService;
     private final NotificationService notificationService;
+    private final InventoryService inventoryService;
+
+    public OrderService(
+            OrderRepository orderRepository,
+            CartService cartService,
+            UserService userService,
+            CartItemRepository cartItemRepository,
+            CouponRepository couponRepository,
+            AddressService addressService,
+            GHTKService ghtkService,
+            NotificationService notificationService,
+            @Lazy InventoryService inventoryService) {
+        this.orderRepository = orderRepository;
+        this.cartService = cartService;
+        this.userService = userService;
+        this.cartItemRepository = cartItemRepository;
+        this.couponRepository = couponRepository;
+        this.addressService = addressService;
+        this.ghtkService = ghtkService;
+        this.notificationService = notificationService;
+        this.inventoryService = inventoryService;
+    }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
-        String email = this.securityUtil.getCurrentUserLogin().orElse(null);
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
         
         Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), pageable);
@@ -91,7 +109,9 @@ public class OrderService {
             if (endDate != null) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
             }
-            query.orderBy(cb.desc(root.get("createdAt")));
+            if (query != null) {
+                query.orderBy(cb.desc(root.get("createdAt")));
+            }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -116,7 +136,7 @@ public class OrderService {
     }
 
     public Order createOder(ReqCheckoutDTO req) throws IdInvalidException {
-        String email = this.securityUtil.getCurrentUserLogin().orElse(null);
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
         Address address = this.addressService.getAddressById(req.getAddressId());
         if (address == null) {
@@ -143,17 +163,29 @@ public class OrderService {
         BigDecimal subTotal = BigDecimal.ZERO;
         for (CartItem i : cartItems) {
             Product product = i.getProduct();
-            if (product.getStock() < i.getQuantity()) {
-                throw new RuntimeException("Product " + product.getName() + " is out of stock. Available: " + product.getStock());
+            ProductVariant variant = i.getProductVariant();
+            
+            // Validate stock from inventory directly
+            int currentStock = this.inventoryService.getCurrentStock(
+                product.getId(), 
+                (variant != null) ? variant.getId() : null
+            );
+            if (currentStock < i.getQuantity()) {
+                throw new RuntimeException("Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
             }
 
-            // Decrement stock and increment sold count
-            product.setStock(product.getStock() - i.getQuantity());
+            // Reserve from Inventory (Available -> Reserved)
+            this.inventoryService.reserveStock(
+                product.getId(), 
+                (variant != null) ? variant.getId() : null, 
+                i.getQuantity()
+            );
+
             product.setSoldCount(product.getSoldCount() + i.getQuantity());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
-            orderItem.setProductVariant(i.getProductVariant());
+            orderItem.setProductVariant(variant);
             orderItem.setQuantity(i.getQuantity());
             orderItem.setPrice(i.getUnitPrice());
             orderItem.setSubTotal(i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
@@ -301,6 +333,15 @@ public class OrderService {
             case CONFIRMED:
                 title = "Đơn hàng đã được xác nhận";
                 message = "Đơn hàng #" + order.getId() + " của bạn đã được xác nhận.";
+                // Commit stock for each item
+                for (OrderItem item : order.getItems()) {
+                    this.inventoryService.commitStock(
+                        item.getProduct().getId(),
+                        item.getProductVariant() != null ? item.getProductVariant().getId() : null,
+                        item.getQuantity(),
+                        "Xác nhận đơn hàng #" + order.getId()
+                    );
+                }
                 break;
             case DELIVERING:
                 title = "Đơn hàng đang được giao";
@@ -313,6 +354,15 @@ public class OrderService {
             case CANCELLED:
                 title = "Đơn hàng đã bị hủy";
                 message = "Rất tiếc, đơn hàng #" + order.getId() + " của bạn đã bị hủy.";
+                // Release stock back to available
+                for (OrderItem item : order.getItems()) {
+                    this.inventoryService.releaseStock(
+                        item.getProduct().getId(),
+                        item.getProductVariant() != null ? item.getProductVariant().getId() : null,
+                        item.getQuantity(),
+                        "Hủy đơn hàng #" + order.getId()
+                    );
+                }
                 break;
             default:
                 break;
