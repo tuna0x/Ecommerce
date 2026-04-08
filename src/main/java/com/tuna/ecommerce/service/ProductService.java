@@ -3,10 +3,12 @@ package com.tuna.ecommerce.service;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.tuna.ecommerce.domain.Inventory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,10 +40,10 @@ import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.PromotionRepository;
 
-import lombok.AllArgsConstructor;
+import org.springframework.context.annotation.Lazy;
+import com.tuna.ecommerce.repository.InventoryRepository;
 
 @Service
-@AllArgsConstructor
 @Transactional
 public class ProductService {
     private final ProductRepository productRepository;
@@ -56,6 +58,39 @@ public class ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final ProductPromotionRepository productPromotionRepository;
     private final PromotionRepository promotionRepository;
+    private final InventoryService inventoryService;
+    private final InventoryRepository inventoryRepository;
+
+    public ProductService(
+            ProductRepository productRepository,
+            ReviewRepository reviewRepository,
+            AttributeValueRepository attributeValueRepository,
+            ProductAttributeValueRepository productAttributeValueRepository,
+            CategoryService categoryService,
+            CloudinaryService cloudinaryService,
+            ProductImageRepository productImageRepository,
+            BrandService brandService,
+            PricingService pricingService,
+            ProductVariantRepository productVariantRepository,
+            ProductPromotionRepository productPromotionRepository,
+            PromotionRepository promotionRepository,
+            @Lazy InventoryService inventoryService,
+            InventoryRepository inventoryRepository) {
+        this.productRepository = productRepository;
+        this.reviewRepository = reviewRepository;
+        this.attributeValueRepository = attributeValueRepository;
+        this.productAttributeValueRepository = productAttributeValueRepository;
+        this.categoryService = categoryService;
+        this.cloudinaryService = cloudinaryService;
+        this.productImageRepository = productImageRepository;
+        this.brandService = brandService;
+        this.pricingService = pricingService;
+        this.productVariantRepository = productVariantRepository;
+        this.productPromotionRepository = productPromotionRepository;
+        this.promotionRepository = promotionRepository;
+        this.inventoryService = inventoryService;
+        this.inventoryRepository = inventoryRepository;
+    }
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
@@ -67,7 +102,6 @@ public class ProductService {
         Product newProduct = new Product();
         newProduct.setName(product.getName());
         newProduct.setOriginalPrice(product.getOriginalPrice());
-        newProduct.setStock(product.getStock());
         newProduct.setCategory(category);
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
@@ -103,13 +137,12 @@ public class ProductService {
             }
         }
 
-        if (product.getVariants() != null) {
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             for (ReqCreateProductDTO.VariantDTO vDto : product.getVariants()) {
                 ProductVariant variant = new ProductVariant();
                 variant.setProduct(newProduct);
                 variant.setSku(vDto.getSku());
                 variant.setPrice(vDto.getPrice());
-                variant.setStock(vDto.getStock());
                 variant.setWeight(vDto.getWeight());
 
                 if (vDto.getAttributeValues() != null) {
@@ -122,10 +155,29 @@ public class ProductService {
                 this.productVariantRepository.save(variant);
                 newProduct.getVariants().add(variant);
             }
+        } else {
+            // Force a default variant for simple products
+            ProductVariant defaultVariant = new ProductVariant();
+            defaultVariant.setProduct(newProduct);
+            defaultVariant.setSku("DEFAULT-" + newProduct.getId());
+            defaultVariant.setPrice(newProduct.getOriginalPrice());
+            this.productVariantRepository.save(defaultVariant);
+            newProduct.getVariants().add(defaultVariant);
         }
 
         this.syncProductWithVariants(newProduct);
-        return this.productRepository.save(newProduct);
+        newProduct = this.productRepository.save(newProduct);
+        
+        Map<String, Integer> variantStocks = new HashMap<>();
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            variantStocks = product.getVariants().stream()
+                .collect(Collectors.toMap(ReqCreateProductDTO.VariantDTO::getSku, ReqCreateProductDTO.VariantDTO::getStock));
+        } else {
+            // Single stock for default variant
+            variantStocks.put("DEFAULT-" + newProduct.getId(), product.getStock());
+        }
+        this.inventoryService.syncInitialInventory(newProduct, variantStocks);
+        return newProduct;
     }
 
     public Product handleGetById(long id) {
@@ -146,7 +198,6 @@ public class ProductService {
 
         cur.setName(product.getName());
         cur.setOriginalPrice(product.getOriginalPrice());
-        cur.setStock(product.getStock());
         cur.setCategory(category);
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
@@ -170,17 +221,21 @@ public class ProductService {
         }
 
         // Update Variants
-        if (product.getVariants() != null) {
-            // Clear old variants (orphanRemoval will handle deletion if configured, else
-            // manual delete)
-            cur.getVariants().clear();
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            Map<String, ProductVariant> existingVariants = cur.getVariants().stream()
+                    .collect(Collectors.toMap(ProductVariant::getSku, v -> v));
+            
+            List<ProductVariant> updatedVariants = new ArrayList<>();
 
             for (ReqUpdateProductDTO.VariantDTO vDto : product.getVariants()) {
-                ProductVariant variant = new ProductVariant();
-                variant.setProduct(cur);
-                variant.setSku(vDto.getSku());
+                ProductVariant variant = existingVariants.get(vDto.getSku());
+                if (variant == null) {
+                    variant = new ProductVariant();
+                    variant.setProduct(cur);
+                    variant.setSku(vDto.getSku());
+                }
+                
                 variant.setPrice(vDto.getPrice());
-                variant.setStock(vDto.getStock());
                 variant.setWeight(vDto.getWeight());
 
                 if (vDto.getAttributeValues() != null) {
@@ -190,7 +245,21 @@ public class ProductService {
                             .collect(Collectors.toList());
                     variant.setAttributeValues(avs);
                 }
-                cur.getVariants().add(variant);
+                updatedVariants.add(variant);
+            }
+            
+            cur.getVariants().clear();
+            cur.getVariants().addAll(updatedVariants);
+        } else {
+            // Simple product: Ensure only default variant exists
+            cur.getVariants().removeIf(v -> !v.getSku().startsWith("DEFAULT-"));
+            if (cur.getVariants().isEmpty()) {
+                ProductVariant defaultVariant = new ProductVariant();
+                defaultVariant.setProduct(cur);
+                defaultVariant.setSku("DEFAULT-" + cur.getId());
+                defaultVariant.setPrice(cur.getOriginalPrice());
+                this.productVariantRepository.save(defaultVariant);
+                cur.getVariants().add(defaultVariant);
             }
         }
 
@@ -235,7 +304,17 @@ public class ProductService {
         }
 
         this.syncProductWithVariants(cur);
-        return this.productRepository.save(cur);
+        cur = this.productRepository.save(cur);
+        
+        Map<String, Integer> variantStocks = new HashMap<>();
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            variantStocks = product.getVariants().stream()
+                .collect(Collectors.toMap(ReqUpdateProductDTO.VariantDTO::getSku, ReqUpdateProductDTO.VariantDTO::getStock));
+        } else {
+            variantStocks.put("DEFAULT-" + cur.getId(), product.getStock());
+        }
+        this.inventoryService.syncInitialInventory(cur, variantStocks);
+        return cur;
     }
 
     private void syncProductWithVariants(Product product) {
@@ -244,7 +323,6 @@ public class ProductService {
         }
 
         BigDecimal minPrice = null;
-        int totalStock = 0;
 
         for (ProductVariant variant : product.getVariants()) {
             // Price synchronization (using originalPrice as the base display price)
@@ -253,15 +331,11 @@ public class ProductService {
                     minPrice = variant.getPrice();
                 }
             }
-
-            // Stock synchronization (sum of all variants)
-            totalStock += variant.getStock();
         }
 
         if (minPrice != null) {
             product.setOriginalPrice(minPrice);
         }
-        product.setStock(totalStock);
     }
 
     public void handleDelete(long id) throws IOException {
@@ -381,13 +455,44 @@ public class ProductService {
         res.setId(product.getId());
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
-        res.setStock(product.getStock());
+        
+        // Map Inventory Details for main product (from its variants or default variant)
+        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+            if (product.getVariants().size() == 1 && product.getVariants().get(0).getSku().startsWith("DEFAULT-")) {
+                // If it's a simple product with a default variant, pull its stock directly
+                this.inventoryRepository.findByProductVariant(product.getVariants().get(0)).ifPresent(inv -> {
+                    res.setStock(inv.getStock());
+                    res.setReservedStock(inv.getReservedStock());
+                    res.setMaxStock(inv.getMaxStock());
+                });
+            } else {
+                // For products with multiple variants, sum the stock for the dashboard overview
+                int totalStock = 0;
+                int totalReserved = 0;
+                for (ProductVariant v : product.getVariants()) {
+                    Inventory inv = this.inventoryRepository.findByProductVariant(v).orElse(null);
+                    if (inv != null) {
+                        totalStock += inv.getStock();
+                        totalReserved += inv.getReservedStock();
+                    }
+                }
+                res.setStock(totalStock);
+                res.setReservedStock(totalReserved);
+            }
+        }
 
-        if (product.getImages() != null) {
+        // Map Thumbnail and Images
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            res.setThumbnail(product.getImages().get(0).getImageUrl());
             List<String> imageUrls = product.getImages().stream()
                     .map(ProductImage::getImageUrl)
                     .collect(Collectors.toList());
             res.setImage(imageUrls);
+        }
+
+        // Map Description from ProductDetail
+        if (product.getProductDetail() != null) {
+            res.setDescription(product.getProductDetail().getDescription());
         }
 
         if (product.getCategory() != null) {
@@ -418,7 +523,7 @@ public class ProductService {
             res.setAttributeValue(valueInners);
         }
 
-        // Map Variants first
+        // Map Variants
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             List<ResProductDTO.ProductVariantInner> variantInners = product.getVariants().stream()
                     .map(v -> {
@@ -426,8 +531,14 @@ public class ProductService {
                         vi.setId(v.getId());
                         vi.setSku(v.getSku());
                         vi.setPrice(v.getPrice());
-                        vi.setStock(v.getStock());
                         vi.setWeight(v.getWeight());
+                        
+                        // Map Variant Inventory
+                        this.inventoryRepository.findByProductVariant(v).ifPresent(inv -> {
+                            vi.setStock(inv.getStock());
+                            vi.setReservedStock(inv.getReservedStock());
+                            vi.setMaxStock(inv.getMaxStock());
+                        });
 
                         List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
                                 .map(av -> {

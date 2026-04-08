@@ -304,6 +304,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Send chat message", "/api/v1/chat", "POST", "CHAT", true));
         perms.add(new PermDef("Get chat history", "/api/v1/chat/history", "GET", "CHAT", true));
 
+        // INVENTORY
+        perms.add(new PermDef("Get inventory with pagination", "/api/v1/inventory", "GET", "INVENTORY", false));
+        perms.add(new PermDef("Manual stock adjustment", "/api/v1/inventory/adjust", "POST", "INVENTORY", false));
+        perms.add(new PermDef("Bulk stock adjustment", "/api/v1/inventory/bulk-adjust", "POST", "INVENTORY", false));
+        perms.add(new PermDef("Get inventory logs", "/api/v1/inventory/{id}/logs", "GET", "INVENTORY", false));
+
         boolean updated = false;
         for (PermDef def : perms) {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);

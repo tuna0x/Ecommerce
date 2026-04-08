@@ -24,6 +24,8 @@ public class ResProductDTO {
     private BigDecimal discountPrice;
     private BigDecimal finalPrice;
     private int stock;
+    private int reservedStock;
+    private int maxStock;
     private int weight;
     private String thumbnail;
     private List<String> image;
@@ -46,6 +48,8 @@ public class ResProductDTO {
         private BigDecimal discountPrice;
         private BigDecimal finalPrice;
         private int stock;
+        private int reservedStock;
+        private int maxStock;
         private double weight;
         private List<VariantAttributeInner> variantAttributes;
     }
