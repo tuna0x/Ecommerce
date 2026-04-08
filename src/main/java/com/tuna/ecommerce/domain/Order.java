@@ -11,6 +11,7 @@ import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -52,17 +53,18 @@ public class Order {
     private Integer shippingFee;
     private BigDecimal finalPrice;
 
-    //n-1
+    // n-1
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private OrderStatusEnum status;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private PaymentStatusEnum paymentStatus;
-
 
     // 1-n
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
@@ -75,16 +77,17 @@ public class Order {
     }
 
     @OneToOne
-    @JoinColumn(name="payment_id",referencedColumnName = "id")
-    private Payment payment;//1-1
+    @JoinColumn(name = "payment_id", referencedColumnName = "id")
+    private Payment payment;// 1-1
 
     private Instant createdAt;
     private String createdBy;
 
     @PrePersist
-    public void handleBeforeCreate(){
-        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    public void handleBeforeCreate() {
+        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.createdAt = Instant.now();
     }
 }

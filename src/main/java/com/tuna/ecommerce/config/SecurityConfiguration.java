@@ -48,24 +48,23 @@ public class SecurityConfiguration {
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/register"
         };
-        http.
-            csrf(c-> c.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(
-                authz ->  authz
-                .requestMatchers(whiteList).permitAll()
-                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
-                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/categories/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/products/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/attribute/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/attributes-values/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/brands/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/banners/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/coupons/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/product-detail/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/v1/reviews/**").permitAll()
-                .anyRequest().authenticated())
+        http.csrf(c -> c.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(
+                        authz -> authz
+                                .requestMatchers(whiteList).permitAll()
+                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
+                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/attribute/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/attributes-values/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/banners/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/coupons/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/product-detail/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
+                                .anyRequest().authenticated())
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults())
                         .authenticationEntryPoint(customAuthenticationEntryPoint))
 

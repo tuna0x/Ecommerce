@@ -1227,7 +1227,7 @@ Negative matches:
 
    ElasticsearchReactiveHealthContributorAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    ElasticsearchRepositoriesAutoConfiguration:
       Did not match:
@@ -1255,9 +1255,9 @@ Negative matches:
       Did not match:
          - @ConditionalOnAvailableEndpoint not exposed (OnAvailableEndpointCondition)
 
-   ErrorWebFluxAutoConfiguration:
+   ErrorWebFCOSMETICAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFCOSMETICConfigurer' (OnClassCondition)
 
    FlywayAutoConfiguration:
       Did not match:
@@ -1303,11 +1303,11 @@ Negative matches:
       Did not match:
          - @ConditionalOnClass did not find required class 'com.querydsl.core.Query' (OnClassCondition)
 
-   GraphQlWebFluxAutoConfiguration:
+   GraphQlWebFCOSMETICAutoConfiguration:
       Did not match:
          - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
 
-   GraphQlWebFluxSecurityAutoConfiguration:
+   GraphQlWebFCOSMETICSecurityAutoConfiguration:
       Did not match:
          - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
 
@@ -1412,9 +1412,9 @@ Negative matches:
       Did not match:
          - @ConditionalOnClass did not find required class 'org.infinispan.spring.embedded.provider.SpringEmbeddedCacheManager' (OnClassCondition)
 
-   InfluxMetricsExportAutoConfiguration:
+   InfCOSMETICMetricsExportAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'io.micrometer.influx.InfluxMeterRegistry' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'io.micrometer.infCOSMETIC.InfCOSMETICMeterRegistry' (OnClassCondition)
 
    InfoContributorAutoConfiguration#buildInfoContributor:
       Did not match:
@@ -1681,7 +1681,7 @@ Negative matches:
 
    MongoReactiveHealthContributorAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    MongoReactiveRepositoriesAutoConfiguration:
       Did not match:
@@ -1922,11 +1922,11 @@ Negative matches:
 
    ReactiveHealthEndpointConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    ReactiveManagementContextAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    ReactiveManagementWebSecurityAutoConfiguration:
       Did not match:
@@ -1934,11 +1934,11 @@ Negative matches:
 
    ReactiveMultipartAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFCOSMETICConfigurer' (OnClassCondition)
 
    ReactiveOAuth2ClientAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    ReactiveOAuth2ResourceServerAutoConfiguration:
       Did not match:
@@ -1946,7 +1946,7 @@ Negative matches:
 
    ReactiveSecurityAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    ReactiveUserDetailsServiceAutoConfiguration:
       Did not match:
@@ -1976,11 +1976,11 @@ Negative matches:
 
    RedisReactiveAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    RedisReactiveHealthContributorAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.FCOSMETIC' (OnClassCondition)
 
    RedisRepositoriesAutoConfiguration:
       Did not match:
@@ -2108,7 +2108,7 @@ Negative matches:
       Did not match:
          - @ConditionalOnClass did not find required class 'com.github.mxab.thymeleaf.extras.dataattribute.dialect.DataAttributeDialect' (OnClassCondition)
 
-   ThymeleafAutoConfiguration.ThymeleafWebFluxConfiguration:
+   ThymeleafAutoConfiguration.ThymeleafWebFCOSMETICConfiguration:
       Did not match:
          - did not find reactive web application classes (OnWebApplicationCondition)
 
@@ -2159,15 +2159,15 @@ Negative matches:
       Did not match:
          - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
 
-   WebFluxAutoConfiguration:
+   WebFCOSMETICAutoConfiguration:
       Did not match:
-         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFCOSMETICConfigurer' (OnClassCondition)
 
-   WebFluxEndpointManagementContextConfiguration:
+   WebFCOSMETICEndpointManagementContextConfiguration:
       Did not match:
          - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.DispatcherHandler' (OnClassCondition)
 
-   WebFluxObservationAutoConfiguration:
+   WebFCOSMETICObservationAutoConfiguration:
       Did not match:
          - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
 

@@ -188,6 +188,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // DASHBOARD
         perms.add(new PermDef("Get dashboard statistics", "/api/v1/dashboard/statistics", "GET", "DASHBOARD", false));
+        perms.add(new PermDef("Export dashboard statistics to Excel", "/api/v1/dashboard/export-excel", "GET", "DASHBOARD", false));
 
         // PRODUCTS
         perms.add(new PermDef("Create a product", "/api/v1/products", "POST", "PRODUCTS", false));
@@ -228,18 +229,26 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Toggle banner active status", "/api/v1/banners/{id}/active", "PATCH", "BANNERS", false));
 
         // ATTRIBUTE VALUES
-        perms.add(new PermDef("Create a attribute value", "/api/v1/attributes-values", "POST", "ATTRIBUTE VALUE", false));
-        perms.add(new PermDef("Update a attribute value", "/api/v1/attributes-values", "PUT", "ATTRIBUTE VALUE", false));
-        perms.add(new PermDef("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE", "ATTRIBUTE VALUE", false));
-        perms.add(new PermDef("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE", true));
-        perms.add(new PermDef("Get attribute values with pagination", "/api/v1/attributes-values", "GET", "ATTRIBUTE VALUE", true));
+        perms.add(
+                new PermDef("Create a attribute value", "/api/v1/attributes-values", "POST", "ATTRIBUTE VALUE", false));
+        perms.add(
+                new PermDef("Update a attribute value", "/api/v1/attributes-values", "PUT", "ATTRIBUTE VALUE", false));
+        perms.add(new PermDef("Delete a attribute value", "/api/v1/attributes-values/{id}", "DELETE", "ATTRIBUTE VALUE",
+                false));
+        perms.add(new PermDef("Get a attribute value by id", "/api/v1/attributes-values/{id}", "GET", "ATTRIBUTE VALUE",
+                true));
+        perms.add(new PermDef("Get attribute values with pagination", "/api/v1/attributes-values", "GET",
+                "ATTRIBUTE VALUE", true));
 
         // PRODUCT DETAIL
         perms.add(new PermDef("Create a product detail", "/api/v1/product-detail", "POST", "PRODUCT DETAIL", false));
         perms.add(new PermDef("Update a product detail", "/api/v1/product-detail", "PUT", "PRODUCT DETAIL", false));
-        perms.add(new PermDef("Delete a product detail", "/api/v1/product-detail/{id}", "DELETE", "PRODUCT DETAIL", false));
-        perms.add(new PermDef("Get a product detail by id", "/api/v1/product-detail/{id}", "GET", "PRODUCT DETAIL", true));
-        perms.add(new PermDef("Get product-detail with pagination", "/api/v1/product-detail", "GET", "PRODUCT DETAIL", true));
+        perms.add(new PermDef("Delete a product detail", "/api/v1/product-detail/{id}", "DELETE", "PRODUCT DETAIL",
+                false));
+        perms.add(new PermDef("Get a product detail by id", "/api/v1/product-detail/{id}", "GET", "PRODUCT DETAIL",
+                true));
+        perms.add(new PermDef("Get product-detail with pagination", "/api/v1/product-detail", "GET", "PRODUCT DETAIL",
+                true));
 
         // COUPONS
         perms.add(new PermDef("Create a coupon", "/api/v1/coupons", "POST", "COUPONS", false));
@@ -262,11 +271,15 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get promotions with pagination", "/api/v1/promotions", "GET", "PROMOTIONS", false));
         perms.add(new PermDef("Active a promotion", "/api/v1/promotions/active/{id}", "POST", "PROMOTIONS", false));
         perms.add(new PermDef("Deactive a promotion", "/api/v1/promotions/deactive/{id}", "POST", "PROMOTIONS", false));
-        perms.add(new PermDef("Toggle promotion active status", "/api/v1/promotions/{id}/active", "PATCH", "PROMOTIONS", false));
-        perms.add(new PermDef("Assign promotion to product", "/api/v1/product-promotions", "POST", "PRODUCT PROMOTIONS", false));
+        perms.add(new PermDef("Toggle promotion active status", "/api/v1/promotions/{id}/active", "PATCH", "PROMOTIONS",
+                false));
+        perms.add(new PermDef("Assign promotion to product", "/api/v1/product-promotions", "POST", "PRODUCT PROMOTIONS",
+                false));
         perms.add(new PermDef("Get assigned products", "/api/v1/promotions/{id}/products", "GET", "PROMOTIONS", false));
-        perms.add(new PermDef("Assign products to promotion", "/api/v1/promotions/{id}/products", "POST", "PROMOTIONS", false));
-        perms.add(new PermDef("Assign all products to promotion", "/api/v1/promotions/{id}/products/all", "POST", "PROMOTIONS", false));
+        perms.add(new PermDef("Assign products to promotion", "/api/v1/promotions/{id}/products", "POST", "PROMOTIONS",
+                false));
+        perms.add(new PermDef("Assign all products to promotion", "/api/v1/promotions/{id}/products/all", "POST",
+                "PROMOTIONS", false));
 
         // ADDRESSES
         perms.add(new PermDef("Create a address", "/api/v1/addresses", "POST", "ADDRESSES", true));
@@ -291,7 +304,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // PAYMENT
         perms.add(new PermDef("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT", true));
-        
+
         // PRICING
         perms.add(new PermDef("Get Product price", "/api/v1/price/{id}", "GET", "PRICING PRODUCT", true));
 
@@ -344,8 +357,10 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
 
         if (updated) {
-            if (adminRole != null) this.roleRepository.save(adminRole);
-            if (userRole != null) this.roleRepository.save(userRole);
+            if (adminRole != null)
+                this.roleRepository.save(adminRole);
+            if (userRole != null)
+                this.roleRepository.save(userRole);
         }
     }
 

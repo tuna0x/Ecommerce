@@ -9,10 +9,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentMethodEnum;
+import com.tuna.ecommerce.ultil.constant.InventoryLogType;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,7 +31,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table  (name = "payments")
+@Table(name = "payments")
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,8 +42,10 @@ public class Payment {
     private BigDecimal amount;// số tiền thanh toán
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private PaymentMethodEnum method;// phương thức thanh toán
     @Enumerated(EnumType.STRING)
+    @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private OrderStatusEnum status;// trạng thái thanh toán
     private String transactionId;// mã giao dịch
 
@@ -49,10 +53,11 @@ public class Payment {
     private String createdBy;
 
     @PrePersist
-    public void handleBeforeCreate(){
-        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() ==true ?
-        SecurityUtil.getCurrentUserLogin().get() : "";
+    public void handleBeforeCreate() {
+        this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
+                ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         this.createdAt = Instant.now();
-        this.transactionId="PAY-"+RandomStringUtils.randomAlphanumeric(10).toUpperCase();
+        this.transactionId = "PAY-" + RandomStringUtils.randomAlphanumeric(10).toUpperCase();
     }
 }

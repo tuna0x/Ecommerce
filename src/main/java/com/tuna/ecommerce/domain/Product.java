@@ -79,7 +79,7 @@ public class Product {
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore
     List<ProductPromotion> productPromotions;
-    
+
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     List<Review> reviews = new ArrayList<>();
@@ -106,12 +106,12 @@ public class Product {
 
     }
 
-    public void addImage(ProductImage productImage){
+    public void addImage(ProductImage productImage) {
         images.add(productImage);
         productImage.setProduct(this);
     }
 
-        public void removeImage(ProductImage productImage){
+    public void removeImage(ProductImage productImage) {
         images.remove(productImage);
         productImage.setProduct(null);
     }

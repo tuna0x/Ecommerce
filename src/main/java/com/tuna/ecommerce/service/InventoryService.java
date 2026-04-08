@@ -33,13 +33,14 @@ public class InventoryService {
 
     private Inventory getOrCreateInventory(Long productId, Long variantId) throws IdInvalidException {
         Long targetVariantId = variantId;
-        
+
         if (targetVariantId == null) {
             // Fallback for simple products: look for the DEFAULT variant
             ProductVariant defaultVariant = productVariantRepository.findAll().stream()
-                .filter(v -> v.getProduct().getId().equals(productId) && v.getSku().startsWith("DEFAULT-"))
-                .findFirst()
-                .orElseThrow(() -> new IdInvalidException("Hệ thống không tìm thấy kho hàng mặc định cho sản phẩm này."));
+                    .filter(v -> v.getProduct().getId().equals(productId) && v.getSku().startsWith("DEFAULT-"))
+                    .findFirst()
+                    .orElseThrow(() -> new IdInvalidException(
+                            "Hệ thống không tìm thấy kho hàng mặc định cho sản phẩm này."));
             targetVariantId = defaultVariant.getId();
         }
 
@@ -86,7 +87,7 @@ public class InventoryService {
         } else {
             inventory.setReservedStock(inventory.getReservedStock() - quantity);
         }
-        
+
         inventoryRepository.save(inventory);
 
         InventoryLog log = new InventoryLog();
@@ -113,7 +114,8 @@ public class InventoryService {
     }
 
     @Transactional
-    public ResInventoryDTO updateStock(Long productId, Long variantId, int quantityChange, InventoryLogType type, String note, Integer minStockThreshold, Integer maxStock) throws IdInvalidException {
+    public ResInventoryDTO updateStock(Long productId, Long variantId, int quantityChange, InventoryLogType type,
+            String note, Integer minStockThreshold, Integer maxStock) throws IdInvalidException {
         Inventory inventory = getOrCreateInventory(productId, variantId);
 
         if (minStockThreshold != null) {
@@ -127,7 +129,7 @@ public class InventoryService {
         if (newStock < 0) {
             throw new IdInvalidException("Số lượng tồn kho không đủ để thực hiện điều chỉnh.");
         }
-        
+
         inventory.setStock(newStock);
         inventory = inventoryRepository.save(inventory);
 
@@ -153,8 +155,7 @@ public class InventoryService {
                                 req.getType(),
                                 req.getNote(),
                                 req.getMinStockThreshold(),
-                                req.getMaxStock()
-                        );
+                                req.getMaxStock());
                     } catch (IdInvalidException e) {
                         throw new RuntimeException(e.getMessage());
                     }
@@ -169,13 +170,14 @@ public class InventoryService {
     }
 
     public ResInventoryDTO convertToResInventoryDTO(Inventory inventory) {
-        if (inventory == null) return null;
+        if (inventory == null)
+            return null;
 
         ResInventoryDTO.ProductVariantDTO variantDTO = null;
         if (inventory.getProductVariant() != null) {
             ProductVariant variant = inventory.getProductVariant();
             Product product = variant.getProduct();
-            
+
             String thumbnail = null;
             if (product != null && product.getImages() != null && !product.getImages().isEmpty()) {
                 thumbnail = product.getImages().get(0).getImageUrl();
@@ -217,7 +219,7 @@ public class InventoryService {
         for (ProductVariant variant : product.getVariants()) {
             Inventory inv = inventoryRepository.findByProductVariant(variant).orElse(null);
             Integer initialStock = (variantStocks != null) ? variantStocks.get(variant.getSku()) : null;
-            
+
             if (inv == null) {
                 inv = new Inventory();
                 inv.setProductVariant(variant);
@@ -227,7 +229,7 @@ public class InventoryService {
                 int diff = initialStock - inv.getStock();
                 inv.setStock(initialStock);
                 inventoryRepository.save(inv);
-                
+
                 InventoryLog log = new InventoryLog();
                 log.setInventory(inv);
                 log.setQuantityChange(diff);
@@ -237,14 +239,15 @@ public class InventoryService {
             }
         }
 
-        // Cleanup: Remove inventory for variants no longer linked to this product 
-        // We find all inventory records where variant.product == this product, but variant is not in product.getVariants()
+        // Cleanup: Remove inventory for variants no longer linked to this product
+        // We find all inventory records where variant.product == this product, but
+        // variant is not in product.getVariants()
         List<Inventory> variantsToRemove = inventoryRepository.findAll().stream()
-            .filter(inv -> inv.getProductVariant() != null && 
-                           inv.getProductVariant().getProduct().getId().equals(product.getId()) &&
-                           !product.getVariants().contains(inv.getProductVariant()))
-            .collect(Collectors.toList());
-            
+                .filter(inv -> inv.getProductVariant() != null &&
+                        inv.getProductVariant().getProduct().getId().equals(product.getId()) &&
+                        !product.getVariants().contains(inv.getProductVariant()))
+                .collect(Collectors.toList());
+
         if (!variantsToRemove.isEmpty()) {
             inventoryRepository.deleteAll(variantsToRemove);
         }

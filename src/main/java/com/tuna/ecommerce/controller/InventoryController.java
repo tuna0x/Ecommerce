@@ -35,19 +35,19 @@ public class InventoryController {
     @APIMessage("Adjust inventory successfully")
     public ResponseEntity<ResInventoryDTO> adjust(@RequestBody ReqInventoryAdjustDTO req) throws IdInvalidException {
         return ResponseEntity.ok(inventoryService.updateStock(
-            req.getProductId(), 
-            req.getVariantId(), 
-            req.getQuantity(), 
-            req.getType(), 
-            req.getNote(),
-            req.getMinStockThreshold(),
-            req.getMaxStock()
-        ));
+                req.getProductId(),
+                req.getVariantId(),
+                req.getQuantity(),
+                req.getType(),
+                req.getNote(),
+                req.getMinStockThreshold(),
+                req.getMaxStock()));
     }
 
     @PostMapping("/bulk-adjust")
     @APIMessage("Bulk adjust inventory successfully")
-    public ResponseEntity<List<ResInventoryDTO>> bulkAdjust(@RequestBody List<ReqInventoryAdjustDTO> requests) throws IdInvalidException {
+    public ResponseEntity<List<ResInventoryDTO>> bulkAdjust(@RequestBody List<ReqInventoryAdjustDTO> requests)
+            throws IdInvalidException {
         return ResponseEntity.ok(inventoryService.bulkUpdateStock(requests));
     }
 
