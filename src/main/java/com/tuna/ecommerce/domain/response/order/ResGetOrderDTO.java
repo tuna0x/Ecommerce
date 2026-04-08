@@ -20,6 +20,8 @@ public class ResGetOrderDTO {
     private long id;
     private UserInner user;
     private BigDecimal totalPrice;
+    private BigDecimal subTotal;
+    private Integer shippingFee;
     private String receiverName;
     private String phone;
 

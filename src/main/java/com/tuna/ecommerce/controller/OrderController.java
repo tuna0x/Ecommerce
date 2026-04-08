@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.Payment;
+import com.tuna.ecommerce.domain.request.order.ReqBulkUpdateStatusDTO;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import java.time.Instant;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.service.OrderService;
@@ -69,8 +71,17 @@ public class OrderController {
     @APIMessage("admin get all orders")
     public ResponseEntity<ResultPaginationDTO> getAllOrders(
             Pageable pageable,
-            @RequestParam(value = "status", required = false) OrderStatusEnum status) {
-        return ResponseEntity.ok().body(this.orderService.fetchAllOrders(pageable, status));
+            @RequestParam(value = "status", required = false) OrderStatusEnum status,
+            @RequestParam(value = "startDate", required = false) Instant startDate,
+            @RequestParam(value = "endDate", required = false) Instant endDate) {
+        return ResponseEntity.ok().body(this.orderService.fetchAllOrders(pageable, status, startDate, endDate));
+    }
+
+    @PostMapping("/order/bulk-status")
+    @APIMessage("bulk update order status")
+    public ResponseEntity<Void> bulkUpdateOrderStatus(@RequestBody ReqBulkUpdateStatusDTO req) throws IdInvalidException {
+        this.orderService.handleBulkUpdateStatus(req.getIds(), req.getStatus());
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/order/{id}/status")

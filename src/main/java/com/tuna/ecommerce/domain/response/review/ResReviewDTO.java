@@ -17,5 +17,6 @@ public class ResReviewDTO {
     private String comment;
     private String userName;
     private String userImage;
-    private Instant createdAt;
+    private java.time.Instant createdAt;
+    private java.util.List<String> images;
 }

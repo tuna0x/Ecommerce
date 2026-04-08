@@ -17,9 +17,10 @@ import com.tuna.ecommerce.ultil.err.PermissionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-
 public class PermissionInterceptor implements HandlerInterceptor {
-    @Autowired UserService userService;
+    @Autowired
+    UserService userService;
+
     @Override
     @Transactional
     public boolean preHandle(
@@ -36,21 +37,21 @@ public class PermissionInterceptor implements HandlerInterceptor {
         System.out.println(">>> requestURI= " + requestURI);
 
         // check permission
-        String email=SecurityUtil.getCurrentUserLogin().isPresent() ==true ? SecurityUtil.getCurrentUserLogin().get() :"";
+        String email = SecurityUtil.getCurrentUserLogin().isPresent() == true ? SecurityUtil.getCurrentUserLogin().get()
+                : "";
         if (email != null && !email.isEmpty()) {
-            User user=this.userService.findByUsername(email);
+            User user = this.userService.findByUsername(email);
             if (user != null) {
-                Role role=user.getRole();
-                if (role!=null) {
-                    List<Permission> list=role.getPermissions();
-                    boolean isAllow=list.stream().anyMatch(x->
-                    x.getApiPath().equals(path)&&
-                    x.getMethod().equals(httpMethod));
+                Role role = user.getRole();
+                if (role != null) {
+                    List<Permission> list = role.getPermissions();
+                    boolean isAllow = list.stream().anyMatch(x -> x.getApiPath().equals(path) &&
+                            x.getMethod().equals(httpMethod));
 
-                    if (isAllow==false) {
+                    if (isAllow == false) {
                         throw new PermissionException("you don't have permission to access this endpoint");
                     }
-                }else{
+                } else {
                     throw new PermissionException("you don't have permission to access this endpoint");
                 }
             }

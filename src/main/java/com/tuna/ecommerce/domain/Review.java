@@ -55,6 +55,9 @@ public class Review {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @jakarta.persistence.OneToMany(mappedBy = "review", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<ReviewImage> images = new java.util.ArrayList<>();
+
     @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
