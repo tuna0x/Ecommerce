@@ -241,4 +241,33 @@ public class CartService {
         }
         return totalWeight;
     }
+
+    public void clearCartByOrder(com.tuna.ecommerce.domain.Order order) {
+        if (order == null || order.getUser() == null || order.getItems() == null) return;
+
+        Cart cart = this.cartRepository.findByUser(order.getUser());
+        if (cart == null || cart.getItems() == null) return;
+
+        List<CartItem> cartItemsToRemove = new ArrayList<>();
+        
+        for (com.tuna.ecommerce.domain.OrderItem orderItem : order.getItems()) {
+            for (CartItem cartItem : cart.getItems()) {
+                boolean productMatch = cartItem.getProduct().getId().equals(orderItem.getProduct().getId());
+                boolean variantMatch = (cartItem.getProductVariant() == null && orderItem.getProductVariant() == null) ||
+                                      (cartItem.getProductVariant() != null && orderItem.getProductVariant() != null && 
+                                       cartItem.getProductVariant().getId().equals(orderItem.getProductVariant().getId()));
+                
+                if (productMatch && variantMatch) {
+                    cartItemsToRemove.add(cartItem);
+                }
+            }
+        }
+
+        if (!cartItemsToRemove.isEmpty()) {
+            for (CartItem item : cartItemsToRemove) {
+                cart.removeCartItem(item);
+            }
+            this.cartRepository.save(cart);
+        }
+    }
 }

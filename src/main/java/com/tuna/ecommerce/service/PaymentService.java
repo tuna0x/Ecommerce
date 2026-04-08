@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -109,7 +110,7 @@ public class PaymentService {
         vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
@@ -118,25 +119,24 @@ public class PaymentService {
         String vnp_ExpireDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
 
+        // Build data to hash and query string
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
-        java.util.StringJoiner queryJoiner = new java.util.StringJoiner("&");
         java.util.StringJoiner hashJoiner = new java.util.StringJoiner("&");
-
+        java.util.StringJoiner queryJoiner = new java.util.StringJoiner("&");
         for (String fieldName : fieldNames) {
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data (NO Encode)
-                hashJoiner.add(fieldName + "=" + fieldValue);
-
-                // Build query (Encode with %20 for space)
-                queryJoiner.add(URLEncoder.encode(fieldName, StandardCharsets.UTF_8) + "=" + 
-                               URLEncoder.encode(fieldValue, StandardCharsets.UTF_8).replaceAll("\\+", "%20"));
+                String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+                hashJoiner.add(fieldName + "=" + encodedValue);
+                queryJoiner.add(URLEncoder.encode(fieldName, StandardCharsets.UTF_8) + "=" + encodedValue);
             }
         }
-
-        String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashJoiner.toString());
-        String paymentUrl = vnp_PayUrl + "?" + queryJoiner.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
+        String hashDataFinal = hashJoiner.toString();
+        String finalQueryString = queryJoiner.toString();
+        
+        String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashDataFinal);
+        String paymentUrl = vnp_PayUrl + "?" + finalQueryString + "&vnp_SecureHash=" + vnp_SecureHash;
 
         return new ResPaymentVNPAYDTO("00", "Success", paymentUrl);
     }

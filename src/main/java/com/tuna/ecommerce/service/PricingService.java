@@ -58,20 +58,18 @@ public class PricingService {
     }
 
     /**
-     * Calculates current pricing for a product including its best active promotion.
+     * Gathers all applicable promotions for a product (Specific, Global, and Category-based).
      */
-    public ResPriceResultDTO calculatePrice(Product product) {
-        if (product == null || product.getOriginalPrice() == null) {
-            return new ResPriceResultDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+    public List<Promotion> getApplicablePromotions(Product product) {
+        List<Promotion> promotions = new ArrayList<>();
+        if (product == null) {
+            return promotions;
         }
 
-        BigDecimal originalPrice = product.getOriginalPrice();
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
         // 1. Specific Product Promotions
         List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(), now);
-
-        List<Promotion> promotions = new ArrayList<>();
         if (productPromos != null) {
             for (ProductPromotion pp : productPromos) {
                 if (pp.getPromotion() != null) {
@@ -93,6 +91,20 @@ public class PricingService {
                 promotions.addAll(categoryPromos);
             }
         }
+
+        return promotions;
+    }
+
+    /**
+     * Calculates current pricing for a product including its best active promotion.
+     */
+    public ResPriceResultDTO calculatePrice(Product product) {
+        if (product == null || product.getOriginalPrice() == null) {
+            return new ResPriceResultDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+
+        BigDecimal originalPrice = product.getOriginalPrice();
+        List<Promotion> promotions = this.getApplicablePromotions(product);
 
         return this.calculatePriceWithPromotions(originalPrice, promotions);
     }

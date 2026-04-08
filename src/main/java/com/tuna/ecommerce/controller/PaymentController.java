@@ -16,6 +16,7 @@ import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.repository.OrderRepository;
 import com.tuna.ecommerce.repository.PaymentRepository;
 import com.tuna.ecommerce.service.PaymentService;
+import com.tuna.ecommerce.service.CartService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
@@ -32,6 +33,7 @@ public class PaymentController {
     private final OrderRepository orderRepository;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+    private final CartService cartService;
 
     @PostMapping("/payment/confirm")
     @APIMessage("Confirm payment as paid")
@@ -77,7 +79,7 @@ public class PaymentController {
             order.setStatus(OrderStatusEnum.CONFIRMED);
             this.orderRepository.save(order);
             this.paymentService.save(payment);
-            
+            this.cartService.clearCartByOrder(order);
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId=" + vnp_TransactionNo;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {

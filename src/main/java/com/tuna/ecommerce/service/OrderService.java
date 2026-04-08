@@ -240,29 +240,30 @@ public class OrderService {
         Order savedOrder = this.orderRepository.save(order);
 
         // Payment Handling (Synchronous with Order Creation)
-        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
-        Payment payment;
+        String paymentUrl = null;
         switch (req.getPaymentMethod()) {
             case VNPAY:
-                payment = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
-                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, payment.getId());
+                Payment paymentVnPay = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
+                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, paymentVnPay.getId());
                 if (!"00".equals(vnpayRes.getCode())) {
                     throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
                 }
-                resDTO.setPaymentUrl(vnpayRes.getPaymentUrl());
-                resDTO.setPaymentMethod("VNPAY");
+                paymentUrl = vnpayRes.getPaymentUrl();
                 break;
             case COD:
             default:
                 this.paymentService.createCODPayment(savedOrder.getId());
-                resDTO.setPaymentMethod("COD");
                 break;
         }
-        // Finalize order to save payment association
-        this.orderRepository.save(savedOrder);
 
-        // Only clear cart if everything is successful
-        this.cartItemRepository.deleteAll(cartItems);
+        // Finalize order to save payment association
+        savedOrder = this.orderRepository.save(savedOrder);
+
+        // Only clear cart immediately for COD. For online payments like VNPAY, 
+        // we'll clear it after successful payment confirmation in the callback.
+        if (req.getPaymentMethod() == com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.COD) {
+            this.cartItemRepository.deleteAll(cartItems);
+        }
 
         // Gửi thông báo cho User
         this.notificationService.createNotification(
@@ -272,6 +273,10 @@ public class OrderService {
             "ORDER_SUCCESS"
         );
 
+        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
+        if (paymentUrl != null) {
+            resDTO.setPaymentUrl(paymentUrl);
+        }
         return resDTO;
     }
 
