@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import com.nimbusds.jose.util.Resource;
 import com.tuna.ecommerce.domain.response.RestResponse;
+import com.tuna.ecommerce.ultil.anotation.APIMessage;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -37,13 +38,20 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object>{
             return body;
 
         }
+        
+        // Prevent redundant wrapping if the body is already a RestResponse
+        if (body instanceof RestResponse) {
+            return body;
+        }
+
         if (status >=400) {
             //case err
             return body;
         }else{
             // case success
             res.setData(body);
-            res.setMessage( "CALL API SUCCESS");
+            APIMessage message = returnType.getMethodAnnotation(APIMessage.class);
+            res.setMessage(message != null ? message.value() : "CALL API SUCCESS");
         }
                 return res;
     }

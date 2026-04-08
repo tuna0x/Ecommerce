@@ -90,4 +90,16 @@ public class CouponController {
                         : com.tuna.ecommerce.ultil.constant.CouponStatus.DISABLED);
         return ResponseEntity.ok().build();
     }
+    
+    @PatchMapping("/coupons/{id}/public")
+    @APIMessage("Toggle coupon public status")
+    public ResponseEntity<Void> togglePublic(@PathVariable("id") Long id, @RequestParam("isPublic") boolean isPublic)
+            throws IdInvalidException {
+        Coupon coupon = this.couponService.getById(id);
+        if (coupon == null) {
+            throw new IdInvalidException("coupon not found");
+        }
+        this.couponService.togglePublic(id, isPublic);
+        return ResponseEntity.ok().build();
+    }
 }
