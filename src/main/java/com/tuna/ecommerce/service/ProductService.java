@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.tuna.ecommerce.domain.Inventory;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -620,5 +621,28 @@ public class ProductService {
         }
 
         return this.productRepository.save(product);
+    }
+
+    public String getProductsSummaryForChatbot(String query) {
+        List<Product> products;
+        if (query != null && !query.isEmpty()) {
+            // Use Native Query for much faster performance with indexes
+            String sqlQuery = "%" + query + "%";
+            products = this.productRepository.searchByNameNative(sqlQuery);
+        } else {
+            products = this.productRepository.findAll(Pageable.ofSize(10)).getContent();
+        }
+
+        if (products.isEmpty()) {
+            return "Hiện tại tôi không tìm thấy sản phẩm nào phù hợp với yêu cầu của bạn.";
+        }
+
+        StringBuilder sb = new StringBuilder("Danh sách sản phẩm của cửa hàng:\n");
+        for (Product p : products) {
+            sb.append("- ").append(p.getName())
+                    .append(": ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
+                    .append(" (Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác").append(")\n");
+        }
+        return sb.toString();
     }
 }

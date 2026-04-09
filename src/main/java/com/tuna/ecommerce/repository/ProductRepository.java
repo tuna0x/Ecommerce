@@ -42,4 +42,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "JOIN pv.inventory i " +
            "GROUP BY c.id, c.name")
     List<Object[]> findCategoryDistribution();
+
+    @Query(value = "SELECT * FROM products WHERE name LIKE :query LIMIT 15", nativeQuery = true)
+    List<Product> searchByNameNative(@Param("query") String query);
 }
