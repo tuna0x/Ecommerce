@@ -1,5 +1,10 @@
 package com.tuna.ecommerce.controller;
 
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +21,7 @@ import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.repository.OrderRepository;
 import com.tuna.ecommerce.repository.PaymentRepository;
 import com.tuna.ecommerce.service.PaymentService;
+import com.tuna.ecommerce.ultil.VNPayUtil;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
@@ -26,12 +32,21 @@ import lombok.AllArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1")
-@AllArgsConstructor
 public class PaymentController {
+
+    @Value("${secretKey}")
+    private String secretKey;
 
     private final OrderRepository orderRepository;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+
+    public PaymentController(OrderRepository orderRepository, PaymentService paymentService,
+            PaymentRepository paymentRepository) {
+        this.orderRepository = orderRepository;
+        this.paymentService = paymentService;
+        this.paymentRepository = paymentRepository;
+    }
 
     @PostMapping("/payment/confirm")
     @APIMessage("Confirm payment as paid")
@@ -48,12 +63,37 @@ public class PaymentController {
     @GetMapping("/payment/vn-pay-callback")
     @APIMessage("Handle VNPay callback")
     public ResponseEntity<Void> payCallbackHandler(HttpServletRequest req) throws IdInvalidException {
+        // Verify signature
+        Map<String, String> fields = new HashMap<>();
+        for (Enumeration<String> params = req.getParameterNames(); params.hasMoreElements();) {
+            String fieldName = params.nextElement();
+            String fieldValue = req.getParameter(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                fields.put(fieldName, fieldValue);
+            }
+        }
+
+        String vnp_SecureHash = req.getParameter("vnp_SecureHash");
+        if (fields.containsKey("vnp_SecureHashType")) {
+            fields.remove("vnp_SecureHashType");
+        }
+        if (fields.containsKey("vnp_SecureHash")) {
+            fields.remove("vnp_SecureHash");
+        }
+
+        String signValue = VNPayUtil.hashAllFields(fields, secretKey);
         String vnp_TxnRef = req.getParameter("vnp_TxnRef");
         String vnp_ResponseCode = req.getParameter("vnp_ResponseCode");
         String vnp_TransactionNo = req.getParameter("vnp_TransactionNo");
 
         // Frontend URL base (could be moved to application.yml)
         String frontendRedirectUrl = "http://localhost:5173/payment-result";
+
+        if (!signValue.equals(vnp_SecureHash)) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Invalid_signature"))
+                    .build();
+        }
 
         if (vnp_TxnRef == null) {
             return ResponseEntity.status(HttpStatus.FOUND)

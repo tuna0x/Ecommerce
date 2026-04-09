@@ -53,8 +53,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(
                         authz -> authz
                                 .requestMatchers(whiteList).permitAll()
-                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay-callback").permitAll()
-                                // .requestMatchers(HttpMethod.GET,"/api/v1/payment/vn-pay").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vn-pay-callback").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vn-pay").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/attribute/**").permitAll()

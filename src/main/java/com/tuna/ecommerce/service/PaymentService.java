@@ -90,53 +90,17 @@ public class PaymentService {
         if (payment == null)
             return new ResPaymentVNPAYDTO("99", "Payment not found", null);
 
-        String vnp_TxnRef = String.valueOf(payment.getId());
-        String vnp_IpAddr = VNPayUtil.getIpAddress(req);
-        if (vnp_IpAddr == null || vnp_IpAddr.equals("0:0:0:0:0:0:0:1") || vnp_IpAddr.equals("localhost")) {
-            vnp_IpAddr = "127.0.0.1";
-        }
-
-        Map<String, String> vnp_Params = new HashMap<>();
-        vnp_Params.put("vnp_Version", vnp_Version);
-        vnp_Params.put("vnp_Command", vnp_Command);
-        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
-        vnp_Params.put("vnp_Amount", String.valueOf(payment.getAmount().multiply(new BigDecimal(100)).longValue()));
-        vnp_Params.put("vnp_CurrCode", "VND");
-        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "Thanh toan don hang " + vnp_TxnRef);
-        vnp_Params.put("vnp_OrderType", orderType);
-        vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
-        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
-
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        String vnp_CreateDate = formatter.format(cld.getTime());
-        vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
-
-        cld.add(Calendar.MINUTE, 15);
-        String vnp_ExpireDate = formatter.format(cld.getTime());
-        vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
-
-        List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
-        Collections.sort(fieldNames);
-        java.util.StringJoiner queryJoiner = new java.util.StringJoiner("&");
-        java.util.StringJoiner hashJoiner = new java.util.StringJoiner("&");
-
-        for (String fieldName : fieldNames) {
-            String fieldValue = vnp_Params.get(fieldName);
-            if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Build hash data (NO Encode)
-                hashJoiner.add(fieldName + "=" + fieldValue);
-
-                // Build query (Encode with %20 for space)
-                queryJoiner.add(URLEncoder.encode(fieldName, StandardCharsets.UTF_8) + "=" + 
-                               URLEncoder.encode(fieldValue, StandardCharsets.UTF_8).replaceAll("\\+", "%20"));
-            }
-        }
-
-        String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashJoiner.toString());
-        String paymentUrl = vnp_PayUrl + "?" + queryJoiner.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
+        String paymentUrl = VNPayUtil.createVnPayPayment(
+                req,
+                payment.getId(),
+                vnp_PayUrl,
+                vnp_ReturnUrl,
+                vnp_TmnCode,
+                secretKey,
+                vnp_Version,
+                vnp_Command,
+                orderType,
+                payment.getAmount());
 
         return new ResPaymentVNPAYDTO("00", "Success", paymentUrl);
     }
