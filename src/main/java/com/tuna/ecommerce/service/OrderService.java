@@ -41,6 +41,10 @@ import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.tuna.ecommerce.domain.ProductVariant;
 import org.springframework.context.annotation.Lazy;
 
+import org.springframework.data.domain.PageRequest;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+
 @Service
 @Transactional
 public class OrderService {
@@ -407,5 +411,36 @@ public class OrderService {
         for (Long id : ids) {
             this.handleUpdateStatus(id, status);
         }
+    }
+
+    public String getOrdersSummaryForChatbot() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null)
+            return "Người dùng chưa đăng nhập. Hãy khuyên khách hàng đăng nhập để xem đơn hàng.";
+
+        User user = this.userService.findByUsername(email);
+        if (user == null)
+            return "Không tìm thấy thông tin người dùng.";
+
+        // Lấy 5 đơn hàng gần nhất
+        Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, 5));
+        List<Order> orders = pageOrder.getContent();
+
+        if (orders.isEmpty()) {
+            return "Khách hàng chưa có đơn hàng nào tại cửa hàng.";
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                .withZone(ZoneId.systemDefault());
+
+        StringBuilder sb = new StringBuilder("Thông tin 5 đơn hàng gần nhất của khách hàng:\n");
+        for (Order o : orders) {
+            sb.append("- Đơn hàng #").append(o.getId())
+                    .append(": Trạng thái [").append(o.getStatus()).append("]")
+                    .append(", Tổng thanh toán: ").append(String.format("%,.0f VNĐ", o.getFinalPrice().doubleValue()))
+                    .append(", Ngày đặt: ").append(o.getCreatedAt() != null ? formatter.format(o.getCreatedAt()) : "N/A")
+                    .append("\n");
+        }
+        return sb.toString();
     }
 }
