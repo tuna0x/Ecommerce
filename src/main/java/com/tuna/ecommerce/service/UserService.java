@@ -47,6 +47,7 @@ public class UserService {
     }
 
     public User getUserById(Long id) {
+        if (id == null) return null;
         Optional<User> userOptional = this.userRepository.findById(id);
         if (userOptional.isPresent()) {
             User user = userOptional.get();

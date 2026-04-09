@@ -59,6 +59,9 @@ public class NotificationController {
     @APIMessage("Admin sends notification to a user")
     @org.springframework.web.bind.annotation.PostMapping("/notifications/send")
     public ResponseEntity<Notification> sendNotification(@org.springframework.web.bind.annotation.RequestBody ReqSendNotificationDTO req) throws IdInvalidException {
+        if (req.getUserId() == null) {
+            throw new IdInvalidException("User ID must not be null");
+        }
         User user = this.userService.getUserById(req.getUserId());
         if (user == null) {
             throw new IdInvalidException("User not found with id: " + req.getUserId());
