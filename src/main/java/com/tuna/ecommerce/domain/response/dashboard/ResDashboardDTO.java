@@ -21,6 +21,8 @@ public class ResDashboardDTO {
     private List<MonthlyRevenue> monthlyRevenue;
     private List<CategoryStat> categoryDistribution;
     private InventorySummary inventorySummary;
+    private List<RecentOrder> recentOrders;
+    private List<LowStockProduct> lowStockProducts;
     
     // New Statistics fields
     private java.util.Map<String, Long> orderStatusDistribution;
@@ -77,5 +79,29 @@ public class ResDashboardDTO {
     public static class ProductValueStat {
         private String name;
         private BigDecimal value;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RecentOrder {
+        private Long id;
+        private String transactionId;
+        private String customerName;
+        private BigDecimal total;
+        private String status;
+        private java.time.Instant createdAt;
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class LowStockProduct {
+        private Long id;
+        private String name;
+        private String image;
+        private long stock;
     }
 }

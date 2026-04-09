@@ -28,4 +28,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
            "FROM Inventory i JOIN i.productVariant pv JOIN pv.product p " +
            "GROUP BY p.id, p.name ORDER BY totalValue DESC")
     List<Object[]> findTopProductsByValue();
+
+    @Query("SELECT p.id as id, p.name as name, pi.imageUrl as image, i.stock as stock " +
+           "FROM Inventory i JOIN i.productVariant pv JOIN pv.product p LEFT JOIN p.images pi " +
+           "WHERE i.stock > 0 AND i.stock < i.minStockThreshold AND (pi.main = true OR pi.id = (SELECT MIN(pi2.id) FROM ProductImage pi2 WHERE pi2.product.id = p.id))")
+    List<Object[]> findLowStockItems();
 }

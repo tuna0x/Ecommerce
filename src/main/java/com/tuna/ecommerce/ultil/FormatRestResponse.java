@@ -39,8 +39,8 @@ public class FormatRestResponse implements ResponseBodyAdvice<Object>{
 
         }
         
-        // Prevent redundant wrapping if the body is already a RestResponse
-        if (body instanceof RestResponse) {
+        // Prevent redundant wrapping if the body is already a RestResponse or is binary data
+        if (body instanceof RestResponse || body instanceof byte[]) {
             return body;
         }
 

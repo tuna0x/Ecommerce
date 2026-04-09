@@ -24,6 +24,39 @@ import lombok.AllArgsConstructor;
 @Transactional
 public class CouponService {
     private final CouponRepository couponRepository;
+    private final com.tuna.ecommerce.repository.UserRepository userRepository;
+    private final com.tuna.ecommerce.repository.UserCouponRepository userCouponRepository;
+
+    public Coupon validateCoupon(String code, String email) throws com.tuna.ecommerce.ultil.err.IdInvalidException {
+        Coupon coupon = this.getByCode(code);
+        if (coupon == null) {
+            throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá không tồn tại.");
+        }
+
+        if (coupon.getStatus() != CouponStatus.ACTIVE) {
+            throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá không còn hoạt động.");
+        }
+
+        if (coupon.getEndDate() != null && coupon.getEndDate().isBefore(LocalDateTime.now())) {
+            throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá đã hết hạn.");
+        }
+
+        if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
+            throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá đã hết lượt sử dụng tổng quát.");
+        }
+
+        com.tuna.ecommerce.domain.User user = userRepository.findByEmail(email);
+        if (user != null) {
+            boolean alreadyUsed = userCouponRepository.findByUserAndCoupon(user, coupon)
+                    .map(com.tuna.ecommerce.domain.UserCoupon::isUsed)
+                    .orElse(false);
+            if (alreadyUsed) {
+                throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Bạn đã sử dụng mã giảm giá này rồi.");
+            }
+        }
+
+        return coupon;
+    }
 
     public Coupon togglePublic(Long id, boolean isPublic) {
         Coupon cur = this.getById(id);

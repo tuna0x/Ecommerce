@@ -16,8 +16,6 @@ import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.category.ResCategoryDTO;
 import com.tuna.ecommerce.repository.CategoryRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
-import jakarta.annotation.PostConstruct;
-import org.springframework.jdbc.core.JdbcTemplate;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -25,67 +23,39 @@ import lombok.AllArgsConstructor;
 @Transactional
 public class CategoryService {
     private final CategoryRepository categoryRepository;
-    private final JdbcTemplate jdbcTemplate;
 
-    @PostConstruct
-    public void init() {
-        try {
-            jdbcTemplate.execute("ALTER TABLE categories DROP COLUMN active");
-            System.out.println(">>> DROP COLUMN active from categories: SUCCESS");
-        } catch (Exception e) {
-            // Column might already be dropped
-        }
-        try {
-            jdbcTemplate.execute("ALTER TABLE attributes DROP COLUMN active");
-            System.out.println(">>> DROP COLUMN active from attributes: SUCCESS");
-        } catch (Exception e) {
-            // Column might already be dropped
-        }
-        try {
-            jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
-            System.out.println(">>> DROP COLUMN stock from products: SUCCESS");
-        } catch (Exception e) {
-            // Column might already be dropped
-        }
-        try {
-            jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
-            System.out.println(">>> DROP COLUMN stock from product_variants: SUCCESS");
-        } catch (Exception e) {
-            // Column might already be dropped
-        }
-    }
-
-    public Category handleCreate(ReqCreateCategoryDTO req){
-        Category category=new Category();
+    public Category handleCreate(ReqCreateCategoryDTO req) {
+        Category category = new Category();
         category.setName(req.getName());
         category.setDescription(req.getDescription());
         category.setActive(req.getActive());
-        if (req.getParentId() !=null) {
+        if (req.getParentId() != null) {
             Category parent = this.handleGetById(req.getParentId());
             category.setParentCategory(parent);
         }
         return this.categoryRepository.save(category);
     }
 
-    public Category handleGetById(Long id){
-        if (id == null) return null;
-        Optional<Category> category=this.categoryRepository.findById(id);
+    public Category handleGetById(Long id) {
+        if (id == null)
+            return null;
+        Optional<Category> category = this.categoryRepository.findById(id);
         return category.isPresent() ? category.get() : null;
     }
 
-    public Category handleUpdate(ReqUpdateCategoryDTO req){
+    public Category handleUpdate(ReqUpdateCategoryDTO req) {
         Category category = this.handleGetById(req.getId());
         if (category != null) {
             category.setName(req.getName());
             category.setDescription(req.getDescription());
             category.setActive(req.getActive());
-            if (req.getParentId() !=null) {
+            if (req.getParentId() != null) {
                 Category parent = this.handleGetById(req.getParentId());
                 category.setParentCategory(parent);
-            }else{
+            } else {
                 category.setParentCategory(null);
             }
-            category=this.categoryRepository.save(category);
+            category = this.categoryRepository.save(category);
         }
         return category;
     }
@@ -117,11 +87,11 @@ public class CategoryService {
         meta.setTotal(categoryPage.getTotalElements());
 
         rs.setMeta(meta);
-        
+
         List<ResCategoryDTO> list = categoryPage.getContent().stream()
-            .map(this::convertToResCategoryDTO)
-            .toList();
-            
+                .map(this::convertToResCategoryDTO)
+                .toList();
+
         rs.setResult(list);
         return rs;
     }
@@ -135,20 +105,19 @@ public class CategoryService {
         res.setActive(category.getActive());
         res.setCreatedAt(category.getCreatedAt());
         res.setUpdatedAt(category.getUpdatedAt());
-        
+
         if (category.getParentCategory() != null) {
             res.setParentCategory(new ResCategoryDTO.ParentCategory(
-                category.getParentCategory().getId(),
-                category.getParentCategory().getName()
-            ));
+                    category.getParentCategory().getId(),
+                    category.getParentCategory().getName()));
         }
-        
+
         if (category.getProducts() != null) {
             res.setProductCount(category.getProducts().size());
         } else {
             res.setProductCount(0);
         }
-        
+
         return res;
     }
 
@@ -160,7 +129,7 @@ public class CategoryService {
         return this.categoryRepository.existsByNameAndIdNot(name, id);
     }
 
-    public Category getCategoryByName(String name){
+    public Category getCategoryByName(String name) {
         return this.categoryRepository.findByName(name);
     }
 }

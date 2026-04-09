@@ -77,16 +77,54 @@ public class DashboardService {
 
         dto.setInventorySummary(invSummary);
 
-        // Category Distribution
-        List<Object[]> categoryData = productRepository.findCategoryDistribution();
-        List<ResDashboardDTO.CategoryStat> categoryStats = categoryData.stream().map(obj -> {
+        // Category Distribution (based on Orders)
+        List<Object[]> categoryData = orderRepository.findCategoryOrderDistribution(startDate, endDate);
+        List<ResDashboardDTO.CategoryStat> allCategoryStats = categoryData.stream().map(obj -> {
             ResDashboardDTO.CategoryStat stat = new ResDashboardDTO.CategoryStat();
             stat.setCategory((String) obj[0]);
             stat.setCount(((Number) obj[1]).longValue());
             stat.setValue(obj[2] != null ? (BigDecimal) obj[2] : BigDecimal.ZERO);
             return stat;
-        }).collect(Collectors.toList());
+        }).sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
+          .collect(Collectors.toList());
+
+        List<ResDashboardDTO.CategoryStat> categoryStats = allCategoryStats.stream().limit(5).collect(Collectors.toList());
+        if (allCategoryStats.size() > 5) {
+            long otherCount = allCategoryStats.stream().skip(5).mapToLong(ResDashboardDTO.CategoryStat::getCount).sum();
+            BigDecimal otherValue = allCategoryStats.stream().skip(5).map(ResDashboardDTO.CategoryStat::getValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+            ResDashboardDTO.CategoryStat otherStat = new ResDashboardDTO.CategoryStat();
+            otherStat.setCategory("Khác");
+            otherStat.setCount(otherCount);
+            otherStat.setValue(otherValue);
+            categoryStats.add(otherStat);
+        }
         dto.setCategoryDistribution(categoryStats);
+        
+        // Populate Recent Orders
+        List<com.tuna.ecommerce.domain.Order> recentOrdersData = orderRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 5)).getContent();
+        List<ResDashboardDTO.RecentOrder> recentOrdersDTO = recentOrdersData.stream().map(order -> {
+            ResDashboardDTO.RecentOrder ro = new ResDashboardDTO.RecentOrder();
+            ro.setId(order.getId());
+            ro.setTransactionId(order.getPayment() != null ? order.getPayment().getTransactionId() : "N/A");
+            ro.setCustomerName(order.getReceiverName());
+            ro.setTotal(order.getFinalPrice());
+            ro.setStatus(order.getStatus().toString());
+            ro.setCreatedAt(order.getCreatedAt());
+            return ro;
+        }).collect(Collectors.toList());
+        dto.setRecentOrders(recentOrdersDTO);
+
+        // Populate Low Stock Products
+        List<Object[]> lowStockData = inventoryRepository.findLowStockItems();
+        List<ResDashboardDTO.LowStockProduct> lowStockDTO = lowStockData.stream().limit(5).map(obj -> {
+            ResDashboardDTO.LowStockProduct lsp = new ResDashboardDTO.LowStockProduct();
+            lsp.setId(((Number) obj[0]).longValue());
+            lsp.setName((String) obj[1]);
+            lsp.setImage((String) obj[2]);
+            lsp.setStock(((Number) obj[3]).longValue());
+            return lsp;
+        }).collect(Collectors.toList());
+        dto.setLowStockProducts(lowStockDTO);
         
         // --- NEW STATISTICS ---
         

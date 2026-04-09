@@ -28,11 +28,13 @@ public class DashboardController {
     @GetMapping("/dashboard/statistics")
     @APIMessage("Lấy dữ liệu thống kê thành công")
     public ResponseEntity<ResDashboardDTO> getStatistics(
-            @org.springframework.web.bind.annotation.RequestParam(required = false) Instant startDate,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) Instant endDate) {
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
 
         if (startDate == null) {
-            startDate = Instant.now().minus(180, ChronoUnit.DAYS); // Mặc định 6 tháng
+            startDate = Instant.now().minus(30, ChronoUnit.DAYS); // Mặc định 30 ngày
         }
         if (endDate == null) {
             endDate = Instant.now();
@@ -43,11 +45,13 @@ public class DashboardController {
 
     @GetMapping("/dashboard/export-excel")
     public ResponseEntity<byte[]> exportExcel(
-            @org.springframework.web.bind.annotation.RequestParam(required = false) Instant startDate,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) Instant endDate) throws IOException {
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant startDate,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) 
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant endDate) throws IOException {
 
         if (startDate == null) {
-            startDate = Instant.now().minus(180, ChronoUnit.DAYS);
+            startDate = Instant.now().minus(30, ChronoUnit.DAYS);
         }
         if (endDate == null) {
             endDate = Instant.now();
