@@ -244,29 +244,29 @@ public class OrderService {
         Order savedOrder = this.orderRepository.save(order);
 
         // Payment Handling (Synchronous with Order Creation)
-        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
-        Payment payment;
+        String paymentUrl = null;
         switch (req.getPaymentMethod()) {
             case VNPAY:
-                payment = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
+                Payment payment = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
                 ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, payment.getId());
                 if (!"00".equals(vnpayRes.getCode())) {
                     throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
                 }
-                resDTO.setPaymentUrl(vnpayRes.getPaymentUrl());
-                resDTO.setPaymentMethod("VNPAY");
+                paymentUrl = vnpayRes.getPaymentUrl();
                 break;
             case COD:
             default:
                 this.paymentService.createCODPayment(savedOrder.getId());
-                resDTO.setPaymentMethod("COD");
                 break;
         }
-        // Finalize order to save payment association
-        this.orderRepository.save(savedOrder);
 
-        // Only clear cart if everything is successful
-        this.cartItemRepository.deleteAll(cartItems);
+        // Finalize order to save payment association
+        savedOrder = this.orderRepository.save(savedOrder);
+
+        // Only clear cart immediately for COD. For online payments, we clear after success callback.
+        if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
+            this.cartItemRepository.deleteAll(cartItems);
+        }
 
         // Gửi thông báo cho User
         this.notificationService.createNotification(
@@ -275,6 +275,15 @@ public class OrderService {
             "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.", 
             "ORDER_SUCCESS"
         );
+
+        // Convert to DTO at the very end to ensure all fields (Payment, TransactionID) are populated
+        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
+        if (paymentUrl != null) {
+            resDTO.setPaymentUrl(paymentUrl);
+        }
+        if (req.getPaymentMethod() != null) {
+            resDTO.setPaymentMethod(req.getPaymentMethod().name());
+        }
 
         return resDTO;
     }
@@ -410,6 +419,26 @@ public class OrderService {
     public void handleBulkUpdateStatus(List<Long> ids, OrderStatusEnum status) throws IdInvalidException {
         for (Long id : ids) {
             this.handleUpdateStatus(id, status);
+        }
+    }
+
+    public void handleClearCart(Order order) {
+        User user = order.getUser();
+        if (user != null && user.getCart() != null) {
+            Long cartId = user.getCart().getId();
+            for (OrderItem item : order.getItems()) {
+                // Find matching cart item by cartId, product, and variant
+                Long variantId = (item.getProductVariant() != null) ? item.getProductVariant().getId() : null;
+                
+                List<CartItem> cartItems = this.cartItemRepository.findAll().stream()
+                    .filter(ci -> ci.getCart().getId().equals(cartId) &&
+                                  ci.getProduct().getId().equals(item.getProduct().getId()))
+                    .filter(ci -> (variantId == null && ci.getProductVariant() == null) ||
+                                  (variantId != null && ci.getProductVariant() != null && ci.getProductVariant().getId().equals(variantId)))
+                    .collect(java.util.stream.Collectors.toList());
+                    
+                this.cartItemRepository.deleteAll(cartItems);
+            }
         }
     }
 

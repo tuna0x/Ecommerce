@@ -43,7 +43,7 @@ public class PromotionService {
         promotion.setMaxDiscountValue(req.getMaxDiscountValue());
         promotion.setStartAt(req.getStartAt());
         promotion.setEndAt(req.getEndAt());
-        promotion.setActive(req.isActive());
+        promotion.setActive(req.getActive());
         return promotionRepository.save(promotion);
     }
 
@@ -88,7 +88,7 @@ public class PromotionService {
             current.setMaxDiscountValue(dto.getMaxDiscountValue());
             current.setStartAt(dto.getStartAt());
             current.setEndAt(dto.getEndAt());
-            current.setActive(dto.isActive());
+            current.setActive(dto.getActive());
             return this.promotionRepository.save(current);
         }
         return null;

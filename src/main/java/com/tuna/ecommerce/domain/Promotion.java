@@ -53,8 +53,10 @@ public class Promotion {
     private LocalDateTime startAt;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endAt;
-    private boolean active;
-    private boolean global;
+    @Column(name = "is_active")
+    private Boolean active = true;
+    @Column(name = "is_global")
+    private Boolean global = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

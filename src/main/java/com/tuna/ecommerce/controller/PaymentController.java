@@ -40,12 +40,14 @@ public class PaymentController {
     private final OrderRepository orderRepository;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
+    private final com.tuna.ecommerce.service.OrderService orderService;
 
     public PaymentController(OrderRepository orderRepository, PaymentService paymentService,
-            PaymentRepository paymentRepository) {
+            PaymentRepository paymentRepository, com.tuna.ecommerce.service.OrderService orderService) {
         this.orderRepository = orderRepository;
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
+        this.orderService = orderService;
     }
 
     @PostMapping("/payment/confirm")
@@ -117,6 +119,7 @@ public class PaymentController {
             order.setStatus(OrderStatusEnum.CONFIRMED);
             this.orderRepository.save(order);
             this.paymentService.save(payment);
+            this.orderService.handleClearCart(order);
             
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId=" + vnp_TransactionNo;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();

@@ -17,7 +17,7 @@ public class ResCategoryDTO {
     private String name;
     private String description;
     private String slug;
-    private boolean active;
+    private Boolean active;
     private Instant createdAt;
     private Instant updatedAt;
     private ParentCategory parentCategory;

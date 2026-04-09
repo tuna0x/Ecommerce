@@ -115,6 +115,7 @@ public class PaymentService {
         order.setStatus(OrderStatusEnum.CONFIRMED);
         this.orderRepository.save(order);
         payment = this.paymentRepository.save(payment);
+        this.orderService.handleClearCart(order);
 
         // Gửi thông báo thanh toán thành công
         this.notificationService.createNotification(

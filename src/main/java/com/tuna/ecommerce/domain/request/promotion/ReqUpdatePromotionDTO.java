@@ -37,5 +37,5 @@ public class ReqUpdatePromotionDTO {
     private LocalDateTime endAt;
 
     @JsonProperty("active")
-    private boolean active;
+    private Boolean active = true;
 }

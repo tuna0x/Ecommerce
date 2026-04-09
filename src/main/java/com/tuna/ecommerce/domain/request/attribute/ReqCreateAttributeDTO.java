@@ -13,6 +13,6 @@ import java.util.List;
 @NoArgsConstructor
 public class ReqCreateAttributeDTO {
     private String name;
-    private boolean active;
+    private Boolean active = true;
     private List<Long> categoryIds;
 }

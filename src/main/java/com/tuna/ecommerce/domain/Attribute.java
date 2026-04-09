@@ -7,6 +7,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -40,7 +41,8 @@ public class Attribute {
     private Long id;
     @NotBlank(message = "Attribute name is not blank")
     private String name;
-    private boolean active;
+    @Column(name = "is_active")
+    private Boolean active = true;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "attribute_category", joinColumns = @JoinColumn(name = "attribute_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
