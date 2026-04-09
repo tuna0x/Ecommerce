@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.domain.request.chat;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,4 +8,5 @@ import lombok.Setter;
 @Setter
 public class ReqChatDTO {
     private String message;
+    private List<ChatMessageDTO> history;
 }

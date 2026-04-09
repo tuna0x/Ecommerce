@@ -168,11 +168,12 @@ public class ProductService {
 
         this.syncProductWithVariants(newProduct);
         newProduct = this.productRepository.save(newProduct);
-        
+
         Map<String, Integer> variantStocks = new HashMap<>();
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             variantStocks = product.getVariants().stream()
-                .collect(Collectors.toMap(ReqCreateProductDTO.VariantDTO::getSku, ReqCreateProductDTO.VariantDTO::getStock));
+                    .collect(Collectors.toMap(ReqCreateProductDTO.VariantDTO::getSku,
+                            ReqCreateProductDTO.VariantDTO::getStock));
         } else {
             // Single stock for default variant
             variantStocks.put("DEFAULT-" + newProduct.getId(), product.getStock());
@@ -225,7 +226,7 @@ public class ProductService {
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             Map<String, ProductVariant> existingVariants = cur.getVariants().stream()
                     .collect(Collectors.toMap(ProductVariant::getSku, v -> v));
-            
+
             List<ProductVariant> updatedVariants = new ArrayList<>();
 
             for (ReqUpdateProductDTO.VariantDTO vDto : product.getVariants()) {
@@ -235,7 +236,7 @@ public class ProductService {
                     variant.setProduct(cur);
                     variant.setSku(vDto.getSku());
                 }
-                
+
                 variant.setPrice(vDto.getPrice());
                 variant.setWeight(vDto.getWeight());
 
@@ -248,7 +249,7 @@ public class ProductService {
                 }
                 updatedVariants.add(variant);
             }
-            
+
             cur.getVariants().clear();
             cur.getVariants().addAll(updatedVariants);
         } else {
@@ -306,11 +307,12 @@ public class ProductService {
 
         this.syncProductWithVariants(cur);
         cur = this.productRepository.save(cur);
-        
+
         Map<String, Integer> variantStocks = new HashMap<>();
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             variantStocks = product.getVariants().stream()
-                .collect(Collectors.toMap(ReqUpdateProductDTO.VariantDTO::getSku, ReqUpdateProductDTO.VariantDTO::getStock));
+                    .collect(Collectors.toMap(ReqUpdateProductDTO.VariantDTO::getSku,
+                            ReqUpdateProductDTO.VariantDTO::getStock));
         } else {
             variantStocks.put("DEFAULT-" + cur.getId(), product.getStock());
         }
@@ -456,7 +458,7 @@ public class ProductService {
         res.setId(product.getId());
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
-        
+
         // Map Inventory Details for main product (from its variants or default variant)
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             if (product.getVariants().size() == 1 && product.getVariants().get(0).getSku().startsWith("DEFAULT-")) {
@@ -533,7 +535,7 @@ public class ProductService {
                         vi.setSku(v.getSku());
                         vi.setPrice(v.getPrice());
                         vi.setWeight(v.getWeight());
-                        
+
                         // Map Variant Inventory
                         this.inventoryRepository.findByProductVariant(v).ifPresent(inv -> {
                             vi.setStock(inv.getStock());
@@ -559,9 +561,10 @@ public class ProductService {
         // Calculate pricing for the main product and its variants
         if (this.pricingService != null) {
             // First, get active promotions for this product
-            List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(product.getId(),
+            List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(
+                    product.getId(),
                     java.time.LocalDateTime.now());
-            
+
             List<Promotion> promotions = new ArrayList<>();
             if (productPromos != null) {
                 for (ProductPromotion pp : productPromos) {
@@ -572,7 +575,8 @@ public class ProductService {
             }
 
             // Main Product Price
-            ResPriceResultDTO mainPriceResult = this.pricingService.calculatePriceWithPromotions(product.getOriginalPrice(), promotions);
+            ResPriceResultDTO mainPriceResult = this.pricingService
+                    .calculatePriceWithPromotions(product.getOriginalPrice(), promotions);
             res.setDiscountPrice(mainPriceResult.getDiscountPrice());
             res.setFinalPrice(mainPriceResult.getFinalPrice());
 
@@ -580,7 +584,8 @@ public class ProductService {
             if (res.getVariants() != null) {
                 for (ResProductDTO.ProductVariantInner vi : res.getVariants()) {
                     // Calculate discount for this variant individual price
-                    ResPriceResultDTO vPriceRes = this.pricingService.calculatePriceWithPromotions(vi.getPrice(), promotions);
+                    ResPriceResultDTO vPriceRes = this.pricingService.calculatePriceWithPromotions(vi.getPrice(),
+                            promotions);
                     vi.setDiscountPrice(vPriceRes.getDiscountPrice());
                     vi.setFinalPrice(vPriceRes.getFinalPrice());
                 }
@@ -589,7 +594,7 @@ public class ProductService {
             // Fallback if pricing service is missing
             res.setFinalPrice(product.getOriginalPrice());
             res.setDiscountPrice(BigDecimal.ZERO);
-            
+
             // Set finalPrice for variants as their original price
             if (res.getVariants() != null) {
                 for (ResProductDTO.ProductVariantInner vi : res.getVariants()) {
@@ -641,7 +646,8 @@ public class ProductService {
         for (Product p : products) {
             sb.append("- ").append(p.getName())
                     .append(": ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
-                    .append(" (Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác").append(")\n");
+                    .append(" (Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
+                    .append(")\n");
         }
         return sb.toString();
     }

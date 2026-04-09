@@ -1,8 +1,11 @@
 package com.tuna.ecommerce.service;
 
-import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+
+import com.tuna.ecommerce.domain.request.chat.ChatMessageDTO;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -25,14 +28,21 @@ public class GeminiService {
     private String apiUrl;
 
     private final ProductService productService;
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final OrderService orderService;
+    private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
 
-    public GeminiService(ProductService productService) {
+    public GeminiService(ProductService productService,
+            OrderService orderService,
+            ObjectMapper objectMapper,
+            RestTemplate restTemplate) {
         this.productService = productService;
+        this.orderService = orderService;
+        this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
     }
 
-    public String getChatResponse(String userMessage) {
+    public String getChatResponse(String userMessage, List<ChatMessageDTO> history) {
         int maxRetries = 2; // Thử lại tối đa 2 lần nếu gặp lỗi 503
         int retryCount = 0;
 
@@ -40,8 +50,9 @@ public class GeminiService {
             try {
                 String url = apiUrl + "?key=" + apiKey;
 
-                // Fetch Product Context from Database
+                // Fetch Context from Database
                 String productContext = this.productService.getProductsSummaryForChatbot(userMessage);
+                String orderContext = this.orderService.getOrdersSummaryForChatbot();
 
                 // Prepare Payload for Gemini 1.5
                 Map<String, Object> requestBody = new HashMap<>();
@@ -51,24 +62,44 @@ public class GeminiService {
                 Map<String, String> systemPart = new HashMap<>();
                 systemPart.put("text", "Bạn là trợ lý ảo thông minh của Tuna Ecommerce. " +
                         "Hãy trả lời khách hàng một cách lịch sự, thân thiện. " +
-                        "Dưới đây là thông tin các sản phẩm của cửa hàng lấy từ Database: \n" + productContext + "\n"
+                        "\n--- DỮ LIỆU SẢN PHẨM ---\n" + productContext + "\n" +
+                        "\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext + "\n\n"
                         +
-                        "Nhiệm vụ của bạn: \n" +
-                        "1. Luôn ưu tiên trả lời dựa trên thông tin sản phẩm được cung cấp ở trên.\n" +
-                        "2. Nếu khách hỏi về giá hoặc tư vấn, hãy dùng dữ liệu trên để trả lời chính xác.\n" +
-                        "3. Nếu sản phẩm khách hỏi không có trong danh sách trên, hãy nói rằng bạn không tìm thấy chính xác sản phẩm đó nhưng có thể gợi ý các sản phẩm tương đương (nếu có).\n"
+                        "Nhiệm vụ quan trọng của bạn: \n" +
+                        "1. Luôn ưu tiên trả lời dựa trên thông tin sản phẩm và đơn hàng được cung cấp ở trên.\n" +
+                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n" +
+                        "3. Nếu khách hỏi về tình trạng đơn hàng của họ, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn và trạng thái. Nếu khách chưa đăng nhập (dữ liệu báo chưa đăng nhập), hãy khuyên khách đăng nhập.\n" +
+                        "4. Nếu sản phẩm khách hỏi không có, hãy gợi ý sản phẩm tương đương.\n"
                         +
-                        "4. Luôn dẫn dắt khách hàng mua hàng và giữ thái độ tích cực.\n" +
-                        "Nếu khách hàng hỏi về các thông tin bạn không biết, hãy khuyên khách liên hệ hotline 1900xxxx.");
+                        "5. Luôn dẫn dắt khách hàng mua hàng và giữ thái độ tích cực.\n" +
+                        "Nếu không biết, hãy khuyên khách liên hệ hotline 1900xxxx.");
                 systemInstructionMap.put("parts", List.of(systemPart));
                 requestBody.put("system_instruction", systemInstructionMap);
 
+                // Build Conversation Contents (History + Current Message)
+                List<Map<String, Object>> contents = new ArrayList<>();
+
+                // Add History
+                if (history != null) {
+                    for (ChatMessageDTO msg : history) {
+                        Map<String, Object> contentPart = new HashMap<>();
+                        Map<String, String> part = new HashMap<>();
+                        part.put("text", msg.getContent());
+                        contentPart.put("role", msg.getRole().equals("assistant") ? "model" : "user");
+                        contentPart.put("parts", List.of(part));
+                        contents.add(contentPart);
+                    }
+                }
+
+                // Add Current User Message
                 Map<String, Object> contentUser = new HashMap<>();
                 Map<String, String> userPart = new HashMap<>();
                 userPart.put("text", userMessage);
+                contentUser.put("role", "user");
                 contentUser.put("parts", List.of(userPart));
+                contents.add(contentUser);
 
-                requestBody.put("contents", List.of(contentUser));
+                requestBody.put("contents", contents);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);

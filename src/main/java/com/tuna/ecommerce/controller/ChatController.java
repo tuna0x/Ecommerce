@@ -33,7 +33,7 @@ public class ChatController {
     @PostMapping("/chat")
     @APIMessage("Nhận phản hồi từ Chatbot thành công")
     public ResponseEntity<ResChatDTO> chat(@RequestBody ReqChatDTO request) {
-        String response = geminiService.getChatResponse(request.getMessage());
+        String response = geminiService.getChatResponse(request.getMessage(), request.getHistory());
         return ResponseEntity.ok().body(new ResChatDTO(response));
     }
 
