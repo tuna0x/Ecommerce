@@ -343,6 +343,13 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Bulk stock adjustment", "/api/v1/inventory/bulk-adjust", "POST", "INVENTORY", false));
         perms.add(new PermDef("Get inventory logs", "/api/v1/inventory/{id}/logs", "GET", "INVENTORY", false));
 
+        // NOTIFICATIONS
+        perms.add(new PermDef("Get notifications for current user", "/api/v1/notifications", "GET", "NOTIFICATIONS", true));
+        perms.add(new PermDef("Mark notification as read", "/api/v1/notifications/{id}/read", "PUT", "NOTIFICATIONS", true));
+        perms.add(new PermDef("Mark all notifications as read", "/api/v1/notifications/read-all", "PUT", "NOTIFICATIONS", true));
+        perms.add(new PermDef("Count unread notifications", "/api/v1/notifications/unread-count", "GET", "NOTIFICATIONS", true));
+        perms.add(new PermDef("Admin sends notification", "/api/v1/notifications/send", "POST", "NOTIFICATIONS", false));
+
         boolean updated = false;
         for (PermDef def : perms) {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);
