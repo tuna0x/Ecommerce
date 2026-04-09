@@ -35,11 +35,12 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final BannerRepository bannerRepository;
     private final PromotionRepository promotionRepository;
     private final CouponRepository couponRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
             BannerRepository bannerRepository, PromotionRepository promotionRepository,
-            CouponRepository couponRepository) {
+            CouponRepository couponRepository, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -48,12 +49,30 @@ public class DatabaseInitializer implements CommandLineRunner {
         this.bannerRepository = bannerRepository;
         this.promotionRepository = promotionRepository;
         this.couponRepository = couponRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         System.out.println(">>> START INIT DATABASE");
+
+        // Schema Cleanup (Safe/Idempotent)
+        String[] tablesToCleanActive = { "categories", "attributes", "brands", "promotions", "banners" };
+        for (String table : tablesToCleanActive) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE " + table + " DROP COLUMN active");
+                System.out.println(">>> DROPPED LEGACY COLUMN [active] FROM [" + table + "]");
+            } catch (Exception e) {
+            }
+        }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
+            jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
+            System.out.println(">>> DROPPED LEGACY COLUMN [stock] FROM [products/variants]");
+        } catch (Exception e) {
+        }
 
         // 1. Ensure Roles exist
         Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
@@ -257,6 +276,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get a coupon by id", "/api/v1/coupons/{id}", "GET", "COUPONS", false));
         perms.add(new PermDef("Get coupons with pagination", "/api/v1/coupons", "GET", "COUPONS", false));
         perms.add(new PermDef("Toggle coupon active status", "/api/v1/coupons/{id}/active", "PATCH", "COUPONS", false));
+        perms.add(new PermDef("Validate a coupon code", "/api/v1/coupons/validate", "GET", "COUPONS", true));
 
         // USER COUPONS (WALLET)
         perms.add(new PermDef("Collect a coupon", "/api/v1/user-coupons/collect/{id}", "POST", "USER COUPONS", true));

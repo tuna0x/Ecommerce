@@ -40,6 +40,8 @@ import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import com.tuna.ecommerce.domain.ProductVariant;
 import org.springframework.context.annotation.Lazy;
+import com.tuna.ecommerce.domain.UserCoupon;
+import com.tuna.ecommerce.repository.UserCouponRepository;
 
 import org.springframework.data.domain.PageRequest;
 import java.time.format.DateTimeFormatter;
@@ -58,6 +60,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final InventoryService inventoryService;
     private final PaymentService paymentService;
+    private final UserCouponRepository userCouponRepository;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -69,7 +72,8 @@ public class OrderService {
             GHTKService ghtkService,
             NotificationService notificationService,
             @Lazy InventoryService inventoryService,
-            @Lazy PaymentService paymentService) {
+            @Lazy PaymentService paymentService,
+            UserCouponRepository userCouponRepository) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -80,6 +84,7 @@ public class OrderService {
         this.notificationService = notificationService;
         this.inventoryService = inventoryService;
         this.paymentService = paymentService;
+        this.userCouponRepository = userCouponRepository;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -176,22 +181,21 @@ public class OrderService {
         for (CartItem i : cartItems) {
             Product product = i.getProduct();
             ProductVariant variant = i.getProductVariant();
-            
+
             // Validate stock from inventory directly
             int currentStock = this.inventoryService.getCurrentStock(
-                product.getId(), 
-                (variant != null) ? variant.getId() : null
-            );
+                    product.getId(),
+                    (variant != null) ? variant.getId() : null);
             if (currentStock < i.getQuantity()) {
-                throw new IdInvalidException("Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
+                throw new IdInvalidException(
+                        "Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
             }
 
             // Reserve from Inventory (Available -> Reserved)
             this.inventoryService.reserveStock(
-                product.getId(), 
-                (variant != null) ? variant.getId() : null, 
-                i.getQuantity()
-            );
+                    product.getId(),
+                    (variant != null) ? variant.getId() : null,
+                    i.getQuantity());
 
             product.setSoldCount(product.getSoldCount() + i.getQuantity());
 
@@ -211,7 +215,8 @@ public class OrderService {
         // Shipping logic
         double weight = this.cartService.calculateTotalWeight(cartItems);
         int shippingFeeRaw = this.ghtkService.calculateFee(address.getProvince(), address.getDistrict(), (int) weight);
-        BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO : BigDecimal.valueOf(shippingFeeRaw);
+        BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO
+                : BigDecimal.valueOf(shippingFeeRaw);
         order.setShippingFee(shippingFee.intValue());
 
         // Coupon logic
@@ -233,10 +238,29 @@ public class OrderService {
                 throw new IdInvalidException("Mã giảm giá đã hết hạn");
             }
 
+            // Check if user has this coupon in their wallet and if it's already used
+            Optional<UserCoupon> userCouponOpt = this.userCouponRepository.findByUserAndCoupon(user, coupon);
+            if (userCouponOpt.isPresent() && userCouponOpt.get().isUsed()) {
+                throw new IdInvalidException("Bạn đã sử dụng mã giảm giá này cho đơn hàng khác.");
+            }
+
             BigDecimal discountAmount = calculateDiscount(coupon, subTotal);
             order.setDiscountPrice(discountAmount);
             coupon.setUsedCount(coupon.getUsedCount() + 1);
             this.couponRepository.save(coupon);
+
+            // Mark UserCoupon as used (or create one if it's a public coupon used for the first time)
+            UserCoupon userCoupon;
+            if (userCouponOpt.isPresent()) {
+                userCoupon = userCouponOpt.get();
+            } else {
+                userCoupon = new UserCoupon();
+                userCoupon.setUser(user);
+                userCoupon.setCoupon(coupon);
+            }
+            userCoupon.setUsed(true);
+            userCoupon.setUsedAt(Instant.now());
+            this.userCouponRepository.save(userCoupon);
         }
 
         BigDecimal finalPrice = subTotal.add(shippingFee).subtract(order.getDiscountPrice());
@@ -263,20 +287,21 @@ public class OrderService {
         // Finalize order to save payment association
         savedOrder = this.orderRepository.save(savedOrder);
 
-        // Only clear cart immediately for COD. For online payments, we clear after success callback.
+        // Only clear cart immediately for COD. For online payments, we clear after
+        // success callback.
         if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
             this.cartItemRepository.deleteAll(cartItems);
         }
 
         // Gửi thông báo cho User
         this.notificationService.createNotification(
-            user, 
-            "Đặt hàng thành công", 
-            "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.", 
-            "ORDER_SUCCESS"
-        );
+                user,
+                "Đặt hàng thành công",
+                "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
+                "ORDER_SUCCESS");
 
-        // Convert to DTO at the very end to ensure all fields (Payment, TransactionID) are populated
+        // Convert to DTO at the very end to ensure all fields (Payment, TransactionID)
+        // are populated
         ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
         if (paymentUrl != null) {
             resDTO.setPaymentUrl(paymentUrl);
@@ -429,14 +454,15 @@ public class OrderService {
             for (OrderItem item : order.getItems()) {
                 // Find matching cart item by cartId, product, and variant
                 Long variantId = (item.getProductVariant() != null) ? item.getProductVariant().getId() : null;
-                
+
                 List<CartItem> cartItems = this.cartItemRepository.findAll().stream()
-                    .filter(ci -> ci.getCart().getId().equals(cartId) &&
-                                  ci.getProduct().getId().equals(item.getProduct().getId()))
-                    .filter(ci -> (variantId == null && ci.getProductVariant() == null) ||
-                                  (variantId != null && ci.getProductVariant() != null && ci.getProductVariant().getId().equals(variantId)))
-                    .collect(java.util.stream.Collectors.toList());
-                    
+                        .filter(ci -> ci.getCart().getId().equals(cartId) &&
+                                ci.getProduct().getId().equals(item.getProduct().getId()))
+                        .filter(ci -> (variantId == null && ci.getProductVariant() == null) ||
+                                (variantId != null && ci.getProductVariant() != null
+                                        && ci.getProductVariant().getId().equals(variantId)))
+                        .collect(java.util.stream.Collectors.toList());
+
                 this.cartItemRepository.deleteAll(cartItems);
             }
         }
@@ -452,7 +478,8 @@ public class OrderService {
             return "Không tìm thấy thông tin người dùng.";
 
         // Lấy 5 đơn hàng gần nhất
-        Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), PageRequest.of(0, 5));
+        Page<Order> pageOrder = this.orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId(),
+                PageRequest.of(0, 5));
         List<Order> orders = pageOrder.getContent();
 
         if (orders.isEmpty()) {
@@ -467,7 +494,8 @@ public class OrderService {
             sb.append("- Đơn hàng #").append(o.getId())
                     .append(": Trạng thái [").append(o.getStatus()).append("]")
                     .append(", Tổng thanh toán: ").append(String.format("%,.0f VNĐ", o.getFinalPrice().doubleValue()))
-                    .append(", Ngày đặt: ").append(o.getCreatedAt() != null ? formatter.format(o.getCreatedAt()) : "N/A")
+                    .append(", Ngày đặt: ")
+                    .append(o.getCreatedAt() != null ? formatter.format(o.getCreatedAt()) : "N/A")
                     .append("\n");
         }
         return sb.toString();

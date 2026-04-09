@@ -102,4 +102,11 @@ public class CouponController {
         this.couponService.togglePublic(id, isPublic);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/coupons/validate")
+    @APIMessage("Validate coupon successfully")
+    public ResponseEntity<Coupon> validateCoupon(@RequestParam("code") String code) throws IdInvalidException {
+        String email = com.tuna.ecommerce.ultil.SecurityUtil.getCurrentUserLogin().orElse(null);
+        return ResponseEntity.ok().body(this.couponService.validateCoupon(code, email));
+    }
 }

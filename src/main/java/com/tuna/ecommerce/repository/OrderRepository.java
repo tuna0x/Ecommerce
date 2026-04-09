@@ -36,17 +36,23 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT COUNT(o) > 0 FROM Order o JOIN o.items i WHERE o.user.id = :userId AND i.product.id = :productId AND o.status = 'DELIVERED'")
     boolean hasPurchasedProduct(@Param("userId") Long userId, @Param("productId") Long productId);
 
-    @Query("SELECT SUM(o.finalPrice) FROM Order o WHERE o.status = 'DELIVERED' AND o.createdAt BETWEEN :startDate AND :endDate")
+    @Query("SELECT SUM(o.finalPrice) FROM Order o WHERE o.status != 'CANCELLED' AND o.createdAt BETWEEN :startDate AND :endDate")
     BigDecimal calculateTotalRevenue(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate")
     long countTotalOrders(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
 
     @Query(value = "SELECT DATE_FORMAT(o.created_at, '%Y-%m') as month, SUM(o.final_price) as revenue, COUNT(o.id) as orderCount " +
-            "FROM orders o WHERE o.status = 'DELIVERED' AND o.created_at BETWEEN :startDate AND :endDate " +
+            "FROM orders o WHERE o.status != 'CANCELLED' AND o.created_at BETWEEN :startDate AND :endDate " +
             "GROUP BY DATE_FORMAT(o.created_at, '%Y-%m') " +
             "ORDER BY month DESC", nativeQuery = true)
     List<Object[]> findMonthlyRevenue(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
+
+    @Query("SELECT c.name, COUNT(DISTINCT o.id), SUM(i.quantity * i.price) " +
+           "FROM Order o JOIN o.items i JOIN i.product p JOIN p.category c " +
+           "WHERE o.status != 'CANCELLED' AND o.createdAt BETWEEN :startDate AND :endDate " +
+           "GROUP BY c.id, c.name")
+    List<Object[]> findCategoryOrderDistribution(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
 
     @Query("SELECT o.status, COUNT(o) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate GROUP BY o.status")
     List<Object[]> countOrdersByStatus(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
