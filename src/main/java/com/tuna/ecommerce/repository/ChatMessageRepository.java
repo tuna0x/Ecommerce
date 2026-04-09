@@ -19,4 +19,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
            "(m.senderEmail = :user2 AND m.receiverEmail = :user1) " +
            "ORDER BY m.timestamp DESC")
     Page<ChatMessage> findChatHistory(@Param("user1") String user1, @Param("user2") String user2, Pageable pageable);
+
+    @Query(value = "SELECT * FROM chat_messages WHERE id IN (" +
+            "SELECT MAX(id) FROM chat_messages " +
+            "WHERE sender_email = :email OR receiver_email = :email " +
+            "GROUP BY CASE WHEN sender_email = :email THEN receiver_email ELSE sender_email END" +
+            ") ORDER BY timestamp DESC", nativeQuery = true)
+    List<ChatMessage> findRecentConversations(@Param("email") String email);
 }

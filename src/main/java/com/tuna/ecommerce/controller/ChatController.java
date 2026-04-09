@@ -46,4 +46,12 @@ public class ChatController {
         List<ResChatMessageDTO> history = chatMessageService.getChatHistory(currentUser, participant, pageable);
         return ResponseEntity.ok().body(history);
     }
+
+    @GetMapping("/chat/conversations")
+    @APIMessage("Lấy danh sách hội thoại thành công")
+    public ResponseEntity<List<ResChatMessageDTO>> getConversations() {
+        String currentUser = SecurityUtil.getCurrentUserLogin().orElse("");
+        List<ResChatMessageDTO> conversations = chatMessageService.getRecentConversations(currentUser);
+        return ResponseEntity.ok().body(conversations);
+    }
 }

@@ -36,4 +36,14 @@ public class ChatMessageService {
                 m.getTimestamp()
         )).collect(Collectors.toList());
     }
+
+    public List<ResChatMessageDTO> getRecentConversations(String email) {
+        List<ChatMessage> messages = chatMessageRepository.findRecentConversations(email);
+        return messages.stream().map(m -> new ResChatMessageDTO(
+                m.getSenderEmail(),
+                m.getReceiverEmail(),
+                m.getContent(),
+                m.getTimestamp()
+        )).collect(Collectors.toList());
+    }
 }

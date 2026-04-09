@@ -336,6 +336,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // CHAT
         perms.add(new PermDef("Send chat message", "/api/v1/chat", "POST", "CHAT", true));
         perms.add(new PermDef("Get chat history", "/api/v1/chat/history", "GET", "CHAT", true));
+        perms.add(new PermDef("Get recent conversations", "/api/v1/chat/conversations", "GET", "CHAT", true));
 
         // INVENTORY
         perms.add(new PermDef("Get inventory with pagination", "/api/v1/inventory", "GET", "INVENTORY", false));
