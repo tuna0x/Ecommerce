@@ -14,6 +14,6 @@ import java.util.List;
 public class ReqUpdateAttributeDTO {
     private Long id;
     private String name;
-    private boolean active;
+    private Boolean active = true;
     private List<Long> categoryIds;
 }

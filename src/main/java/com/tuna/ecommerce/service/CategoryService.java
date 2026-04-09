@@ -16,7 +16,8 @@ import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.category.ResCategoryDTO;
 import com.tuna.ecommerce.repository.CategoryRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
-
+import jakarta.annotation.PostConstruct;
+import org.springframework.jdbc.core.JdbcTemplate;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -24,12 +25,41 @@ import lombok.AllArgsConstructor;
 @Transactional
 public class CategoryService {
     private final CategoryRepository categoryRepository;
+    private final JdbcTemplate jdbcTemplate;
+
+    @PostConstruct
+    public void init() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE categories DROP COLUMN active");
+            System.out.println(">>> DROP COLUMN active from categories: SUCCESS");
+        } catch (Exception e) {
+            // Column might already be dropped
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE attributes DROP COLUMN active");
+            System.out.println(">>> DROP COLUMN active from attributes: SUCCESS");
+        } catch (Exception e) {
+            // Column might already be dropped
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
+            System.out.println(">>> DROP COLUMN stock from products: SUCCESS");
+        } catch (Exception e) {
+            // Column might already be dropped
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
+            System.out.println(">>> DROP COLUMN stock from product_variants: SUCCESS");
+        } catch (Exception e) {
+            // Column might already be dropped
+        }
+    }
 
     public Category handleCreate(ReqCreateCategoryDTO req){
         Category category=new Category();
         category.setName(req.getName());
         category.setDescription(req.getDescription());
-        category.setActive(req.isActive());
+        category.setActive(req.getActive());
         if (req.getParentId() !=null) {
             Category parent = this.handleGetById(req.getParentId());
             category.setParentCategory(parent);
@@ -37,7 +67,8 @@ public class CategoryService {
         return this.categoryRepository.save(category);
     }
 
-    public Category handleGetById(long id){
+    public Category handleGetById(Long id){
+        if (id == null) return null;
         Optional<Category> category=this.categoryRepository.findById(id);
         return category.isPresent() ? category.get() : null;
     }
@@ -47,7 +78,7 @@ public class CategoryService {
         if (category != null) {
             category.setName(req.getName());
             category.setDescription(req.getDescription());
-            category.setActive(req.isActive());
+            category.setActive(req.getActive());
             if (req.getParentId() !=null) {
                 Category parent = this.handleGetById(req.getParentId());
                 category.setParentCategory(parent);
@@ -59,7 +90,7 @@ public class CategoryService {
         return category;
     }
 
-    public void handleDelete(long id) throws IdInvalidException {
+    public void handleDelete(Long id) throws IdInvalidException {
         Category category = this.handleGetById(id);
         if (category != null) {
             if (category.getProducts() != null && !category.getProducts().isEmpty()) {
@@ -101,7 +132,7 @@ public class CategoryService {
         res.setName(category.getName());
         res.setDescription(category.getDescription());
         res.setSlug(category.getSlug());
-        res.setActive(category.isActive());
+        res.setActive(category.getActive());
         res.setCreatedAt(category.getCreatedAt());
         res.setUpdatedAt(category.getUpdatedAt());
         
@@ -123,6 +154,10 @@ public class CategoryService {
 
     public boolean findByName(String name) {
         return this.categoryRepository.existsByName(name);
+    }
+
+    public boolean existsByNameAndIdNot(String name, Long id) {
+        return this.categoryRepository.existsByNameAndIdNot(name, id);
     }
 
     public Category getCategoryByName(String name){

@@ -35,9 +35,10 @@ public class InventoryService {
         Long targetVariantId = variantId;
 
         if (targetVariantId == null) {
+            if (productId == null) throw new IdInvalidException("Product ID must not be null");
             // Fallback for simple products: look for the DEFAULT variant
             ProductVariant defaultVariant = productVariantRepository.findAll().stream()
-                    .filter(v -> v.getProduct().getId().equals(productId) && v.getSku().startsWith("DEFAULT-"))
+                    .filter(v -> v.getProduct() != null && v.getProduct().getId().equals(productId) && v.getSku().contains("DEFAULT-"))
                     .findFirst()
                     .orElseThrow(() -> new IdInvalidException(
                             "Hệ thống không tìm thấy kho hàng mặc định cho sản phẩm này."));
@@ -244,6 +245,7 @@ public class InventoryService {
         // variant is not in product.getVariants()
         List<Inventory> variantsToRemove = inventoryRepository.findAll().stream()
                 .filter(inv -> inv.getProductVariant() != null &&
+                        inv.getProductVariant().getProduct() != null &&
                         inv.getProductVariant().getProduct().getId().equals(product.getId()) &&
                         !product.getVariants().contains(inv.getProductVariant()))
                 .collect(Collectors.toList());

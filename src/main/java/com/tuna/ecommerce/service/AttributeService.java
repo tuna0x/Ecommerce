@@ -30,7 +30,7 @@ public class AttributeService {
     public Attribute createAttribute(ReqCreateAttributeDTO req) throws IdInvalidException {
         Attribute attribute = new Attribute();
         attribute.setName(req.getName());
-        attribute.setActive(req.isActive());
+        attribute.setActive(req.getActive());
 
         if (req.getCategoryIds() != null && !req.getCategoryIds().isEmpty()) {
             List<Category> categories = req.getCategoryIds().stream()
@@ -71,7 +71,7 @@ public class AttributeService {
         }
 
         curAttribute.setName(req.getName());
-        curAttribute.setActive(req.isActive());
+        curAttribute.setActive(req.getActive());
 
         if (req.getCategoryIds() != null) {
             List<Category> categories = req.getCategoryIds().stream()
@@ -96,7 +96,7 @@ public class AttributeService {
         ResAttributeDTO res = new ResAttributeDTO();
         res.setId(attribute.getId());
         res.setName(attribute.getName());
-        res.setActive(attribute.isActive());
+        res.setActive(attribute.getActive());
 
         if (attribute.getCategories() != null) {
             List<ResAttributeDTO.CategoryInner> listCate = attribute.getCategories().stream().map(item -> {

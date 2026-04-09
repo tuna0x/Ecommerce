@@ -54,7 +54,7 @@ public class GeminiService {
                 String productContext = this.productService.getProductsSummaryForChatbot(userMessage);
                 String orderContext = this.orderService.getOrdersSummaryForChatbot();
 
-                // Prepare Payload for Gemini 1.5
+                // Prepare Payload for Gemini 2.5
                 Map<String, Object> requestBody = new HashMap<>();
 
                 // System instructions (context)
@@ -67,8 +67,10 @@ public class GeminiService {
                         +
                         "Nhiệm vụ quan trọng của bạn: \n" +
                         "1. Luôn ưu tiên trả lời dựa trên thông tin sản phẩm và đơn hàng được cung cấp ở trên.\n" +
-                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n" +
-                        "3. Nếu khách hỏi về tình trạng đơn hàng của họ, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn và trạng thái. Nếu khách chưa đăng nhập (dữ liệu báo chưa đăng nhập), hãy khuyên khách đăng nhập.\n" +
+                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n"
+                        +
+                        "3. Nếu khách hỏi về tình trạng đơn hàng của họ, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn và trạng thái. Nếu khách chưa đăng nhập (dữ liệu báo chưa đăng nhập), hãy khuyên khách đăng nhập.\n"
+                        +
                         "4. Nếu sản phẩm khách hỏi không có, hãy gợi ý sản phẩm tương đương.\n"
                         +
                         "5. Luôn dẫn dắt khách hàng mua hàng và giữ thái độ tích cực.\n" +

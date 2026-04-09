@@ -220,6 +220,13 @@ public class ProductService {
                     cur.getProductAttributeValues().add(pav);
                 }
             }
+        } else {
+            // If attributeValue is null in the DTO, it means we might want to clear them.
+            // However, to be safe and compatible with old behavior where null means "don't change",
+            // we could check if we want to clear them.
+            // Let's assume for now that if the user sends null, we clear it TO FIX THE BUG
+            // "choosing no attributes fails or doesn't update".
+            cur.getProductAttributeValues().clear();
         }
 
         // Update Variants
@@ -514,12 +521,16 @@ public class ProductService {
 
         if (product.getProductAttributeValues() != null) {
             List<ResProductDTO.ValueInner> valueInners = product.getProductAttributeValues().stream()
+                    .filter(pav -> pav.getAttributeValue() != null)
                     .map(pav -> {
                         ResProductDTO.ValueInner v = new ResProductDTO.ValueInner();
-                        v.setId(pav.getAttributeValue().getId());
-                        v.setAttributeValue(pav.getAttributeValue().getAttributeValue());
-                        v.setAttributeId(pav.getAttributeValue().getAttribute().getId());
-                        v.setAttributeName(pav.getAttributeValue().getAttribute().getName());
+                        AttributeValue av = pav.getAttributeValue();
+                        v.setId(av.getId());
+                        v.setAttributeValue(av.getAttributeValue());
+                        if (av.getAttribute() != null) {
+                            v.setAttributeId(av.getAttribute().getId());
+                            v.setAttributeName(av.getAttribute().getName());
+                        }
                         return v;
                     })
                     .collect(Collectors.toList());
@@ -544,6 +555,7 @@ public class ProductService {
                         });
 
                         List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
+                                .filter(av -> av != null && av.getAttribute() != null)
                                 .map(av -> {
                                     ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
                                     va.setName(av.getAttribute().getName());

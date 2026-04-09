@@ -37,22 +37,28 @@ public class CategoryController {
 
      @PostMapping("/categories")
      @APIMessage("Create new category")
-    public ResponseEntity<ResCategoryDTO> createCategory(@Valid @RequestBody ReqCreateCategoryDTO Category) throws IdInvalidException {
-        boolean check=this.categoryService.findByName(Category.getName());
+    public ResponseEntity<ResCategoryDTO> createCategory(@Valid @RequestBody ReqCreateCategoryDTO categoryDTO) throws IdInvalidException {
+        boolean check=this.categoryService.findByName(categoryDTO.getName());
         if (check==true) {
-            throw new IdInvalidException("name's exists");
+            throw new IdInvalidException("Tên danh mục đã tồn tại");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleCreate(Category)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleCreate(categoryDTO)));
     }
 
     @PutMapping("/categories")
     @APIMessage("Update category")
-    public ResponseEntity<ResCategoryDTO> updateCategory(@RequestBody ReqUpdateCategoryDTO Category) throws IdInvalidException{
-        Category cur= this.categoryService.handleGetById(Category.getId());
+    public ResponseEntity<ResCategoryDTO> updateCategory(@Valid @RequestBody ReqUpdateCategoryDTO categoryDTO) throws IdInvalidException{
+        Category cur= this.categoryService.handleGetById(categoryDTO.getId());
         if (cur == null) {
-            throw new IdInvalidException("id is not exists");
+            throw new IdInvalidException("Danh mục không tồn tại");
         }
-        return ResponseEntity.ok().body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleUpdate(Category)));
+
+        boolean check = this.categoryService.existsByNameAndIdNot(categoryDTO.getName(), categoryDTO.getId());
+        if (check) {
+            throw new IdInvalidException("Tên danh mục mới đã được sử dụng");
+        }
+
+        return ResponseEntity.ok().body(this.categoryService.convertToResCategoryDTO(this.categoryService.handleUpdate(categoryDTO)));
     }
 
     @DeleteMapping("/categories/{id}")
