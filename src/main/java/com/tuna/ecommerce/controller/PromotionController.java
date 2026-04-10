@@ -39,7 +39,7 @@ public class PromotionController {
 
     @PostMapping("/promotions")
     @APIMessage("Create Promotion successfully")
-    public ResponseEntity<Promotion> createPromotion(@RequestBody ReqCreatePromotionDTO promotion) {
+    public ResponseEntity<Promotion> createPromotion(@RequestBody ReqCreatePromotionDTO promotion) throws IdInvalidException {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(this.promotionService.createPromotion(promotion));
     }

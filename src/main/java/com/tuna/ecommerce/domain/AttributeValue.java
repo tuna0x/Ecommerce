@@ -38,9 +38,11 @@ public class AttributeValue {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank(message = "Value is not blank")
     @Column(name = "attribute_value")
     private String attributeValue;
+    
+    @Column(name = "value")
+    private String value;
 
     @ManyToOne
     @JoinColumn(name = "attribute_id")
@@ -53,13 +55,17 @@ public class AttributeValue {
     private Instant createdAt;
     private Instant updatedAt;
 
-                @PrePersist
+    @PrePersist
     public void handleBeforeCreate(){
         this.createdAt = Instant.now();
+        if (this.value == null) {
+            this.value = this.attributeValue;
+        }
     }
 
-        @PreUpdate
+    @PreUpdate
     public void handleBeforeUpdate(){
         this.updatedAt = Instant.now();
+        this.value = this.attributeValue;
     }
 }

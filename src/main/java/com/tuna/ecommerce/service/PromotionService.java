@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
@@ -16,6 +17,7 @@ import com.tuna.ecommerce.domain.request.promotion.ReqAssignPromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqCreatePromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqUpdatePromotionDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.repository.CategoryRepository;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.PromotionRepository;
@@ -31,9 +33,10 @@ public class PromotionService {
     private final PromotionRepository promotionRepository;
     private final ProductRepository productRepository;
     private final ProductPromotionRepository productPromotionRepository;
+    private final CategoryRepository categoryRepository;
     private final NotificationService notificationService;
 
-    public Promotion createPromotion(ReqCreatePromotionDTO req) {
+    public Promotion createPromotion(ReqCreatePromotionDTO req) throws IdInvalidException {
         Promotion promotion = new Promotion();
         promotion.setName(req.getName());
         promotion.setDescription(req.getDescription());
@@ -44,7 +47,23 @@ public class PromotionService {
         promotion.setStartAt(req.getStartAt());
         promotion.setEndAt(req.getEndAt());
         promotion.setActive(req.getActive());
-        return promotionRepository.save(promotion);
+        promotion.setGlobal(req.getGlobal());
+
+        if (req.getCategoryId() != null) {
+            Category category = categoryRepository.findById(req.getCategoryId()).orElse(null);
+            promotion.setCategory(category);
+        }
+
+        promotion = promotionRepository.save(promotion);
+
+        // Auto Assignment
+        if (Boolean.TRUE.equals(req.getGlobal())) {
+            this.assignAllProductsToPromotion(promotion.getId());
+        } else if (req.getCategoryId() != null) {
+            this.assignCategoryProductsToPromotion(promotion.getId(), req.getCategoryId());
+        }
+
+        return promotion;
     }
 
     public void isActive(Long id) throws IdInvalidException {
@@ -76,7 +95,7 @@ public class PromotionService {
         return promotionRepository.findById(id).orElse(null);
     }
 
-    public Promotion updatePromotion(ReqUpdatePromotionDTO dto) {
+    public Promotion updatePromotion(ReqUpdatePromotionDTO dto) throws IdInvalidException {
         if (dto.getId() == null) return null;
         Promotion current = this.getPromotionById(dto.getId());
         if (current != null) {
@@ -89,7 +108,25 @@ public class PromotionService {
             current.setStartAt(dto.getStartAt());
             current.setEndAt(dto.getEndAt());
             current.setActive(dto.getActive());
-            return this.promotionRepository.save(current);
+            current.setGlobal(dto.getGlobal());
+
+            if (dto.getCategoryId() != null) {
+                Category category = categoryRepository.findById(dto.getCategoryId()).orElse(null);
+                current.setCategory(category);
+            } else {
+                current.setCategory(null);
+            }
+
+            Promotion saved = this.promotionRepository.save(current);
+
+            // Auto Assignment (Clear and re-assign if global or category)
+            if (Boolean.TRUE.equals(dto.getGlobal())) {
+                this.assignAllProductsToPromotion(saved.getId());
+            } else if (dto.getCategoryId() != null) {
+                this.assignCategoryProductsToPromotion(saved.getId(), dto.getCategoryId());
+            }
+
+            return saved;
         }
         return null;
     }
@@ -184,6 +221,30 @@ public class PromotionService {
 
         List<Product> allProducts = this.productRepository.findAll();
         List<ProductPromotion> newAssignments = allProducts.stream()
+                .map(p -> {
+                    ProductPromotion pp = new ProductPromotion();
+                    pp.setProduct(p);
+                    pp.setPromotion(promotion);
+                    return pp;
+                })
+                .collect(Collectors.toList());
+        this.productPromotionRepository.saveAll(newAssignments);
+    }
+
+    @Transactional
+    public void assignCategoryProductsToPromotion(Long promotionId, Long categoryId) throws IdInvalidException {
+        Promotion promotion = this.getPromotionById(promotionId);
+        if (promotion == null) {
+            throw new IdInvalidException("Promotion not found with id: " + promotionId);
+        }
+
+        this.productPromotionRepository.deleteByPromotionId(promotionId);
+
+        // Using findByCategoryIdInOrIdIn with a single category ID
+        List<Product> categoryProducts = this.productRepository.findByCategoryIdInOrIdIn(
+                List.of(categoryId), List.of(), Pageable.unpaged()).getContent();
+
+        List<ProductPromotion> newAssignments = categoryProducts.stream()
                 .map(p -> {
                     ProductPromotion pp = new ProductPromotion();
                     pp.setProduct(p);
