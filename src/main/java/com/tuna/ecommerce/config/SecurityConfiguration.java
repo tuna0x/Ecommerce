@@ -47,7 +47,8 @@ public class SecurityConfiguration {
                 "/api/v1/auth/login",
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/register",
-                "/websocket/**"
+                "/websocket/**",
+                "/actuator/health"
         };
         http.csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())
