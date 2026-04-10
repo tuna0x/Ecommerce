@@ -3,6 +3,7 @@ package com.tuna.ecommerce.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,6 +29,9 @@ public class AttributeValueService {
     private final AttributeService attributeService;
 
     public AttributeValue createAttributeValue(ReqCreateAttributesValueDTO req) throws IdInvalidException {
+        if (req.getAttributeId() == null) {
+            throw new IdInvalidException("Attribute ID cannot be null");
+        }
         Attribute attribute = this.attributeService.getAttributeById(req.getAttributeId());
         if (attribute == null) {
             throw new IdInvalidException("Attribute parent not found with id: " + req.getAttributeId());
@@ -50,6 +54,9 @@ public class AttributeValueService {
         }
 
         curValue.setAttributeValue(req.getAttributeValue());
+        if (req.getAttributeId() == null) {
+            throw new IdInvalidException("Attribute ID cannot be null");
+        }
         Attribute attribute = this.attributeService.getAttributeById(req.getAttributeId());
         if (attribute != null) {
             curValue.setAttribute(attribute);
@@ -75,8 +82,12 @@ public class AttributeValueService {
         return rs;
     }
 
-    public void deleteAttributeValue(Long id) {
-        this.attributeValueRepository.deleteById(id);
+    public void deleteAttributeValue(Long id) throws IdInvalidException {
+        try {
+            this.attributeValueRepository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new IdInvalidException("Không thể xóa giá trị này vì đang được sử dụng ở các sản phẩm hoặc biến thể.");
+        }
     }
 
     public boolean existsByAttributeIdAndValue(Long attributeId, String attributeValue) {

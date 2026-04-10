@@ -572,19 +572,8 @@ public class ProductService {
 
         // Calculate pricing for the main product and its variants
         if (this.pricingService != null) {
-            // First, get active promotions for this product
-            List<ProductPromotion> productPromos = this.productPromotionRepository.findActiveByProductId(
-                    product.getId(),
-                    java.time.LocalDateTime.now());
-
-            List<Promotion> promotions = new ArrayList<>();
-            if (productPromos != null) {
-                for (ProductPromotion pp : productPromos) {
-                    if (pp.getPromotion() != null) {
-                        promotions.add(pp.getPromotion());
-                    }
-                }
-            }
+            // Get all applicable promotions (Global, Category, and Specific)
+            List<Promotion> promotions = this.pricingService.getApplicablePromotions(product);
 
             // Main Product Price
             ResPriceResultDTO mainPriceResult = this.pricingService

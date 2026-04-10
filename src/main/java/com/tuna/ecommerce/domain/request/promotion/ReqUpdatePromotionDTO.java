@@ -38,4 +38,9 @@ public class ReqUpdatePromotionDTO {
 
     @JsonProperty("active")
     private Boolean active = true;
+
+    @JsonProperty("global")
+    private Boolean global = false;
+
+    private Long categoryId;
 }
