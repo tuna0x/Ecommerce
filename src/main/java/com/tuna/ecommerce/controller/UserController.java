@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
@@ -50,13 +53,16 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUser(cur));
     }
 
+
     @PutMapping("/users")
     @APIMessage("Update user profile successfully")
-    public ResponseEntity<ResUpdateUser> updateUser(@RequestBody ReqUpdateUserDTO userDto) throws IdInvalidException {
-        if (this.userService.getUserById(userDto.getId())==null) {
+    public ResponseEntity<ResUpdateUser> updateUser(
+            @RequestPart("data") ReqUpdateUserDTO userDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) throws IdInvalidException, IOException {
+        if (this.userService.getUserById(userDto.getId()) == null) {
             throw new IdInvalidException("user id is invalid");
         }
-        User cur=this.userService.handleUpdateProfile(userDto);
+        User cur = this.userService.handleUpdateProfile(userDto, file);
         return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
     }
 
