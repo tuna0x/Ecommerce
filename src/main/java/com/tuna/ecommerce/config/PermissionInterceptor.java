@@ -22,19 +22,13 @@ public class PermissionInterceptor implements HandlerInterceptor {
     UserService userService;
 
     @Override
-    @Transactional
     public boolean preHandle(
             HttpServletRequest request,
             HttpServletResponse response, Object handler)
             throws Exception {
 
         String path = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-        String requestURI = request.getRequestURI();
         String httpMethod = request.getMethod();
-        System.out.println(">>> RUN preHandle");
-        System.out.println(">>> path= " + path);
-        System.out.println(">>> httpMethod= " + httpMethod);
-        System.out.println(">>> requestURI= " + requestURI);
 
         // check permission
         String email = SecurityUtil.getCurrentUserLogin().isPresent() == true ? SecurityUtil.getCurrentUserLogin().get()

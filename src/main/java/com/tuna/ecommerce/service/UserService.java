@@ -39,7 +39,12 @@ public class UserService {
         }
 
         // Initialize UserProfile if not present
-        if (user.getUserProfile() != null) {
+        if (user.getUserProfile() == null) {
+            UserProfile profile = new UserProfile();
+            profile.setName("User_" + user.getEmail().split("@")[0]);
+            profile.setUser(user);
+            user.setUserProfile(profile);
+        } else {
             user.getUserProfile().setUser(user);
         }
 
@@ -47,22 +52,9 @@ public class UserService {
     }
 
     public User getUserById(Long id) {
-        if (id == null) return null;
-        Optional<User> userOptional = this.userRepository.findById(id);
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            // Lazy initialization for existing users without profile
-            if (user.getUserProfile() == null) {
-                UserProfile profile = new UserProfile();
-                profile.setUser(user);
-                // Try to set a default name from email if needed, or leave blank
-                profile.setName("User_" + user.getId());
-                user.setUserProfile(profile);
-                this.userRepository.save(user);
-            }
-            return user;
-        }
-        return null;
+        if (id == null)
+            return null;
+        return this.userRepository.findById(id).orElse(null);
     }
 
     public User handleUpdate(User user) {
@@ -75,8 +67,10 @@ public class UserService {
 
             if (user.getUserProfile() != null) {
                 UserProfile curProfile = curUser.getUserProfile();
-                if (user.getUserProfile().getName() != null) curProfile.setName(user.getUserProfile().getName());
-                if (user.getUserProfile().getAge() != 0) curProfile.setAge(user.getUserProfile().getAge());
+                if (user.getUserProfile().getName() != null)
+                    curProfile.setName(user.getUserProfile().getName());
+                if (user.getUserProfile().getAge() != 0)
+                    curProfile.setAge(user.getUserProfile().getAge());
                 if (user.getUserProfile().getGender() != null) {
                     try {
                         curProfile.setGender(user.getUserProfile().getGender());
@@ -84,7 +78,8 @@ public class UserService {
                         // Handle potential enum mapping issues if needed
                     }
                 }
-                if (user.getUserProfile().getImage() != null) curProfile.setImage(user.getUserProfile().getImage());
+                if (user.getUserProfile().getImage() != null)
+                    curProfile.setImage(user.getUserProfile().getImage());
             }
 
             if (user.getRole() != null) {
@@ -101,8 +96,10 @@ public class UserService {
         User curUser = getUserById(req.getId());
         if (curUser != null) {
             UserProfile curProfile = curUser.getUserProfile();
-            if (req.getName() != null) curProfile.setName(req.getName());
-            if (req.getAge() != 0) curProfile.setAge(req.getAge());
+            if (req.getName() != null)
+                curProfile.setName(req.getName());
+            if (req.getAge() != 0)
+                curProfile.setAge(req.getAge());
             if (req.getGender() != null) {
                 try {
                     curProfile.setGender(GenderEnum.valueOf(req.getGender().toUpperCase()));
@@ -110,8 +107,9 @@ public class UserService {
                     // Ignore or handle invalid gender string
                 }
             }
-            if (req.getImage() != null) curProfile.setImage(req.getImage());
-            
+            if (req.getImage() != null)
+                curProfile.setImage(req.getImage());
+
             curUser = this.userRepository.save(curUser);
         }
         return curUser;
