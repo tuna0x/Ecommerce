@@ -20,6 +20,9 @@ import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.domain.response.user.ResUpdateUser;
 import com.tuna.ecommerce.domain.request.user.ReqUpdateUserDTO;
 import com.tuna.ecommerce.repository.UserRepository;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 
@@ -28,6 +31,7 @@ import lombok.AllArgsConstructor;
 public class UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
+    private final CloudinaryService cloudinaryService;
 
     public User handleCreate(User user) {
         if (user.getRole() != null && user.getRole().getId() != 0) {
@@ -92,13 +96,19 @@ public class UserService {
         return curUser;
     }
 
-    public User handleUpdateProfile(ReqUpdateUserDTO req) {
+    public User handleUpdateProfile(ReqUpdateUserDTO req, MultipartFile file) throws IOException {
         User curUser = getUserById(req.getId());
         if (curUser != null) {
             UserProfile curProfile = curUser.getUserProfile();
+            if (curProfile == null) {
+                curProfile = new UserProfile();
+                curProfile.setUser(curUser);
+                curUser.setUserProfile(curProfile);
+            }
+
             if (req.getName() != null)
                 curProfile.setName(req.getName());
-            if (req.getAge() != 0)
+            if (req.getAge() != null)
                 curProfile.setAge(req.getAge());
             if (req.getGender() != null) {
                 try {
@@ -107,8 +117,21 @@ public class UserService {
                     // Ignore or handle invalid gender string
                 }
             }
-            if (req.getImage() != null)
+
+            // Handle image upload if a file is provided
+            if (file != null && !file.isEmpty()) {
+                // Delete old image if exists
+                if (curProfile.getPublicId() != null) {
+                    this.cloudinaryService.deleteFile(curProfile.getPublicId());
+                }
+
+                // Upload new image
+                Map uploadResult = this.cloudinaryService.uploadFile(file);
+                curProfile.setImage((String) uploadResult.get("url"));
+                curProfile.setPublicId((String) uploadResult.get("public_id"));
+            } else if (req.getImage() != null) {
                 curProfile.setImage(req.getImage());
+            }
 
             curUser = this.userRepository.save(curUser);
         }
