@@ -10,7 +10,10 @@ import com.tuna.ecommerce.domain.User;
 public interface UserRepository extends JpaRepository<User,Long>,JpaSpecificationExecutor<User>{
 
     boolean existsByEmail(String email);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role", "role.permissions"})
     User findByEmail(String email);
+
     User findByRefreshTokenAndEmail(String refreshToken, String email);
     
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(u) FROM User u WHERE u.createdAt BETWEEN :startDate AND :endDate")
