@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.repository;
 
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -14,4 +15,5 @@ public interface  CategoryRepository extends JpaRepository<Category,Long>,JpaSpe
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Long id);
     Category findByName(String name);
+    List<Category> findByParentCategory_Id(Long parentId);
 }

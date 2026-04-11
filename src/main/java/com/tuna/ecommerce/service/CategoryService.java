@@ -132,4 +132,26 @@ public class CategoryService {
     public Category getCategoryByName(String name) {
         return this.categoryRepository.findByName(name);
     }
+
+    public List<Long> getAllIdsInHierarchy(Long parentId) {
+        java.util.Set<Long> allIds = new java.util.HashSet<>();
+        if (parentId == null)
+            return new java.util.ArrayList<>();
+
+        collectIdsRecursively(parentId, allIds);
+        return new java.util.ArrayList<>(allIds);
+    }
+
+    private void collectIdsRecursively(Long parentId, java.util.Set<Long> allIds) {
+        if (!allIds.add(parentId)) {
+            return; // Already processed to prevent infinite loop
+        }
+
+        List<Category> children = this.categoryRepository.findByParentCategory_Id(parentId);
+        if (children != null) {
+            for (Category child : children) {
+                collectIdsRecursively(child.getId(), allIds);
+            }
+        }
+    }
 }

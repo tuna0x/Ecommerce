@@ -360,7 +360,13 @@ public class ProductService {
         }
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Pageable page) {
+    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, Pageable page) {
+        if (categoryId != null) {
+            List<Long> categoryIds = this.categoryService.getAllIdsInHierarchy(categoryId);
+            Specification<Product> categorySpec = (root, query, cb) -> root.get("category").get("id")
+                    .in(categoryIds);
+            spec = (spec == null) ? categorySpec : spec.and(categorySpec);
+        }
         Page<Product> product = this.productRepository.findAll(spec, page);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
