@@ -71,8 +71,11 @@ public class ProductController {
 
     @GetMapping("/products")
     @APIMessage("Get all products successfully")
-    public ResponseEntity<ResultPaginationDTO> getAllProduct(@Filter Specification<Product> spec, Pageable pageable) {
-        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, pageable));
+    public ResponseEntity<ResultPaginationDTO> getAllProduct(
+            @Filter Specification<Product> spec,
+            @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
+            Pageable pageable) {
+        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, categoryId, pageable));
     }
 
     @GetMapping("/products/flash-sale")
