@@ -3,6 +3,7 @@ package com.tuna.ecommerce.domain.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuna.ecommerce.domain.Role;
+import com.tuna.ecommerce.ultil.constant.GenderEnum;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,6 +29,8 @@ public class RestLoginDTO {
         private String email;
         private String name;
         private String image;
+        private Integer age;
+        private GenderEnum gender;
         private Role role;
 
     }
@@ -49,5 +52,7 @@ public class RestLoginDTO {
         private String email;
         private String name;
         private String image;
+        private Integer age;
+        private GenderEnum gender;
     }
 }

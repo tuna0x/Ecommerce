@@ -71,6 +71,8 @@ public class AuthController {
             if (curUserDB.getUserProfile() != null) {
                 userLogin.setName(curUserDB.getUserProfile().getName());
                 userLogin.setImage(curUserDB.getUserProfile().getImage());
+                userLogin.setAge(curUserDB.getUserProfile().getAge());
+                userLogin.setGender(curUserDB.getUserProfile().getGender());
             }
             res.setUser(userLogin);
 
@@ -114,6 +116,8 @@ public class AuthController {
                 if (curUser.getUserProfile() != null) {
                     userLogin.setName(curUser.getUserProfile().getName());
                     userLogin.setImage(curUser.getUserProfile().getImage());
+                    userLogin.setAge(curUser.getUserProfile().getAge());
+                    userLogin.setGender(curUser.getUserProfile().getGender());
                 }
                 userGetAccount.setUser(userLogin);
             }
@@ -149,6 +153,8 @@ public class AuthController {
             if (curUserDB.getUserProfile() != null) {
                 userLogin.setName(curUserDB.getUserProfile().getName());
                 userLogin.setImage(curUserDB.getUserProfile().getImage());
+                userLogin.setAge(curUserDB.getUserProfile().getAge());
+                userLogin.setGender(curUserDB.getUserProfile().getGender());
             }
             res.setUser(userLogin);
         }

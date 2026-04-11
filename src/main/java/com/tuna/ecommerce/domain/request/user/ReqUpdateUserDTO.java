@@ -8,7 +8,7 @@ import lombok.Setter;
 public class ReqUpdateUserDTO {
     private long id;
     private String name;
-    private int age;
+    private Integer age;
     private String gender;
     private String image;
 }

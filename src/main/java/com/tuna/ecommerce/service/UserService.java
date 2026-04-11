@@ -96,9 +96,15 @@ public class UserService {
         User curUser = getUserById(req.getId());
         if (curUser != null) {
             UserProfile curProfile = curUser.getUserProfile();
+            if (curProfile == null) {
+                curProfile = new UserProfile();
+                curProfile.setUser(curUser);
+                curUser.setUserProfile(curProfile);
+            }
+
             if (req.getName() != null)
                 curProfile.setName(req.getName());
-            if (req.getAge() != 0)
+            if (req.getAge() != null)
                 curProfile.setAge(req.getAge());
             if (req.getGender() != null) {
                 try {
