@@ -45,6 +45,8 @@ public class UserProfile {
     @Column(columnDefinition = "MEDIUMTEXT")
     private String image;
 
+    private String publicId;
+
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
