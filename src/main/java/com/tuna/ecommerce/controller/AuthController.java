@@ -206,16 +206,50 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @APIMessage("User registered successfully")
-    public ResponseEntity<ResCreateUser> register(@Valid @RequestBody ReqRegisterDTO user) throws IdInvalidException{
-        boolean isEmailExits=this.userService.exitsByEmail(user.getEmail());
+    public ResponseEntity<RestLoginDTO> register(@Valid @RequestBody ReqRegisterDTO registerDTO) throws IdInvalidException {
+        boolean isEmailExits = this.userService.exitsByEmail(registerDTO.getEmail());
         if (isEmailExits) {
             throw new IdInvalidException("email is exists");
         }
 
-        String hashPassWord =this.passwordEncoder.encode(user.getPassword());
-        user.setPassword(hashPassWord);
-        User cur=this.userService.register(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUser(cur));
+        String hashPassWord = this.passwordEncoder.encode(registerDTO.getPassword());
+        registerDTO.setPassword(hashPassWord);
+        User newUser = this.userService.register(registerDTO);
+
+        // --- AUTO LOGIN LOGIC ---
+        RestLoginDTO res = new RestLoginDTO();
+        RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin();
+        userLogin.setId(newUser.getId());
+        userLogin.setEmail(newUser.getEmail());
+        userLogin.setRole(newUser.getRole());
+        
+        if (newUser.getUserProfile() != null) {
+            userLogin.setName(newUser.getUserProfile().getName());
+            userLogin.setImage(newUser.getUserProfile().getImage());
+            userLogin.setAge(newUser.getUserProfile().getAge());
+            userLogin.setGender(newUser.getUserProfile().getGender());
+        }
+        res.setUser(userLogin);
+
+        // Create tokens
+        String access_token = this.securityUtil.createAccessToken(newUser.getEmail(), res);
+        res.setAccessToken(access_token);
+        String refresh_token = this.securityUtil.refreshToken(newUser.getEmail(), res);
+
+        // Update user token
+        this.userService.updateUserToken(refresh_token, newUser.getEmail());
+
+        // Set cookie
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, resCookies.toString())
+                .body(res);
     }
 
     @PostMapping("/auth/otp/send")
