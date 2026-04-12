@@ -39,7 +39,6 @@ public class CategoryService {
         return this.categoryRepository.save(category);
     }
 
-    @Cacheable(value = "category", key = "#id", unless = "#result == null")
     public Category handleGetById(Long id) {
         if (id == null)
             return null;
@@ -80,8 +79,9 @@ public class CategoryService {
     }
 
     @Cacheable(value = "categories")
-    public List<Category> handleGetAll() {
-        return this.categoryRepository.findAll();
+    public List<ResCategoryDTO> handleGetAll() {
+        List<Category> categories = this.categoryRepository.findAll();
+        return categories.stream().map(this::convertToResCategoryDTO).collect(java.util.stream.Collectors.toList());
     }
 
     public ResultPaginationDTO handleGetAll(Specification<Category> spec, Pageable page) {

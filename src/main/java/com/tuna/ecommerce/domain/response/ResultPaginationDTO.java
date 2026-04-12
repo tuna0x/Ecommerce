@@ -8,7 +8,8 @@ import lombok.Setter;
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
-public class ResultPaginationDTO {
+public class ResultPaginationDTO implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
     private Meta meta;
     private Object result;
 
@@ -16,10 +17,11 @@ public class ResultPaginationDTO {
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
-        public static class Meta {
+    public static class Meta implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
         private int page;
         private int pageSize;
         private long total;
         private int pages;
-        }
+    }
 }

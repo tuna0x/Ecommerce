@@ -10,6 +10,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import com.tuna.ecommerce.domain.Permission;
 import com.tuna.ecommerce.domain.Role;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.domain.response.user.ResUserPermissionDTO;
 import com.tuna.ecommerce.service.UserService;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.err.PermissionException;
@@ -34,20 +35,16 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String email = SecurityUtil.getCurrentUserLogin().isPresent() == true ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         if (email != null && !email.isEmpty()) {
-            User user = this.userService.findByUsername(email);
-            if (user != null) {
-                Role role = user.getRole();
-                if (role != null) {
-                    List<Permission> list = role.getPermissions();
-                    boolean isAllow = list.stream().anyMatch(x -> x.getApiPath().equals(path) &&
-                            x.getMethod().equals(httpMethod));
+            List<ResUserPermissionDTO> list = this.userService.getPermissionsByEmail(email);
+            if (list != null) {
+                boolean isAllow = list.stream().anyMatch(x -> x.getApiPath().equals(path) &&
+                        x.getMethod().equals(httpMethod));
 
-                    if (isAllow == false) {
-                        throw new PermissionException("you don't have permission to access this endpoint");
-                    }
-                } else {
+                if (isAllow == false) {
                     throw new PermissionException("you don't have permission to access this endpoint");
                 }
+            } else {
+                throw new PermissionException("you don't have permission to access this endpoint");
             }
         }
 
