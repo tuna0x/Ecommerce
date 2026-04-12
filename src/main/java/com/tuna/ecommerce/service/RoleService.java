@@ -57,7 +57,7 @@ public class RoleService {
         return this.roleRepository.findByName(name);
     }
 
-    @CacheEvict(value = "user", allEntries = true)
+    @CacheEvict(value = { "user", "user_permissions" }, allEntries = true)
     public Role update(Role r) {
         Role roleDB = this.fetchById(r.getId());
 

@@ -26,6 +26,7 @@ import com.tuna.ecommerce.domain.ProductImage;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.category.ResCategoryDTO;
 import com.tuna.ecommerce.domain.response.product.ResProductDTO;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
@@ -96,7 +97,6 @@ public class ProductService {
         this.inventoryRepository = inventoryRepository;
     }
 
-    @CacheEvict(value = { "products", "flash_sale" }, allEntries = true)
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Category category = this.categoryService.handleGetById(product.getCategoryId());
@@ -186,15 +186,10 @@ public class ProductService {
         return newProduct;
     }
 
-    @Cacheable(value = "product", key = "#id", unless = "#result == null")
     public Product handleGetById(long id) {
         return this.productRepository.findById(id).orElse(null);
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "product", key = "#product.id"),
-            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
-    })
     public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Product cur = this.handleGetById(product.getId());
@@ -357,10 +352,6 @@ public class ProductService {
         }
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "product", key = "#id"),
-            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
-    })
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
         if (product != null) {
@@ -423,10 +414,10 @@ public class ProductService {
         }
 
         // 2. Collect Category IDs with active promotions
-        List<Category> allCategories = this.categoryService.handleGetAll();
+        List<ResCategoryDTO> allCategories = this.categoryService.handleGetAll();
         List<Long> categoryIds = new ArrayList<>();
         if (allCategories != null) {
-            for (Category cat : allCategories) {
+            for (ResCategoryDTO cat : allCategories) {
                 List<Promotion> catPromos = this.promotionRepository.findActiveByCategoryId(cat.getId(), now);
                 if (catPromos != null && !catPromos.isEmpty()) {
                     categoryIds.add(cat.getId());
@@ -633,10 +624,6 @@ public class ProductService {
         return res;
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "product", key = "#req.id"),
-            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
-    })
     public Product addImages(ReqUpdateProductDTO req, List<MultipartFile> files) throws IOException {
         Product product = this.handleGetById(req.getId());
 

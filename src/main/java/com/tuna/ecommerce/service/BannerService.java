@@ -1,6 +1,7 @@
 package com.tuna.ecommerce.service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.cache.annotation.CacheEvict;
@@ -16,6 +17,7 @@ import com.tuna.ecommerce.domain.Banner;
 import com.tuna.ecommerce.domain.request.banner.ReqCreateBannerDTO;
 import com.tuna.ecommerce.domain.request.banner.ReqUpdateBannerDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.banner.ResBannerDTO;
 import com.tuna.ecommerce.repository.BannerRepository;
 
 import lombok.AllArgsConstructor;
@@ -117,7 +119,25 @@ public class BannerService {
         meta.setTotal(banners.getTotalElements());
 
         rs.setMeta(meta);
-        rs.setResult(banners.getContent());
+
+        // Convert to DTO before caching
+        List<ResBannerDTO> dtoList = banners.getContent().stream().map(b -> {
+            ResBannerDTO dto = new ResBannerDTO();
+            dto.setId(b.getId());
+            dto.setTitle(b.getTitle());
+            dto.setSubtitle(b.getSubtitle());
+            dto.setImage(b.getImage());
+            dto.setLink(b.getLink());
+            dto.setDescription(b.getDescription());
+            dto.setPosition(b.getPosition());
+            dto.setOrder(b.getOrder());
+            dto.setIsActive(b.getActive());
+            dto.setStartDate(b.getStartDate());
+            dto.setEndDate(b.getEndDate());
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+
+        rs.setResult(dtoList);
         return rs;
     }
 }

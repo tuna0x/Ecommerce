@@ -8,6 +8,7 @@ import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.request.promotion.ReqCreatePromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqUpdatePromotionDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.promotion.ResPromotionDTO;
 import com.tuna.ecommerce.service.PromotionService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -66,8 +67,8 @@ public class PromotionController {
 
     @GetMapping("/promotions/{id}")
     @APIMessage("Get Promotion successfully")
-    public ResponseEntity<Promotion> getPromotionById(@PathVariable("id") Long id) throws IdInvalidException {
-        Promotion promotion = this.promotionService.getPromotionById(id);
+    public ResponseEntity<ResPromotionDTO> getPromotionById(@PathVariable("id") Long id) throws IdInvalidException {
+        ResPromotionDTO promotion = this.promotionService.getPromotionDTOById(id);
         if (promotion == null) {
             throw new IdInvalidException("Promotion not found");
         }

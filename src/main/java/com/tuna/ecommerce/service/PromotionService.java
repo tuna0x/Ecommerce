@@ -20,6 +20,7 @@ import com.tuna.ecommerce.domain.request.promotion.ReqAssignPromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqCreatePromotionDTO;
 import com.tuna.ecommerce.domain.request.promotion.ReqUpdatePromotionDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.tuna.ecommerce.domain.response.promotion.ResPromotionDTO;
 import com.tuna.ecommerce.repository.CategoryRepository;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
@@ -97,9 +98,30 @@ public class PromotionService {
         this.promotionRepository.save(promotion);
     }
 
-    @Cacheable(value = "promotion", key = "#id", unless = "#result == null")
     public Promotion getPromotionById(Long id) {
         return promotionRepository.findById(id).orElse(null);
+    }
+
+    @Cacheable(value = "promotion", key = "#id", unless = "#result == null")
+    public ResPromotionDTO getPromotionDTOById(Long id) {
+        Promotion promotion = this.getPromotionById(id);
+        return promotion != null ? this.convertToResPromotionDTO(promotion) : null;
+    }
+
+    public ResPromotionDTO convertToResPromotionDTO(Promotion prom) {
+        ResPromotionDTO dto = new ResPromotionDTO();
+        dto.setId(prom.getId());
+        dto.setName(prom.getName());
+        dto.setDescription(prom.getDescription());
+        dto.setType(prom.getType());
+        dto.setDiscountValue(prom.getDiscountValue());
+        dto.setMinOrderValue(prom.getMinOrderValue());
+        dto.setMaxDiscountValue(prom.getMaxDiscountValue());
+        dto.setStartAt(prom.getStartAt());
+        dto.setEndAt(prom.getEndAt());
+        dto.setActive(prom.getActive());
+        dto.setGlobal(prom.getGlobal());
+        return dto;
     }
 
     @Caching(evict = {

@@ -22,6 +22,7 @@ import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.domain.response.user.ResFetchUser;
 import com.tuna.ecommerce.domain.response.user.ResUpdateUser;
 import com.tuna.ecommerce.domain.request.user.ReqUpdateUserDTO;
+import com.tuna.ecommerce.domain.response.user.ResUserPermissionDTO;
 import com.tuna.ecommerce.repository.UserRepository;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
@@ -64,7 +65,7 @@ public class UserService {
         return this.userRepository.findById(id).orElse(null);
     }
 
-    @CacheEvict(value = "user", key = "#user.email")
+    @CacheEvict(value = "user_permissions", key = "#user.email")
     public User handleUpdate(User user) {
         User curUser = getUserById(user.getId());
         if (curUser != null) {
@@ -252,7 +253,7 @@ public class UserService {
         return res;
     }
 
-    @CacheEvict(value = "user", key = "#result.email", condition = "#result != null")
+    @CacheEvict(value = "user_permissions", key = "#result.email", condition = "#result != null")
     public User handleToggleActive(Long id, boolean active) {
         User user = this.getUserById(id);
         if (user != null) {
@@ -262,7 +263,7 @@ public class UserService {
         return user;
     }
 
-    @CacheEvict(value = "user", key = "#result.email", condition = "#result != null")
+    @CacheEvict(value = "user_permissions", key = "#result.email", condition = "#result != null")
     public User handleUpdateRole(Long id, Long roleId) {
         User user = this.getUserById(id);
         if (user != null) {
@@ -279,7 +280,17 @@ public class UserService {
         return this.userRepository.existsByEmail(email);
     }
 
-    @Cacheable(value = "user", key = "#email", unless = "#result == null")
+    @Cacheable(value = "user_permissions", key = "#email", unless = "#result == null")
+    public List<ResUserPermissionDTO> getPermissionsByEmail(String email) {
+        User user = this.findByUsername(email);
+        if (user != null && user.getRole() != null) {
+            return user.getRole().getPermissions().stream()
+                    .map(p -> new ResUserPermissionDTO(p.getApiPath(), p.getMethod()))
+                    .collect(Collectors.toList());
+        }
+        return null;
+    }
+
     public User findByUsername(String email) {
         return this.userRepository.findByEmail(email);
     }
