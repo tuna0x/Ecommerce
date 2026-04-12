@@ -53,7 +53,8 @@ public class BannerService {
 
     @CacheEvict(value = "banners", allEntries = true)
     public Banner handleUpdate(ReqUpdateBannerDTO req, MultipartFile file) throws IOException {
-        if (req == null || req.getId() == null) return null;
+        if (req == null || req.getId() == null)
+            return null;
         Banner cur = this.handleGetById(req.getId());
         if (cur != null) {
             cur.setTitle(req.getTitle());
@@ -93,7 +94,8 @@ public class BannerService {
     }
 
     public Banner handleGetById(Long id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return this.bannerRepository.findById(id).orElse(null);
     }
 

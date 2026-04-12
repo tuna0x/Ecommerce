@@ -22,13 +22,13 @@ import com.tuna.ecommerce.domain.request.auth.ReqLoginDTO;
 import com.tuna.ecommerce.domain.request.auth.ReqRegisterDTO;
 import com.tuna.ecommerce.domain.response.RestLoginDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
+import com.tuna.ecommerce.service.OtpService;
 import com.tuna.ecommerce.service.UserService;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import jakarta.validation.Valid;
-import lombok.NoArgsConstructor;
 
 @RequestMapping("/api/v1")
 @RestController
@@ -38,16 +38,18 @@ public class AuthController {
     private final SecurityUtil securityUtil;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final OtpService otpService;
 
         @Value("${tuna.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
     public AuthController(AuthenticationManagerBuilder authenticationManagerBuilder
-     , SecurityUtil securityUtil,UserService userService,PasswordEncoder passwordEncoder) {
+     , SecurityUtil securityUtil,UserService userService,PasswordEncoder passwordEncoder, OtpService otpService) {
         this.authenticationManagerBuilder = authenticationManagerBuilder;
         this.securityUtil = securityUtil;
         this.userService = userService;
         this.passwordEncoder=passwordEncoder;
+        this.otpService = otpService;
     }
 
 
@@ -204,15 +206,69 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @APIMessage("User registered successfully")
-    public ResponseEntity<ResCreateUser> register(@Valid @RequestBody ReqRegisterDTO user) throws IdInvalidException{
-        boolean isEmailExits=this.userService.exitsByEmail(user.getEmail());
+    public ResponseEntity<RestLoginDTO> register(@Valid @RequestBody ReqRegisterDTO registerDTO) throws IdInvalidException {
+        boolean isEmailExits = this.userService.exitsByEmail(registerDTO.getEmail());
         if (isEmailExits) {
             throw new IdInvalidException("email is exists");
         }
 
-        String hashPassWord =this.passwordEncoder.encode(user.getPassword());
-        user.setPassword(hashPassWord);
-        User cur=this.userService.register(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.convertToResCreateUser(cur));
+        String hashPassWord = this.passwordEncoder.encode(registerDTO.getPassword());
+        registerDTO.setPassword(hashPassWord);
+        User newUser = this.userService.register(registerDTO);
+
+        // --- AUTO LOGIN LOGIC ---
+        RestLoginDTO res = new RestLoginDTO();
+        RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin();
+        userLogin.setId(newUser.getId());
+        userLogin.setEmail(newUser.getEmail());
+        userLogin.setRole(newUser.getRole());
+        
+        if (newUser.getUserProfile() != null) {
+            userLogin.setName(newUser.getUserProfile().getName());
+            userLogin.setImage(newUser.getUserProfile().getImage());
+            userLogin.setAge(newUser.getUserProfile().getAge());
+            userLogin.setGender(newUser.getUserProfile().getGender());
+        }
+        res.setUser(userLogin);
+
+        // Create tokens
+        String access_token = this.securityUtil.createAccessToken(newUser.getEmail(), res);
+        res.setAccessToken(access_token);
+        String refresh_token = this.securityUtil.refreshToken(newUser.getEmail(), res);
+
+        // Update user token
+        this.userService.updateUserToken(refresh_token, newUser.getEmail());
+
+        // Set cookie
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, resCookies.toString())
+                .body(res);
+    }
+
+    @PostMapping("/auth/otp/send")
+    @APIMessage("Mã OTP đã được gửi đến email của bạn")
+    public ResponseEntity<Void> sendOtp(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        this.otpService.generateAndSendOtp(email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/auth/otp/verify")
+    @APIMessage("Xác thực OTP thành công")
+    public ResponseEntity<Void> verifyOtp(@RequestBody java.util.Map<String, String> request) throws IdInvalidException {
+        String email = request.get("email");
+        String otp = request.get("otp");
+        boolean isValid = this.otpService.verifyOtp(email, otp);
+        if (!isValid) {
+            throw new IdInvalidException("Mã OTP không chính xác hoặc đã hết hạn");
+        }
+        return ResponseEntity.ok().build();
     }
 }

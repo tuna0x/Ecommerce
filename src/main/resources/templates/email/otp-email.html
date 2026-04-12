@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác thực OTP - Bông Cosmetic</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff5f7;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(255, 105, 180, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 0; background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 2px; text-transform: uppercase;">Bông Cosmetic</h1>
+                            <p style="color: #ffe4e1; margin-top: 5px; font-size: 14px;">Chăm sóc vẻ đẹp của bạn</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="color: #333333; font-size: 22px; margin-top: 0;">Mã xác nhận đăng ký</h2>
+                            <p style="color: #666666; font-size: 16px; line-height: 1.6;">Chào mừng bạn đến với <b>Bông Cosmetic</b>! Để hoàn tất quá trình xác thực tài khoản, vui lòng sử dụng mã OTP dưới đây:</p>
+                            
+                            <div style="text-align: center; margin: 40px 0;">
+                                <div style="display: inline-block; background-color: #fff0f5; border: 2px dashed #ff1493; padding: 20px 40px; border-radius: 8px;">
+                                    <span style="font-size: 36px; font-weight: bold; color: #ff1493; letter-spacing: 8px;" th:text="${otp}">123456</span>
+                                </div>
+                                <p style="color: #999999; font-size: 12px; margin-top: 15px;">(Mã này có hiệu lực trong vòng 5 phút)</p>
+                            </div>
+                            
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ của chúng tôi.</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #fcfcfc; border-top: 1px solid #eeeeee; text-align: center;">
+                            <p style="color: #999999; font-size: 13px; margin: 0;">
+                                &copy; 2024 Bông Cosmetic. All rights reserved.<br>
+                                Địa chỉ: 123 Nguyễn Trãi, Thanh Xuân, Hà Nội<br>
+                                Hotline: 0987 654 321
+                            </p>
+                            <div style="margin-top: 15px;">
+                                <a href="#" style="text-decoration: none; color: #ff1493; font-weight: bold; font-size: 13px;">Website</a>
+                                <span style="color: #dddddd; margin: 0 10px;">|</span>
+                                <a href="#" style="text-decoration: none; color: #ff1493; font-weight: bold; font-size: 13px;">Facebook</a>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
