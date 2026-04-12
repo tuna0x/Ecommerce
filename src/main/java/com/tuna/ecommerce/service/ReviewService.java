@@ -1,5 +1,8 @@
 package com.tuna.ecommerce.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,10 @@ public class ReviewService {
     private final OrderRepository orderRepository;
     private final CloudinaryService cloudinaryService;
 
+    @Caching(evict = {
+            @CacheEvict(value = "reviews", key = "#req.productId"),
+            @CacheEvict(value = { "product", "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public Review createReview(ReqCreateReviewDTO req,
             java.util.List<org.springframework.web.multipart.MultipartFile> files)
             throws IdInvalidException, java.io.IOException {
@@ -75,6 +82,7 @@ public class ReviewService {
         return reviewRepository.save(review);
     }
 
+    @Cacheable(value = "reviews", key = "#productId + '-' + #pageable.pageNumber")
     public ResultPaginationDTO getReviewsByProduct(Long productId, Pageable pageable) {
         Page<Review> pageReview = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId, pageable);
         ResultPaginationDTO rs = new ResultPaginationDTO();
@@ -107,6 +115,10 @@ public class ReviewService {
         return res;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "reviews", key = "#result.product.id", condition = "#result != null"),
+            @CacheEvict(value = { "product", "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public void deleteReview(Long id) throws IdInvalidException {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Đánh giá không tồn tại"));

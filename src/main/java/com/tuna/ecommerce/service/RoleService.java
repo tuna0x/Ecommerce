@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -56,6 +57,7 @@ public class RoleService {
         return this.roleRepository.findByName(name);
     }
 
+    @CacheEvict(value = "user", allEntries = true)
     public Role update(Role r) {
         Role roleDB = this.fetchById(r.getId());
 
@@ -82,6 +84,7 @@ public class RoleService {
         return null;
     }
 
+    @CacheEvict(value = "user", allEntries = true)
     public void delete(long id) {
         // Delete role
         this.roleRepository.deleteById(id);

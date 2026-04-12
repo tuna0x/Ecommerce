@@ -3,6 +3,9 @@ package com.tuna.ecommerce.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,6 +39,7 @@ public class PromotionService {
     private final CategoryRepository categoryRepository;
     private final NotificationService notificationService;
 
+    @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public Promotion createPromotion(ReqCreatePromotionDTO req) throws IdInvalidException {
         Promotion promotion = new Promotion();
         promotion.setName(req.getName());
@@ -66,6 +70,7 @@ public class PromotionService {
         return promotion;
     }
 
+    @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public void isActive(Long id) throws IdInvalidException {
         Promotion promotion = this.getPromotionById(id);
         if (promotion == null) {
@@ -82,6 +87,7 @@ public class PromotionService {
         );
     }
 
+    @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public void deActive(Long id) throws IdInvalidException {
         Promotion promotion = this.getPromotionById(id);
         if (promotion == null) {
@@ -91,10 +97,15 @@ public class PromotionService {
         this.promotionRepository.save(promotion);
     }
 
+    @Cacheable(value = "promotion", key = "#id", unless = "#result == null")
     public Promotion getPromotionById(Long id) {
         return promotionRepository.findById(id).orElse(null);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "promotion", key = "#dto.id"),
+            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public Promotion updatePromotion(ReqUpdatePromotionDTO dto) throws IdInvalidException {
         if (dto.getId() == null) return null;
         Promotion current = this.getPromotionById(dto.getId());
@@ -131,6 +142,10 @@ public class PromotionService {
         return null;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "promotion", key = "#id"),
+            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public void deletePromotion(Long id) {
         promotionRepository.deleteById(id);
     }
@@ -149,6 +164,7 @@ public class PromotionService {
         return rs;
     }
 
+    @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public void applyPromotionToProduct(ReqAssignPromotionDTO req) throws IdInvalidException {
         Promotion promotion = this.getPromotionById(req.getPromotionId());
         if (promotion == null) {

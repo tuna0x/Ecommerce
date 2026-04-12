@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -61,6 +64,7 @@ public class UserService {
         return this.userRepository.findById(id).orElse(null);
     }
 
+    @CacheEvict(value = "user", key = "#user.email")
     public User handleUpdate(User user) {
         User curUser = getUserById(user.getId());
         if (curUser != null) {
@@ -248,6 +252,7 @@ public class UserService {
         return res;
     }
 
+    @CacheEvict(value = "user", key = "#result.email", condition = "#result != null")
     public User handleToggleActive(Long id, boolean active) {
         User user = this.getUserById(id);
         if (user != null) {
@@ -257,6 +262,7 @@ public class UserService {
         return user;
     }
 
+    @CacheEvict(value = "user", key = "#result.email", condition = "#result != null")
     public User handleUpdateRole(Long id, Long roleId) {
         User user = this.getUserById(id);
         if (user != null) {
@@ -273,6 +279,7 @@ public class UserService {
         return this.userRepository.existsByEmail(email);
     }
 
+    @Cacheable(value = "user", key = "#email", unless = "#result == null")
     public User findByUsername(String email) {
         return this.userRepository.findByEmail(email);
     }
