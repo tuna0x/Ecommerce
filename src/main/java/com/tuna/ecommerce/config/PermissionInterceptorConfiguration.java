@@ -21,6 +21,8 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
                 "/api/v1/auth/register",
                 "/api/v1/auth/account",
                 "/api/v1/auth/logout",
+                "/api/v1/auth/otp/send",
+                "/api/v1/auth/otp/verify",
                 "/api/v1/categories/**",
                 "/api/v1/products/**",
                 "/api/v1/attribute/**",

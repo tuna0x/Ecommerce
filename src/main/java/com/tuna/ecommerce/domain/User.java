@@ -49,6 +49,9 @@ public class User {
     @Column(name = "is_active")
     private Boolean active = true;
 
+    @Column(name = "is_verified")
+    private boolean verified = false;
+
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
     private Instant createdAt;
