@@ -3,6 +3,8 @@ package com.tuna.ecommerce.service;
 import java.io.IOException;
 import java.util.Map;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,6 +27,7 @@ public class BannerService {
     private final BannerRepository bannerRepository;
     private final CloudinaryService cloudinaryService;
 
+    @CacheEvict(value = "banners", allEntries = true)
     public Banner handleCreate(ReqCreateBannerDTO req, MultipartFile file) throws IOException {
         Banner banner = new Banner();
         banner.setTitle(req.getTitle());
@@ -46,6 +49,7 @@ public class BannerService {
         return this.bannerRepository.save(banner);
     }
 
+    @CacheEvict(value = "banners", allEntries = true)
     public Banner handleUpdate(ReqUpdateBannerDTO req, MultipartFile file) throws IOException {
         if (req == null || req.getId() == null) return null;
         Banner cur = this.handleGetById(req.getId());
@@ -76,6 +80,7 @@ public class BannerService {
         return null;
     }
 
+    @CacheEvict(value = "banners", allEntries = true)
     public Banner handleToggleActive(Long id, Boolean isActive) {
         Banner cur = this.handleGetById(id);
         if (cur != null) {
@@ -90,6 +95,7 @@ public class BannerService {
         return this.bannerRepository.findById(id).orElse(null);
     }
 
+    @CacheEvict(value = "banners", allEntries = true)
     public void handleDelete(Long id) throws IOException {
         Banner cur = this.handleGetById(id);
         if (cur != null) {
@@ -100,6 +106,7 @@ public class BannerService {
         }
     }
 
+    @Cacheable(value = "banners")
     public ResultPaginationDTO handleGetAll(Specification<Banner> spec, Pageable page) {
         Page<Banner> banners = this.bannerRepository.findAll(spec, page);
         ResultPaginationDTO rs = new ResultPaginationDTO();

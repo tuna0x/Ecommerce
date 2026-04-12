@@ -41,6 +41,9 @@ import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.PromotionRepository;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
 import com.tuna.ecommerce.repository.InventoryRepository;
 
@@ -93,6 +96,7 @@ public class ProductService {
         this.inventoryRepository = inventoryRepository;
     }
 
+    @CacheEvict(value = { "products", "flash_sale" }, allEntries = true)
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Category category = this.categoryService.handleGetById(product.getCategoryId());
@@ -182,10 +186,15 @@ public class ProductService {
         return newProduct;
     }
 
+    @Cacheable(value = "product", key = "#id", unless = "#result == null")
     public Product handleGetById(long id) {
         return this.productRepository.findById(id).orElse(null);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#product.id"),
+            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Product cur = this.handleGetById(product.getId());
@@ -348,6 +357,10 @@ public class ProductService {
         }
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#id"),
+            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
         if (product != null) {
@@ -386,6 +399,7 @@ public class ProductService {
         return this.productRepository.existsByName(name);
     }
 
+    @Cacheable(value = "related_products", key = "#id")
     public List<ResProductDTO> getRelatedProducts(Long id) {
         Product product = this.handleGetById(id);
         if (product == null || product.getCategory() == null) {
@@ -396,6 +410,7 @@ public class ProductService {
         return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
+    @Cacheable(value = "flash_sale", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
@@ -618,6 +633,10 @@ public class ProductService {
         return res;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#req.id"),
+            @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
+    })
     public Product addImages(ReqUpdateProductDTO req, List<MultipartFile> files) throws IOException {
         Product product = this.handleGetById(req.getId());
 
