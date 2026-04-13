@@ -63,6 +63,7 @@ public class OrderService {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final UserCouponRepository userCouponRepository;
+    private final EmailService emailService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -76,7 +77,8 @@ public class OrderService {
             @Lazy InventoryService inventoryService,
             @Lazy PaymentService paymentService,
             PaymentRepository paymentRepository,
-            UserCouponRepository userCouponRepository) {
+            UserCouponRepository userCouponRepository,
+            EmailService emailService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -89,6 +91,7 @@ public class OrderService {
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
         this.userCouponRepository = userCouponRepository;
+        this.emailService = emailService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -109,7 +112,7 @@ public class OrderService {
         rs.setMeta(mt);
 
         List<ResGetOrderDTO> listOrder = pageOrder.getContent()
-                .stream().map(item -> this.convertToResGetOderDTO(item))
+                .stream().map(item -> this.convertToResGetOrderDTO(item))
                 .collect(java.util.stream.Collectors.toList());
 
         rs.setResult(listOrder);
@@ -149,14 +152,14 @@ public class OrderService {
         rs.setMeta(mt);
 
         List<ResGetOrderDTO> listOrder = pageOrder.getContent()
-                .stream().map(item -> this.convertToResGetOderDTO(item))
+                .stream().map(item -> this.convertToResGetOrderDTO(item))
                 .collect(java.util.stream.Collectors.toList());
 
         rs.setResult(listOrder);
         return rs;
     }
 
-    public ResGetOrderDTO createOder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
+    public ResGetOrderDTO createOrder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
         Address address = this.addressService.getAddressById(req.getAddressId());
@@ -180,6 +183,7 @@ public class OrderService {
         order.setStatus(OrderStatusEnum.PENDING);
         order.setPaymentStatus(PaymentStatusEnum.UNPAID);
         order.setDiscountPrice(BigDecimal.ZERO);
+        order.setConfirmationToken(java.util.UUID.randomUUID().toString());
 
         BigDecimal subTotal = BigDecimal.ZERO;
         for (CartItem i : cartItems) {
@@ -298,7 +302,25 @@ public class OrderService {
             this.cartItemRepository.deleteAll(cartItems);
         }
 
-        // Gửi thông báo cho User
+        // Initialize lazy collections for Async Email processing
+        if (savedOrder.getUser() != null) {
+            savedOrder.getUser().getEmail(); // Force load user
+        }
+        if (savedOrder.getItems() != null) {
+            for (OrderItem item : savedOrder.getItems()) {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName(); // Force load product
+                }
+                if (item.getProductVariant() != null && item.getProductVariant().getAttributeValues() != null) {
+                    item.getProductVariant().getAttributeValues().size(); // Force load attributes
+                }
+            }
+        }
+
+        // Send Email Confirmation/Notification
+        boolean isCod = req.getPaymentMethod() == PaymentMethodEnum.COD;
+        this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
+
         this.notificationService.createNotification(
                 user,
                 "Đặt hàng thành công",
@@ -307,7 +329,7 @@ public class OrderService {
 
         // Convert to DTO at the very end to ensure all fields (Payment, TransactionID)
         // are populated
-        ResGetOrderDTO resDTO = this.convertToResGetOderDTO(savedOrder);
+        ResGetOrderDTO resDTO = this.convertToResGetOrderDTO(savedOrder);
         if (paymentUrl != null) {
             resDTO.setPaymentUrl(paymentUrl);
         }
@@ -318,12 +340,32 @@ public class OrderService {
         return resDTO;
     }
 
+    public Order handleConfirmOrder(String token) throws IdInvalidException {
+        Order order = this.orderRepository.findByConfirmationToken(token);
+        if (order == null) {
+            throw new IdInvalidException("Mã xác thực không hợp lệ hoặc đơn hàng không tồn tại.");
+        }
+
+        if (order.getStatus() == OrderStatusEnum.CANCELLED) {
+            throw new IdInvalidException("Đơn hàng này đã bị hủy, không thể xác nhận.");
+        }
+
+        if (order.getStatus() == OrderStatusEnum.CONFIRMED) {
+            return order; // Already confirmed
+        }
+
+        order.setStatus(OrderStatusEnum.CONFIRMED);
+        order.setConfirmedAt(Instant.now());
+        order.setConfirmationToken(null); // Clear token after use
+        return this.orderRepository.save(order);
+    }
+
     public Order getOrder(Long id) {
         Optional<Order> orderOptional = this.orderRepository.findById(id);
         return orderOptional.isPresent() ? orderOptional.get() : null;
     }
 
-    public ResGetOrderDTO convertToResGetOderDTO(Order order) {
+    public ResGetOrderDTO convertToResGetOrderDTO(Order order) {
         ResGetOrderDTO res = new ResGetOrderDTO();
         res.setId(order.getId());
 

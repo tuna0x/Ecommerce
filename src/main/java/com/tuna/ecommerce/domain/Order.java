@@ -67,6 +67,8 @@ public class Order {
     private PaymentStatusEnum paymentStatus;
 
     private String cancelReason;
+    private String confirmationToken;
+    private Instant confirmedAt;
 
     // 1-n
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

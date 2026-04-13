@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đơn hàng - Bông Cosmetic</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff5f7;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(255, 105, 180, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 30px 0; background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px; text-transform: uppercase;">Bông Cosmetic</h1>
+                            <p style="color: #ffe4e1; margin-top: 5px; font-size: 13px;">Xác nhận đơn hàng #<span th:text="${order.id}">123</span></p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #333333; font-size: 20px; margin-top: 0;">Cảm ơn bạn đã mua hàng!</h2>
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">Chào <b th:text="${order.receiverName}">Khách hàng</b>, đơn hàng của bạn đã được tiếp nhận và đang chờ xác nhận.</p>
+                            
+                            <!-- Order Summary Table -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; border-collapse: collapse;">
+                                <tr style="border-bottom: 2px solid #ffeff5;">
+                                    <th align="left" style="padding: 10px 5px; color: #ff1493; font-size: 14px;">Sản phẩm</th>
+                                    <th align="center" style="padding: 10px 5px; color: #ff1493; font-size: 14px;">SL</th>
+                                    <th align="right" style="padding: 10px 5px; color: #ff1493; font-size: 14px;">Giá</th>
+                                </tr>
+                                <tr th:each="item : ${order.items}" style="border-bottom: 1px solid #f9f9f9;">
+                                    <td style="padding: 12px 5px;">
+                                        <div style="font-weight: bold; color: #444444; font-size: 14px;" th:text="${item.product.name}">Tên sản phẩm</div>
+                                        <div style="font-size: 12px; color: #888888;" th:if="${item.productVariant != null}">
+                                            Phân loại: 
+                                            <span th:each="attr, iterStat : ${item.productVariant.attributeValues}" 
+                                                  th:text="${attr.attributeValue} + ${!iterStat.last ? ', ' : ''}"></span>
+                                        </div>
+                                    </td>
+                                    <td align="center" style="padding: 12px 5px; color: #666666; font-size: 14px;" th:text="${item.quantity}">1</td>
+                                    <td align="right" style="padding: 12px 5px; color: #444444; font-size: 14px; font-weight: bold;" th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT') + 'đ'}">500.000đ</td>
+                                </tr>
+                            </table>
+
+                            <!-- Totals -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 15px;">
+                                <tr>
+                                    <td align="right" style="padding: 5px 0; color: #888888; font-size: 14px;">Tạm tính:</td>
+                                    <td align="right" style="padding: 5px 0; padding-left: 20px; color: #444444; font-size: 14px;" th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT') + 'đ'}">1.000.000đ</td>
+                                </tr>
+                                <tr th:if="${order.discountPrice != null && order.discountPrice > 0}">
+                                    <td align="right" style="padding: 5px 0; color: #888888; font-size: 14px;">Giảm giá:</td>
+                                    <td align="right" style="padding: 5px 0; padding-left: 20px; color: #e91e63; font-size: 14px;" th:text="${'-' + #numbers.formatDecimal(order.discountPrice, 0, 'COMMA', 0, 'POINT') + 'đ'}">-50.000đ</td>
+                                </tr>
+                                <tr>
+                                    <td align="right" style="padding: 5px 0; color: #888888; font-size: 14px;">Phí vận chuyển:</td>
+                                    <td align="right" style="padding: 5px 0; padding-left: 20px; color: #444444; font-size: 14px;" th:text="${#numbers.formatDecimal(order.shippingFee, 0, 'COMMA', 0, 'POINT') + 'đ'}">30.000đ</td>
+                                </tr>
+                                <tr>
+                                    <td align="right" style="padding: 15px 0; color: #333333; font-size: 16px; font-weight: bold;">Tổng cộng:</td>
+                                    <td align="right" style="padding: 15px 0; padding-left: 20px; color: #ff1493; font-size: 20px; font-weight: bold;" th:text="${#numbers.formatDecimal(order.finalPrice, 0, 'COMMA', 0, 'POINT') + 'đ'}">980.000đ</td>
+                                </tr>
+                            </table>
+
+                            <div style="margin-top: 25px; padding: 15px; background-color: #fafafa; border-radius: 8px; border-left: 4px solid #ff1493;">
+                                <p style="margin: 0; font-size: 14px; color: #555555;"><b>Địa chỉ giao hàng:</b></p>
+                                <p style="margin: 5px 0 0 0; font-size: 13px; color: #777777;" th:text="${order.shippingAddress + ', ' + order.ward + ', ' + order.district + ', ' + order.province}">Địa chỉ chi tiết...</p>
+                            </div>
+
+                            <!-- Confirmation Button (Only for COD) -->
+                            <div th:if="${isCod}" style="text-align: center; margin: 35px 0;">
+                                <p style="color: #666666; font-size: 14px; margin-bottom: 20px;">Vui lòng nhấn vào nút bên dưới để xác nhận đơn hàng của bạn:</p>
+                                <a th:href="${confirmationUrl}" style="display: inline-block; background-color: #ff1493; color: #ffffff; padding: 15px 35px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 20, 147, 0.3);">XÁC NHẬN ĐƠN HÀNG</a>
+                            </div>
+                            
+                            <!-- Info for VNPAY -->
+                            <div th:unless="${isCod}" style="text-align: center; margin: 30px 0; padding: 15px; background-color: #e8f5e9; color: #2e7d32; border-radius: 8px;">
+                                <p style="margin: 0; font-size: 14px;">Đơn hàng của bạn đã được thanh toán online thành công qua VNPay.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 25px; background-color: #fcfcfc; border-top: 1px solid #eeeeee; text-align: center;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                &copy; 2024 Bông Cosmetic. All rights reserved.<br>
+                                Hotline: 0987 654 321 | <a href="#" style="color: #ff1493; text-decoration: none;">Website</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

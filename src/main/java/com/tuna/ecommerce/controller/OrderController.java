@@ -34,14 +34,14 @@ public class OrderController {
     @PostMapping("/order/checkout")
     @APIMessage("checkout")
     public ResponseEntity<ResGetOrderDTO> checkout(@RequestBody ReqCheckoutDTO reqCheckoutDTO, HttpServletRequest request) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.orderService.createOder(reqCheckoutDTO, request));
+        return ResponseEntity.ok().body(this.orderService.createOrder(reqCheckoutDTO, request));
     }
 
     @GetMapping("/order/{id}")
     @APIMessage("get order by id")
     public ResponseEntity<ResGetOrderDTO> getOrder(@PathVariable("id") Long id) {
         Order order = this.orderService.getOrder(id);
-        return ResponseEntity.ok().body(this.orderService.convertToResGetOderDTO(order));
+        return ResponseEntity.ok().body(this.orderService.convertToResGetOrderDTO(order));
     }
 
     @PutMapping("/order/{id}/cancel")
