@@ -36,8 +36,28 @@ public class UserInterceptor implements ChannelInterceptor {
                     try {
                         Jwt jwt = jwtDecoder.decode(token);
                         Authentication auth = jwtAuthenticationConverter.convert(jwt);
-                        accessor.setUser(auth);
-                        System.out.println(">>> WebSocket Authenticated user: " + auth.getName());
+                        
+                        // Chuẩn hóa tên người dùng về chữ thường để khớp với logic gửi tin
+                        final String email = auth.getName().toLowerCase();
+                        Authentication fixedAuth = new Authentication() {
+                            @Override
+                            public String getName() { return email; }
+                            @Override
+                            public java.util.Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() { return auth.getAuthorities(); }
+                            @Override
+                            public Object getCredentials() { return auth.getCredentials(); }
+                            @Override
+                            public Object getDetails() { return auth.getDetails(); }
+                            @Override
+                            public Object getPrincipal() { return auth.getPrincipal(); }
+                            @Override
+                            public boolean isAuthenticated() { return auth.isAuthenticated(); }
+                            @Override
+                            public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException { auth.setAuthenticated(isAuthenticated); }
+                        };
+                        
+                        accessor.setUser(fixedAuth);
+                        System.out.println(">>> WebSocket Authenticated user: " + email);
                     } catch (Exception e) {
                         System.err.println(">>> WebSocket Auth Error: " + e.getMessage());
                     }
