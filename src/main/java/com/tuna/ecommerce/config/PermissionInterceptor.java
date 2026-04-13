@@ -31,6 +31,12 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String path = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         String httpMethod = request.getMethod();
 
+        // White list for public endpoints that skip permission check
+        if (path != null && (path.startsWith("/api/v1/public/") || 
+            path.startsWith("/api/v1/auth/"))) {
+            return true;
+        }
+
         // check permission
         String email = SecurityUtil.getCurrentUserLogin().isPresent() == true ? SecurityUtil.getCurrentUserLogin().get()
                 : "";

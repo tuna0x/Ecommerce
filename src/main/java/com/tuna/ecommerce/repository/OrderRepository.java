@@ -62,4 +62,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT COUNT(DISTINCT o.user.id) FROM Order o WHERE o.createdAt BETWEEN :startDate AND :endDate AND o.user.createdAt < :startDate")
     long countReturningUsers(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
+
+    Order findByConfirmationToken(String token);
 }
