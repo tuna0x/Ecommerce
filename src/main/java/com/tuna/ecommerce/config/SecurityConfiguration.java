@@ -47,6 +47,7 @@ public class SecurityConfiguration {
                 "/api/v1/auth/login",
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/register",
+                "/api/v1/auth/social-login",
                 "/api/v1/auth/otp/send",
                 "/api/v1/auth/otp/verify",
                 "/websocket/**",

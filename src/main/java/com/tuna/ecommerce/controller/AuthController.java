@@ -21,24 +21,35 @@ import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.auth.ReqLoginDTO;
 import com.tuna.ecommerce.domain.request.auth.ReqRegisterDTO;
 import com.tuna.ecommerce.domain.response.RestLoginDTO;
+import com.tuna.ecommerce.domain.request.auth.ReqSocialLoginDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.service.OtpService;
 import com.tuna.ecommerce.service.UserService;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
+import java.util.Collections;
 
 import jakarta.validation.Valid;
 
 @RequestMapping("/api/v1")
 @RestController
 public class AuthController {
-        private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
     private final SecurityUtil securityUtil;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
+
+    @Value("${tuna.google.client-id}")
+    private String googleClientId;
 
         @Value("${tuna.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
@@ -100,6 +111,70 @@ public class AuthController {
     return ResponseEntity.ok()
     .header(org.springframework.http.HttpHeaders.SET_COOKIE,resCookies.toString())
     .body(res);
+    }
+
+    @PostMapping("/auth/social-login")
+    @APIMessage("Google login successfully")
+    public ResponseEntity<RestLoginDTO> googleLogin(@Valid @RequestBody ReqSocialLoginDTO loginDTO) throws Exception {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        GoogleIdToken idToken = verifier.verify(loginDTO.getIdToken());
+        if (idToken == null) {
+            throw new IdInvalidException("Invalid Id Token");
+        }
+
+        Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String pictureUrl = (String) payload.get("picture");
+
+        User user = this.userService.findByUsername(email);
+        if (user == null) {
+            // Create new user
+            ReqRegisterDTO reg = new ReqRegisterDTO();
+            reg.setEmail(email);
+            reg.setName(name);
+            reg.setPassword(this.passwordEncoder.encode("GOOGLE_PASS_" + Math.random()));
+            user = this.userService.register(reg);
+            
+            // Update image from google if possible
+            if (pictureUrl != null && user.getUserProfile() != null) {
+                user.getUserProfile().setImage(pictureUrl);
+                this.userService.handleUpdate(user);
+            }
+        }
+
+        RestLoginDTO res = new RestLoginDTO();
+        RestLoginDTO.UserLogin userLogin = new RestLoginDTO.UserLogin();
+        userLogin.setId(user.getId());
+        userLogin.setEmail(user.getEmail());
+        userLogin.setRole(user.getRole());
+        if (user.getUserProfile() != null) {
+            userLogin.setName(user.getUserProfile().getName());
+            userLogin.setImage(user.getUserProfile().getImage());
+            userLogin.setAge(user.getUserProfile().getAge());
+            userLogin.setGender(user.getUserProfile().getGender());
+        }
+        res.setUser(userLogin);
+
+        String access_token = this.securityUtil.createAccessToken(user.getEmail(), res);
+        res.setAccessToken(access_token);
+
+        String refresh_token = this.securityUtil.refreshToken(user.getEmail(), res);
+        this.userService.updateUserToken(refresh_token, user.getEmail());
+
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.SET_COOKIE, resCookies.toString())
+                .body(res);
     }
 
 
