@@ -126,13 +126,15 @@ public class GHNService {
             "from_ward_code", pickWardCode,
             "to_district_id", toDistrictId,
             "to_ward_code", toWardCode != null ? toWardCode : "",
-            "service_type_id", 2, // 2 is E-commerce service (Standard)
+            "service_type_id", 2, 
             "weight", weight,
             "length", 10,
             "width", 10,
-            "height", 10
+            "height", 10,
+            "insurance_value", 0
         );
 
+        log.info("GHN Request Body: {}", request);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
 
         try {
