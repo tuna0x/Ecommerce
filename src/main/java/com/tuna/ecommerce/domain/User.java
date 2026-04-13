@@ -50,7 +50,7 @@ public class User {
     private Boolean active = true;
 
     @Column(name = "is_verified")
-    private boolean verified = false;
+    private Boolean verified = false;
 
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
