@@ -445,6 +445,30 @@ public class OrderService {
         return order;
     }
 
+    public Order cancelOrder(Long id, String reason) throws IdInvalidException {
+        Order order = this.getOrder(id);
+        if (order == null) {
+            throw new IdInvalidException("Đơn hàng không tồn tại.");
+        }
+
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        User user = this.userService.findByUsername(email);
+
+        // Verify ownership
+        if (!order.getUser().getId().equals(user.getId())) {
+            throw new IdInvalidException("Bạn không có quyền hủy đơn hàng này.");
+        }
+
+        // Verify status
+        if (order.getStatus() != OrderStatusEnum.PENDING) {
+            throw new IdInvalidException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xử lý (PENDING).");
+        }
+
+        order.setCancelReason(reason);
+        // Reuse handleUpdateStatus to handle stock release and notifications
+        return this.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
+    }
+
     public void handleBulkUpdateStatus(List<Long> ids, OrderStatusEnum status) throws IdInvalidException {
         for (Long id : ids) {
             this.handleUpdateStatus(id, status);
@@ -503,5 +527,32 @@ public class OrderService {
                     .append("\n");
         }
         return sb.toString();
+    }
+
+    public void handleDeleteOrder(Long id) throws IdInvalidException {
+        Order order = this.getOrder(id);
+        if (order == null) {
+            return;
+        }
+
+        // 1. Release stock back to available before deleting
+        for (OrderItem item : order.getItems()) {
+            this.inventoryService.releaseStock(
+                    item.getProduct().getId(),
+                    item.getProductVariant() != null ? item.getProductVariant().getId() : null,
+                    item.getQuantity(),
+                    "Xóa đơn hàng lỗi thanh toán #" + order.getId());
+        }
+
+        // 2. Identify payment to delete
+        Long paymentId = (order.getPayment() != null) ? order.getPayment().getId() : null;
+
+        // 3. Delete order (cascade will handle OrderItems)
+        this.orderRepository.delete(order);
+
+        // 4. Delete payment record separately if exists
+        if (paymentId != null) {
+            this.paymentRepository.deleteById(paymentId);
+        }
     }
 }

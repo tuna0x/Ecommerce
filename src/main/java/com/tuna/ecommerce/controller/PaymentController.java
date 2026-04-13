@@ -126,6 +126,12 @@ public class PaymentController {
         } else {
             payment.setStatus(OrderStatusEnum.CANCELLED);
             this.paymentService.save(payment);
+            
+            // Automatically delete the order if payment fails
+            Order order = payment.getOrder();
+            if (order.getStatus() == OrderStatusEnum.PENDING) {
+                this.orderService.handleDeleteOrder(order.getId());
+            }
 
             String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + payment.getOrder().getId() + "&transactionId=" + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();

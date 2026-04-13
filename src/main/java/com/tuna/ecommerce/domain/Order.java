@@ -66,6 +66,8 @@ public class Order {
     @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private PaymentStatusEnum paymentStatus;
 
+    private String cancelReason;
+
     // 1-n
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
