@@ -17,5 +17,5 @@ public class ReqUpdateAddressDTO {
     private String district;
     private String ward;
     private String detail;
-    private boolean isDefault;
+    private Boolean isDefault;
 }

@@ -16,6 +16,6 @@ public class ReqCreateAddressDTO {
     private String district;
     private String ward;
     private String detail;
-    private boolean isDefault;
+    private Boolean isDefault;
 
 }

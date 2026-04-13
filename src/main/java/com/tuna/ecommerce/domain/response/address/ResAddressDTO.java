@@ -17,7 +17,7 @@ public class ResAddressDTO {
     private String district;
     private String ward;
     private String detail;
-    private boolean isDefault;
+    private Boolean isDefault;
     private UserInner userInner;
 
     @Getter
