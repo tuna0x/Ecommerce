@@ -56,7 +56,7 @@ public class OrderService {
     private final CartItemRepository cartItemRepository;
     private final CouponRepository couponRepository;
     private final AddressService addressService;
-    private final GHTKService ghtkService;
+    private final ShippingService shippingService;
     private final NotificationService notificationService;
     private final InventoryService inventoryService;
     private final PaymentService paymentService;
@@ -69,7 +69,7 @@ public class OrderService {
             CartItemRepository cartItemRepository,
             CouponRepository couponRepository,
             AddressService addressService,
-            GHTKService ghtkService,
+            ShippingService shippingService,
             NotificationService notificationService,
             @Lazy InventoryService inventoryService,
             @Lazy PaymentService paymentService,
@@ -80,7 +80,7 @@ public class OrderService {
         this.cartItemRepository = cartItemRepository;
         this.couponRepository = couponRepository;
         this.addressService = addressService;
-        this.ghtkService = ghtkService;
+        this.shippingService = shippingService;
         this.notificationService = notificationService;
         this.inventoryService = inventoryService;
         this.paymentService = paymentService;
@@ -214,7 +214,8 @@ public class OrderService {
 
         // Shipping logic
         double weight = this.cartService.calculateTotalWeight(cartItems);
-        int shippingFeeRaw = this.ghtkService.calculateFee(address.getProvince(), address.getDistrict(), (int) weight);
+        int shippingFeeRaw = this.shippingService.calculateShippingFee(address.getProvince(), address.getDistrict(),
+                address.getWard(), (int) weight);
         BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO
                 : BigDecimal.valueOf(shippingFeeRaw);
         order.setShippingFee(shippingFee.intValue());
@@ -338,6 +339,9 @@ public class OrderService {
         res.setTotalPrice(order.getFinalPrice());
         res.setReceiverName(order.getReceiverName());
         res.setPhone(order.getPhone());
+        res.setProvince(order.getProvince());
+        res.setDistrict(order.getDistrict());
+        res.setWard(order.getWard());
         res.setPaymentStatus(order.getPaymentStatus());
         res.setShippingAddress(order.getShippingAddress());
 

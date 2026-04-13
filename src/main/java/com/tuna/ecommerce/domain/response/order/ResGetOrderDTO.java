@@ -24,6 +24,9 @@ public class ResGetOrderDTO {
     private Integer shippingFee;
     private String receiverName;
     private String phone;
+    private String province;
+    private String district;
+    private String ward;
 
     @Enumerated(EnumType.STRING)
     private OrderStatusEnum status;

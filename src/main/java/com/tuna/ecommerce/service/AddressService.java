@@ -33,7 +33,8 @@ public class AddressService {
     public Address createAddress(ReqCreateAddressDTO req){
 
         User user= this.findByUser();
-
+        List<Address> addresses = this.addressRepository.findByUserId(user.getId());
+        
         Address address = new Address();
         address.setReceiverName(req.getReceiverName());
         address.setPhone(req.getPhone());
@@ -41,13 +42,18 @@ public class AddressService {
         address.setDistrict(req.getDistrict());
         address.setWard(req.getWard());
         address.setDetail(req.getDetail());
-        address.setDefault(req.isDefault());
         address.setUser(user);
 
-        if (req.isDefault()) {
-            List<Address> addresses = this.addressRepository.findByUserId(user.getId());
+        // Logic: First address must be default. Otherwise follow request.
+        if (addresses.isEmpty()) {
+            address.setIsDefault(true);
+        } else {
+            address.setIsDefault(req.getIsDefault() != null ? req.getIsDefault() : false);
+        }
+
+        if (Boolean.TRUE.equals(address.getIsDefault())) {
             for (Address add : addresses) {
-                add.setDefault(false);
+                add.setIsDefault(false);
             }
             this.addressRepository.saveAll(addresses);
         }
@@ -70,17 +76,17 @@ public class AddressService {
             address.setWard(req.getWard());
             address.setDetail(req.getDetail());
 
-            if (req.isDefault() && !address.isDefault()) {
+            if (Boolean.TRUE.equals(req.getIsDefault()) && !Boolean.TRUE.equals(address.getIsDefault())) {
                 List<Address> addresses = this.addressRepository.findByUserId(user.getId());
                 for (Address add : addresses) {
-                    add.setDefault(false);
+                    add.setIsDefault(false);
                 }
                 this.addressRepository.saveAll(addresses);
-                address.setDefault(true);
-            } else if (!req.isDefault() && address.isDefault()) {
+                address.setIsDefault(true);
+            } else if (!Boolean.TRUE.equals(req.getIsDefault()) && Boolean.TRUE.equals(address.getIsDefault())) {
                 // If unsetting default, we might want to ensure at least one remains default, 
                 // but for now we follow the request.
-                address.setDefault(false);
+                address.setIsDefault(false);
             }
 
             address = this.addressRepository.save(address);
@@ -127,7 +133,7 @@ public class AddressService {
             List<Address> addresses = this.addressRepository.findByUserId(user.getId());
 
             for (Address add : addresses) {
-                add.setDefault(add.getId().equals(addressId));
+                add.setIsDefault(add.getId().equals(addressId));
             }
 
             addressRepository.saveAll(addresses);
@@ -145,7 +151,7 @@ public class AddressService {
         res.setDistrict(address.getDistrict());
         res.setWard(address.getWard());
         res.setDetail(address.getDetail());
-        res.setDefault(address.isDefault());
+        res.setIsDefault(Boolean.TRUE.equals(address.getIsDefault()));
 
         User user = this.findByUser();
         userInner.setId(user.getId());

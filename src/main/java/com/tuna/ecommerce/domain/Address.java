@@ -34,7 +34,7 @@ public class Address {
     private String district;
     private String ward;
     private String detail;
-    private boolean isDefault;
+    private Boolean isDefault;
 
     private Instant createdAt;
     private Instant updatedAt;
