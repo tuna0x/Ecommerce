@@ -32,6 +32,7 @@ import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CouponRepository;
 import com.tuna.ecommerce.repository.OrderRepository;
+import com.tuna.ecommerce.repository.PaymentRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
@@ -60,6 +61,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final InventoryService inventoryService;
     private final PaymentService paymentService;
+    private final PaymentRepository paymentRepository;
     private final UserCouponRepository userCouponRepository;
 
     public OrderService(
@@ -73,6 +75,7 @@ public class OrderService {
             NotificationService notificationService,
             @Lazy InventoryService inventoryService,
             @Lazy PaymentService paymentService,
+            PaymentRepository paymentRepository,
             UserCouponRepository userCouponRepository) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
@@ -84,6 +87,7 @@ public class OrderService {
         this.notificationService = notificationService;
         this.inventoryService = inventoryService;
         this.paymentService = paymentService;
+        this.paymentRepository = paymentRepository;
         this.userCouponRepository = userCouponRepository;
     }
 
