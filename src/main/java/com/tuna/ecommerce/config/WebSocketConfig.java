@@ -19,8 +19,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Kích hoạt một message broker đơn giản trong bộ nhớ
-        // /topic dùng cho broadcast, /user dùng cho tin nhắn cá nhân
-        config.enableSimpleBroker("/topic", "/user");
+        // /topic dùng cho broadcast, /queue dùng cho tin nhắn cá nhân, /user dùng cho định tuyến user
+        config.enableSimpleBroker("/topic", "/queue", "/user");
         
         // Prefix cho các tin nhắn được gửi từ client tới server (@MessageMapping)
         config.setApplicationDestinationPrefixes("/app");

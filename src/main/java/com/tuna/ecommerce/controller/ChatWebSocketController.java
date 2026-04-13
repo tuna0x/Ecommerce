@@ -27,21 +27,24 @@ public class ChatWebSocketController {
             return;
         }
 
-        String senderEmail = principal.getName();
-        System.out.println(">>> WebSocket Message received from: " + senderEmail + " to: " + chatMessageDTO.getReceiverEmail());
+        String senderEmail = principal.getName().toLowerCase();
+        String receiverEmail = chatMessageDTO.getReceiverEmail().toLowerCase();
+        
+        System.out.println(">>> WebSocket Message received from: " + senderEmail + " to: " + receiverEmail);
         chatMessageDTO.setSenderEmail(senderEmail);
+        chatMessageDTO.setReceiverEmail(receiverEmail);
 
         // Lưu vào database
         chatMessageService.saveMessage(
                 senderEmail,
-                chatMessageDTO.getReceiverEmail(),
+                receiverEmail,
                 chatMessageDTO.getContent()
         );
 
         // Gửi tới người nhận qua queue: /user/{receiverEmail}/queue/messages
-        System.out.println(">>> Sending WebSocket message to receiver: " + chatMessageDTO.getReceiverEmail());
+        System.out.println(">>> Sending WebSocket message to receiver: " + receiverEmail);
         messagingTemplate.convertAndSendToUser(
-                chatMessageDTO.getReceiverEmail(),
+                receiverEmail,
                 "/queue/messages",
                 chatMessageDTO
         );

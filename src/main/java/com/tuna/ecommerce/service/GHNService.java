@@ -121,20 +121,22 @@ public class GHNService {
         headers.set("ShopId", shopId);
         headers.set("Content-Type", "application/json");
 
+        int finalWeight = weight <= 0 ? 500 : weight;
+
         Map<String, Object> request = Map.of(
             "from_district_id", pickDistrictId,
             "from_ward_code", pickWardCode,
             "to_district_id", toDistrictId,
             "to_ward_code", toWardCode != null ? toWardCode : "",
             "service_type_id", 2, 
-            "weight", weight,
+            "weight", finalWeight,
             "length", 10,
             "width", 10,
             "height", 10,
             "insurance_value", 0
         );
 
-        log.info("GHN Request Body: {}", request);
+        log.info("GHN Request Body (Final): {}", request);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
 
         try {
