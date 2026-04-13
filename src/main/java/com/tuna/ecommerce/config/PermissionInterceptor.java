@@ -30,10 +30,11 @@ public class PermissionInterceptor implements HandlerInterceptor {
 
         String path = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         String httpMethod = request.getMethod();
+        String requestURI = request.getRequestURI();
 
-        // White list for public endpoints that skip permission check
-        if (path != null && (path.startsWith("/api/v1/public/") || 
-            path.startsWith("/api/v1/auth/"))) {
+        // White list for public endpoints and websockets
+        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket"))) ||
+            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket")))) {
             return true;
         }
 
