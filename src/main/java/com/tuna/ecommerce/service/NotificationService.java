@@ -38,7 +38,7 @@ public class NotificationService {
         // Gửi thông báo thời gian thực qua WebSocket
         // Destination: /user/{email}/queue/notifications
         this.messagingTemplate.convertAndSendToUser(
-            user.getEmail(), 
+            user.getEmail().toLowerCase(), 
             "/queue/notifications", 
             notification
         );
