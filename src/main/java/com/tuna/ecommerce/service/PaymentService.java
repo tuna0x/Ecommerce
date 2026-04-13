@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Order;
@@ -54,7 +55,7 @@ public class PaymentService {
     private final NotificationService notificationService;
 
     public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository,
-            OrderService orderService, NotificationService notificationService) {
+            @Lazy OrderService orderService, NotificationService notificationService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
