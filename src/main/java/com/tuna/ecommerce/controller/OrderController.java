@@ -44,6 +44,12 @@ public class OrderController {
         return ResponseEntity.ok().body(this.orderService.convertToResGetOderDTO(order));
     }
 
+    @PutMapping("/order/{id}/cancel")
+    @APIMessage("customer cancel order")
+    public ResponseEntity<Order> cancelOrder(@PathVariable("id") Long id, @RequestParam("reason") String reason) throws IdInvalidException {
+        return ResponseEntity.ok().body(this.orderService.cancelOrder(id, reason));
+    }
+
     @GetMapping("/order/me")
     @APIMessage("get orders by user")
     public ResponseEntity<ResultPaginationDTO> getMyOrders(Pageable pageable) {

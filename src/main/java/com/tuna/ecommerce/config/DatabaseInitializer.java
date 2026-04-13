@@ -207,7 +207,8 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // DASHBOARD
         perms.add(new PermDef("Get dashboard statistics", "/api/v1/dashboard/statistics", "GET", "DASHBOARD", false));
-        perms.add(new PermDef("Export dashboard statistics to Excel", "/api/v1/dashboard/export-excel", "GET", "DASHBOARD", false));
+        perms.add(new PermDef("Export dashboard statistics to Excel", "/api/v1/dashboard/export-excel", "GET",
+                "DASHBOARD", false));
 
         // PRODUCTS
         perms.add(new PermDef("Create a product", "/api/v1/products", "POST", "PRODUCTS", false));
@@ -321,6 +322,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Admin get all orders", "/api/v1/order/admin/all", "GET", "ORDER", false));
         perms.add(new PermDef("Update order status", "/api/v1/order/{id}/status", "PUT", "ORDER", false));
         perms.add(new PermDef("Bulk update order status", "/api/v1/order/bulk-status", "POST", "ORDER", false));
+        perms.add(new PermDef("Cancel order", "/api/v1/order/{id}/cancel", "PUT", "ORDER", true));
 
         // PAYMENT
         perms.add(new PermDef("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT", true));
@@ -345,11 +347,16 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get inventory logs", "/api/v1/inventory/{id}/logs", "GET", "INVENTORY", false));
 
         // NOTIFICATIONS
-        perms.add(new PermDef("Get notifications for current user", "/api/v1/notifications", "GET", "NOTIFICATIONS", true));
-        perms.add(new PermDef("Mark notification as read", "/api/v1/notifications/{id}/read", "PUT", "NOTIFICATIONS", true));
-        perms.add(new PermDef("Mark all notifications as read", "/api/v1/notifications/read-all", "PUT", "NOTIFICATIONS", true));
-        perms.add(new PermDef("Count unread notifications", "/api/v1/notifications/unread-count", "GET", "NOTIFICATIONS", true));
-        perms.add(new PermDef("Admin sends notification", "/api/v1/notifications/send", "POST", "NOTIFICATIONS", false));
+        perms.add(new PermDef("Get notifications for current user", "/api/v1/notifications", "GET", "NOTIFICATIONS",
+                true));
+        perms.add(new PermDef("Mark notification as read", "/api/v1/notifications/{id}/read", "PUT", "NOTIFICATIONS",
+                true));
+        perms.add(new PermDef("Mark all notifications as read", "/api/v1/notifications/read-all", "PUT",
+                "NOTIFICATIONS", true));
+        perms.add(new PermDef("Count unread notifications", "/api/v1/notifications/unread-count", "GET",
+                "NOTIFICATIONS", true));
+        perms.add(
+                new PermDef("Admin sends notification", "/api/v1/notifications/send", "POST", "NOTIFICATIONS", false));
 
         boolean updated = false;
         for (PermDef def : perms) {
