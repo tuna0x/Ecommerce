@@ -1,50 +1,82 @@
 package com.tuna.ecommerce.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailService {
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
-    
+
     @Value("${tuna.backend-url}")
     private String backendUrl;
 
-    private final JavaMailSender javaMailSender;
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
+
+    @Value("${brevo.api.url}")
+    private String brevoApiUrl;
+
+    @Value("${tuna.email.sender.name}")
+    private String senderName;
+
+    @Value("${tuna.email.sender.email}")
+    private String senderEmail;
+
+    private final RestTemplate restTemplate;
     private final SpringTemplateEngine templateEngine;
 
-    public EmailService(JavaMailSender javaMailSender, SpringTemplateEngine templateEngine) {
-        this.javaMailSender = javaMailSender;
+    public EmailService(RestTemplate restTemplate, SpringTemplateEngine templateEngine) {
+        this.restTemplate = restTemplate;
         this.templateEngine = templateEngine;
     }
 
     @Async
     public void sendEmailSync(String to, String subject, String content, boolean isHtml) {
-        MimeMessage message = javaMailSender.createMimeMessage();
         try {
-            MimeMessageHelper helper = new MimeMessageHelper(message, 
-                MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, 
-                StandardCharsets.UTF_8.name());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.set("api-key", brevoApiKey);
 
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(content, isHtml);
+            // Xây dựng body JSON cho Brevo API
+            Map<String, Object> body = new HashMap<>();
+            
+            // Người gửi
+            Map<String, String> sender = new HashMap<>();
+            sender.put("name", senderName);
+            sender.put("email", senderEmail);
+            body.put("sender", sender);
 
-            javaMailSender.send(message);
-            log.info("SUCCESS: Email sent to {}", to);
-        } catch (MessagingException e) {
-            log.error("FAILED to send email to {}. Error: {}", to, e.getMessage());
+            // Người nhận
+            Map<String, String> receiver = new HashMap<>();
+            receiver.put("email", to);
+            body.put("to", Collections.singletonList(receiver));
+
+            body.put("subject", subject);
+            body.put("htmlContent", content);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            log.info(">>> Connecting to Brevo API to send email to {}...", to);
+            restTemplate.postForEntity(brevoApiUrl, request, String.class);
+            log.info("SUCCESS: Email sent to {} via Brevo API", to);
+            
+        } catch (Exception e) {
+            log.error("FAILED to send email to {} via Brevo API. Error: {}", to, e.getMessage());
         }
     }
 
