@@ -358,6 +358,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(
                 new PermDef("Admin sends notification", "/api/v1/notifications/send", "POST", "NOTIFICATIONS", false));
 
+        // TRACKING
+        perms.add(new PermDef("Get all tracking logs", "/api/v1/tracking/logs", "GET", "TRACKING", false));
+
         boolean updated = false;
         for (PermDef def : perms) {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);

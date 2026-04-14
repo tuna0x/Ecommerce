@@ -52,7 +52,8 @@ public class SecurityConfiguration {
                 "/api/v1/auth/otp/verify",
                 "/websocket/**",
                 "/actuator/health",
-                "/api/v1/public/**"
+                "/api/v1/public/**",
+                "/api/v1/tracking/log"
         };
         http.csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())

@@ -8,7 +8,9 @@ import java.util.Map;
 import com.tuna.ecommerce.domain.Cart;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.User;
+import com.tuna.ecommerce.domain.UserActivityLog;
 import com.tuna.ecommerce.domain.request.chat.ChatMessageDTO;
+import com.tuna.ecommerce.repository.UserActivityLogRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
@@ -57,6 +59,7 @@ public class GeminiService {
     private final CouponService couponService;
     private final CartService cartService;
     private final UserRepository userRepository;
+    private final UserActivityLogRepository userActivityLogRepository;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
 
@@ -65,6 +68,7 @@ public class GeminiService {
             CouponService couponService,
             CartService cartService,
             UserRepository userRepository,
+            UserActivityLogRepository userActivityLogRepository,
             ObjectMapper objectMapper,
             RestTemplate restTemplate) {
         this.productService = productService;
@@ -72,6 +76,7 @@ public class GeminiService {
         this.couponService = couponService;
         this.cartService = cartService;
         this.userRepository = userRepository;
+        this.userActivityLogRepository = userActivityLogRepository;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
     }
@@ -174,9 +179,10 @@ public class GeminiService {
                         break;
                 }
                 
-                // User & Cart context (Always fetch identity & cart for rich upsell)
+                // User, Cart & Activity context
                 String currentUserEmail = SecurityUtil.getCurrentUserLogin().orElse(null);
                 String userNameContext = "Khách lạ (Chưa đăng nhập)";
+                String userActivityContext = "";
                 
                 if (currentUserEmail != null) {
                     User user = userRepository.findByEmail(currentUserEmail);
@@ -195,6 +201,17 @@ public class GeminiService {
                     } else {
                         cartContext = "Giỏ hàng trống.";
                     }
+
+                    // Lấy 5 hành động gần nhất
+                    List<UserActivityLog> recentLogs = userActivityLogRepository.findTop5ByUserEmailOrderByCreatedAtDesc(currentUserEmail);
+                    if (recentLogs != null && !recentLogs.isEmpty()) {
+                        StringBuilder logSb = new StringBuilder();
+                        for (UserActivityLog l : recentLogs) {
+                            logSb.append("- ").append(l.getActionType().name())
+                                 .append(" (").append(l.getMetadata() != null ? l.getMetadata() : "N/A").append(")\n");
+                        }
+                        userActivityContext = logSb.toString();
+                    }
                 }
 
                 // Prepare Payload for Gemini 2.5
@@ -211,9 +228,10 @@ public class GeminiService {
                         (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
                         (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
                         "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
+                        (userActivityContext.isEmpty() ? "" : "\n\n--- LỊCH SỬ HÀNH ĐỘNG GẦN NHẤT CỦA KHÁCH ---\n" + userActivityContext) +
                         "\n\n--- CHÍNH SÁCH ---\n" + policyContext +
                         "\n\nNhiệm vụ khi tư vấn: " +
-                        "1. Soi GIỎ HÀNG: Gợi ý các món bổ trợ để Up-sale (Tuyệt đối định dạng Markdown [Tên sản phẩm](/product/ID)).\n" +
+                        "1. Soi GIỎ HÀNG và LỊCH SỬ HÀNH ĐỘNG: Gợi ý các món bổ trợ để Up-sale dựa vào sản phẩm họ vừa xem/tương tác (Tuyệt đối định dạng Markdown [Tên sản phẩm](/product/ID)).\n" +
                         "2. Đơn hàng: Nếu khách muốn mua tiếp thì khuyên, nếu hủy thì báo khách bấm vào mục Tài khoản -> Đơn hàng (bạn ko có quyền hủy).\n" +
                         "3. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món đồ/đơn hàng khách cần."
                 );
