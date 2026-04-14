@@ -37,6 +37,9 @@ public class PaymentController {
     @Value("${secretKey}")
     private String secretKey;
 
+    @Value("${tuna.frontend-url}")
+    private String frontendUrl;
+
     private final OrderRepository orderRepository;
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
@@ -88,8 +91,8 @@ public class PaymentController {
         String vnp_ResponseCode = req.getParameter("vnp_ResponseCode");
         String vnp_TransactionNo = req.getParameter("vnp_TransactionNo");
 
-        // Frontend URL base (could be moved to application.yml)
-        String frontendRedirectUrl = "http://localhost:5173/payment-result";
+        // Frontend URL from application.properties (tuna.frontend-url)
+        String frontendRedirectUrl = frontendUrl + "/payment-result";
 
         if (!signValue.equals(vnp_SecureHash)) {
             return ResponseEntity.status(HttpStatus.FOUND)
