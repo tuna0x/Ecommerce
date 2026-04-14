@@ -12,6 +12,8 @@ import java.io.Serializable;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResUserPermissionDTO implements Serializable {
+    private String name;
     private String apiPath;
     private String method;
+    private String module;
 }

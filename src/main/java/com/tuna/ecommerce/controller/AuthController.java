@@ -35,6 +35,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 
 import java.util.Collections;
+import java.util.List;
 
 import jakarta.validation.Valid;
 
@@ -207,6 +208,14 @@ public class AuthController {
             }
         return ResponseEntity.ok().body(userGetAccount);
     }
+
+    @GetMapping("/auth/permissions")
+    @APIMessage("Get current user permissions successfully")
+    public ResponseEntity<List<com.tuna.ecommerce.domain.response.user.ResUserPermissionDTO>> getPermissions() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse("");
+        return ResponseEntity.ok().body(this.userService.getPermissionsByEmail(email));
+    }
+
 
 
         @GetMapping("/auth/refresh")
