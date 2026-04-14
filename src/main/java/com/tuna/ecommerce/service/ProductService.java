@@ -79,7 +79,7 @@ public class ProductService {
             BrandService brandService,
             PricingService pricingService,
             ProductVariantRepository productVariantRepository,
-            ProductPromotionRepository productPromotionRepository,
+            ProductVariantRepository productVariantRepository1, ProductPromotionRepository productPromotionRepository,
             PromotionRepository promotionRepository,
             @Lazy InventoryService inventoryService,
             InventoryRepository inventoryRepository) {
@@ -97,6 +97,18 @@ public class ProductService {
         this.promotionRepository = promotionRepository;
         this.inventoryService = inventoryService;
         this.inventoryRepository = inventoryRepository;
+    }
+
+    @jakarta.annotation.PostConstruct
+    public void initPrices() {
+        // One-time sync for existing products that don't have a final price yet
+        List<Product> products = this.productRepository.findAll();
+        for (Product p : products) {
+            if (p.getPrice() == null) {
+                this.updateProductPrice(p);
+                this.productRepository.save(p);
+            }
+        }
     }
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
@@ -173,6 +185,7 @@ public class ProductService {
         }
 
         this.syncProductWithVariants(newProduct);
+        this.updateProductPrice(newProduct);
         newProduct = this.productRepository.save(newProduct);
 
         Map<String, Integer> variantStocks = new HashMap<>();
@@ -181,7 +194,6 @@ public class ProductService {
                     .collect(Collectors.toMap(ReqCreateProductDTO.VariantDTO::getSku,
                             ReqCreateProductDTO.VariantDTO::getStock));
         } else {
-            // Single stock for default variant
             variantStocks.put("DEFAULT-" + newProduct.getId(), product.getStock());
         }
         this.inventoryService.syncInitialInventory(newProduct, variantStocks);
@@ -319,6 +331,7 @@ public class ProductService {
         }
 
         this.syncProductWithVariants(cur);
+        this.updateProductPrice(cur);
         cur = this.productRepository.save(cur);
 
         Map<String, Integer> variantStocks = new HashMap<>();
@@ -351,6 +364,20 @@ public class ProductService {
 
         if (minPrice != null) {
             product.setOriginalPrice(minPrice);
+        }
+        this.updateProductPrice(product);
+    }
+
+    private void updateProductPrice(Product product) {
+        if (product == null || product.getOriginalPrice() == null) {
+            return;
+        }
+        // Calculate the current active price with promotions
+        ResPriceResultDTO priceResult = this.pricingService.calculatePrice(product);
+        if (priceResult != null) {
+            product.setPrice(priceResult.getFinalPrice());
+        } else {
+            product.setPrice(product.getOriginalPrice());
         }
     }
 
