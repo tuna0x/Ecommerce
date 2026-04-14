@@ -64,4 +64,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     long countReturningUsers(@Param("startDate") java.time.Instant startDate, @Param("endDate") java.time.Instant endDate);
 
     Order findByConfirmationToken(String token);
+
+    @Query("SELECT o FROM Order o JOIN o.payment p WHERE o.status = 'PENDING' AND p.method = 'VNPAY' AND o.createdAt < :cutoffTime")
+    List<Order> findStaleVnpayPendingOrders(@Param("cutoffTime") java.time.Instant cutoffTime);
+
+    @Query("SELECT o FROM Order o JOIN o.payment p WHERE o.status = 'PENDING' AND p.method = 'COD' AND o.createdAt < :cutoffTime")
+    List<Order> findStaleCodPendingOrders(@Param("cutoffTime") java.time.Instant cutoffTime);
 }
