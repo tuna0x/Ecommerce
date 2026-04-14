@@ -41,6 +41,7 @@ public class Product {
     @NotBlank(message = "name is not blank")
     private String name;
     private BigDecimal originalPrice;
+    private BigDecimal price; // Final selling price after promotions
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;
