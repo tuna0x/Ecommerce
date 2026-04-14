@@ -127,16 +127,20 @@ public class PaymentController {
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId=" + vnp_TransactionNo;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
+            // Thanh toán thất bại hoặc bị hủy bởi khách hàng
             payment.setStatus(OrderStatusEnum.CANCELLED);
             this.paymentService.save(payment);
             
-            // Automatically delete the order if payment fails
+            // Hủy đơn hàng + giải phóng stock + gửi thông báo
             Order order = payment.getOrder();
             if (order.getStatus() == OrderStatusEnum.PENDING) {
-                this.orderService.handleDeleteOrder(order.getId());
+                order.setPaymentStatus(PaymentStatusEnum.UNPAID);
+                this.orderRepository.save(order);
+                // handleUpdateStatus sẽ: đổi trạng thái, releaseStock, gửi notification
+                this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
             }
 
-            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + payment.getOrder().getId() + "&transactionId=" + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
+            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId() + "&transactionId=" + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         }
     }

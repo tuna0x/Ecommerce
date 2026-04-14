@@ -82,7 +82,7 @@ public class EmailService {
 
     @Async
     public void sendOtpEmail(String to, String otp) {
-        String subject = "Mã xác thực OTP - Bông Cosmetic";
+        String subject = "M\u00E3 x\u00E1c th\u1EF1c OTP - B\u00F4ng Cosmetic";
         
         Context context = new Context();
         context.setVariable("otp", otp);
@@ -93,7 +93,7 @@ public class EmailService {
 
     @Async
     public void sendOrderConfirmationEmail(com.tuna.ecommerce.domain.Order order, boolean isCod) {
-        String subject = isCod ? "Vui lòng xác nhận đơn hàng của bạn - Bông Cosmetic" : "Thông tin đơn hàng của bạn - Bông Cosmetic";
+        String subject = isCod ? "Vui l\u00F2ng x\u00E1c nh\u1EADn \u0111\u01A1n h\u00E0ng c\u1EE7a b\u1EA1n - B\u00F4ng Cosmetic" : "Th\u00F4ng tin \u0111\u01A1n h\u00E0ng c\u1EE7a b\u1EA1n - B\u00F4ng Cosmetic";
         
         Context context = new Context();
         context.setVariable("order", order);

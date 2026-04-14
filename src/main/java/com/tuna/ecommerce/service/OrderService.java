@@ -205,8 +205,6 @@ public class OrderService {
                     (variant != null) ? variant.getId() : null,
                     i.getQuantity());
 
-            product.setSoldCount(product.getSoldCount() + i.getQuantity());
-
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setProductVariant(variant);
@@ -451,13 +449,15 @@ public class OrderService {
             case CONFIRMED:
                 title = "Đơn hàng đã được xác nhận";
                 message = "Đơn hàng #" + order.getId() + " của bạn đã được xác nhận.";
-                // Commit stock for each item
+                // Commit stock + cập nhật soldCount cho từng sản phẩm
                 for (OrderItem item : order.getItems()) {
                     this.inventoryService.commitStock(
                             item.getProduct().getId(),
                             item.getProductVariant() != null ? item.getProductVariant().getId() : null,
                             item.getQuantity(),
                             "Xác nhận đơn hàng #" + order.getId());
+                    // Chỉ tính "đã bán" khi đơn hàng được xác nhận
+                    item.getProduct().setSoldCount(item.getProduct().getSoldCount() + item.getQuantity());
                 }
                 break;
             case DELIVERING:
@@ -471,13 +471,16 @@ public class OrderService {
             case CANCELLED:
                 title = "Đơn hàng đã bị hủy";
                 message = "Rất tiếc, đơn hàng #" + order.getId() + " của bạn đã bị hủy.";
-                // Release stock back to available
+                // Release stock + trừ soldCount
                 for (OrderItem item : order.getItems()) {
                     this.inventoryService.releaseStock(
                             item.getProduct().getId(),
                             item.getProductVariant() != null ? item.getProductVariant().getId() : null,
                             item.getQuantity(),
                             "Hủy đơn hàng #" + order.getId());
+                    // Trừ soldCount (đảm bảo không âm)
+                    int newSoldCount = Math.max(0, item.getProduct().getSoldCount() - item.getQuantity());
+                    item.getProduct().setSoldCount(newSoldCount);
                 }
                 break;
             default:
