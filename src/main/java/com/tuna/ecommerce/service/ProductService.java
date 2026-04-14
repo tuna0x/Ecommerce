@@ -657,10 +657,12 @@ public class ProductService {
 
         StringBuilder sb = new StringBuilder("Danh sách sản phẩm của cửa hàng:\n");
         for (Product p : products) {
-            sb.append("- ").append(p.getName())
-                    .append(": ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
-                    .append(" (Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
-                    .append(")\n");
+            sb.append("- Tên: ").append(p.getName())
+                    .append(" (ID: ").append(p.getId()).append(")")
+                    .append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
+                    .append(", Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
+                    .append(", Đã bán: ").append(p.getSoldCount())
+                    .append("\n");
         }
         return sb.toString();
     }

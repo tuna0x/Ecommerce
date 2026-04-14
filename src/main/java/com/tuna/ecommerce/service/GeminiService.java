@@ -67,14 +67,12 @@ public class GeminiService {
                         +
                         "Nhiệm vụ quan trọng của bạn: \n" +
                         "1. Luôn ưu tiên trả lời dựa trên thông tin sản phẩm và đơn hàng được cung cấp ở trên.\n" +
-                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n"
-                        +
-                        "3. Nếu khách hỏi về tình trạng đơn hàng của họ, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn và trạng thái. Nếu khách chưa đăng nhập (dữ liệu báo chưa đăng nhập), hãy khuyên khách đăng nhập.\n"
-                        +
-                        "4. Nếu sản phẩm khách hỏi không có, hãy gợi ý sản phẩm tương đương.\n"
-                        +
-                        "5. Luôn dẫn dắt khách hàng mua hàng và giữ thái độ tích cực.\n" +
-                        "Nếu không biết, hãy khuyên khách liên hệ hotline 1900xxxx.");
+                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n" +
+                        "3. Nếu khách hỏi về đơn hàng, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn, sản phẩm bên trong và trạng thái. \n" +
+                        "4. Nếu khách chê đắt hoặc hỏi khuyến mãi, hãy khuyên họ vào trang chủ tìm mã giảm giá (Coupon), vì cửa hàng thường xuyên có ưu đãi.\n" +
+                        "5. Nếu khách muốn hủy đơn hoặc đổi trả, hãy hướng dẫn họ vào mục Tài khoản -> Đơn hàng (hoặc /account) để thao tác, hoặc báo rằng cửa hàng sẽ hỗ trợ sớm.\n" +
+                        "6. Luôn dẫn dắt khách hàng mua hàng, giữ thái độ tích cực. Trả lời ngắn gọn, súc tích và dễ hiểu.\n" +
+                        "Nếu không biết, hãy khuyên khách liên hệ hotline 1900xxxx hoặc chờ Admin chat trực tiếp.");
                 systemInstructionMap.put("parts", List.of(systemPart));
                 requestBody.put("system_instruction", systemInstructionMap);
 
