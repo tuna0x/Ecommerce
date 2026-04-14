@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -545,6 +546,7 @@ public class OrderService {
         }
     }
 
+    @Transactional(readOnly = true)
     public String getOrdersSummaryForChatbot() {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         if (email == null)
@@ -570,10 +572,15 @@ public class OrderService {
         for (Order o : orders) {
             sb.append("- Đơn hàng #").append(o.getId())
                     .append(": Trạng thái [").append(o.getStatus()).append("]")
-                    .append(", Tổng thanh toán: ").append(String.format("%,.0f VNĐ", o.getFinalPrice().doubleValue()))
+                    .append(", Thanh toán: ").append(String.format("%,.0f VNĐ", o.getFinalPrice().doubleValue()))
                     .append(", Ngày đặt: ")
                     .append(o.getCreatedAt() != null ? formatter.format(o.getCreatedAt()) : "N/A")
-                    .append("\n");
+                    .append(", Sản phẩm: ");
+            if (o.getItems() != null && !o.getItems().isEmpty()) {
+                o.getItems().forEach(oi -> sb.append(oi.getProduct().getName())
+                        .append(" (SL: ").append(oi.getQuantity()).append("), "));
+            }
+            sb.append("\n");
         }
         return sb.toString();
     }
