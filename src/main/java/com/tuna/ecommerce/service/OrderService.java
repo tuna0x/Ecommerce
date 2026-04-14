@@ -397,6 +397,9 @@ public class OrderService {
             }
         }
         res.setCreatedAt(order.getCreatedAt());
+        res.setConfirmedAt(order.getConfirmedAt());
+        res.setShippingCode(order.getShippingCode());
+        res.setDeliveredAt(order.getDeliveredAt());
 
         if (order.getItems() != null) {
             List<ResGetOrderDTO.OrderItemInner> itemDTOs = order.getItems().stream().map(item -> {

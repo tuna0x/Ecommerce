@@ -37,6 +37,9 @@ public class ResGetOrderDTO {
     private String paymentMethod;
     private String transactionID;
     private String paymentUrl;
+    private String shippingCode;
+    private java.time.Instant deliveredAt;
+    private java.time.Instant confirmedAt;
     private java.time.Instant createdAt;
     private java.util.List<OrderItemInner> items;
 
