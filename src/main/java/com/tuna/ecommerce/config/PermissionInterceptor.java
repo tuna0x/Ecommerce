@@ -22,6 +22,9 @@ public class PermissionInterceptor implements HandlerInterceptor {
     @Autowired
     UserService userService;
 
+    @Autowired
+    com.tuna.ecommerce.service.SecurityService securityService;
+
     @Override
     public boolean preHandle(
             HttpServletRequest request,
@@ -39,6 +42,11 @@ public class PermissionInterceptor implements HandlerInterceptor {
         }
 
         if (path == null) {
+            return true;
+        }
+
+        // 1. QUICK BYPASS FOR SUPER_ADMIN
+        if (this.securityService.isSuperAdmin()) {
             return true;
         }
 

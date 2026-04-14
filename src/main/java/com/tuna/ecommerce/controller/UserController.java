@@ -5,6 +5,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -117,12 +118,14 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}/analytics")
+    @PreAuthorize("@securityService.hasPermission('USERS', 'ANALYTICS')")
     @APIMessage("Lấy dữ liệu phân tích người dùng thành công")
     public ResponseEntity<com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO> getUserAnalytics(@PathVariable("id") Long id) {
         return ResponseEntity.ok(this.userService.getUserAnalytics(id));
     }
 
     @PatchMapping("/users/{id}/admin-notes")
+    @PreAuthorize("@securityService.hasPermission('USERS', 'UPDATE_NOTES')")
     @APIMessage("Cập nhật ghi chú Admin thành công")
     public ResponseEntity<User> updateAdminNotes(@PathVariable("id") Long id, @RequestBody java.util.Map<String, String> request) {
         String notes = request.get("notes");

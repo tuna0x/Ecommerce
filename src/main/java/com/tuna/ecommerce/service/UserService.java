@@ -287,7 +287,7 @@ public class UserService {
         User user = this.findByUsername(email);
         if (user != null && user.getRole() != null) {
             return user.getRole().getPermissions().stream()
-                    .map(p -> new ResUserPermissionDTO(p.getApiPath(), p.getMethod()))
+                    .map(p -> new ResUserPermissionDTO(p.getName(), p.getApiPath(), p.getMethod(), p.getModule()))
                     .collect(Collectors.toList());
         }
         return null;
