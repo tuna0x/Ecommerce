@@ -152,4 +152,26 @@ public class CouponService {
         rs.setResult(couponPage.getContent());
         return rs;
     }
+
+    public String getCouponsSummaryForChatbot() {
+        java.util.List<Coupon> publicCoupons = this.couponRepository.findByIsPublicTrue();
+        if (publicCoupons == null || publicCoupons.isEmpty()) {
+            return "Hiện tại không có mã giảm giá chung nào đang áp dụng.";
+        }
+
+        StringBuilder sb = new StringBuilder("Danh sách mã giảm giá nổi bật:\n");
+        for (Coupon c : publicCoupons) {
+            if (c.getStatus() == CouponStatus.ACTIVE) {
+                sb.append("- Mã: **").append(c.getCode()).append("** ");
+                if (c.getType() != null && "PERCENTAGE".equalsIgnoreCase(c.getType().name())) {
+                    sb.append("(Giảm ").append(c.getDiscountValue()).append("%) ");
+                } else {
+                    sb.append("(Giảm ").append(String.format("%,.0f VNĐ", c.getDiscountValue())).append(") ");
+                }
+                sb.append("cho đơn từ ").append(String.format("%,.0f VNĐ", c.getMinOrderValue()));
+                sb.append(". Limit: ").append(c.getUsageLimit()).append("\n");
+            }
+        }
+        return sb.toString();
+    }
 }

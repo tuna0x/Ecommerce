@@ -5,7 +5,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.tuna.ecommerce.domain.Cart;
+import com.tuna.ecommerce.domain.CartItem;
+import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.chat.ChatMessageDTO;
+import com.tuna.ecommerce.repository.UserRepository;
+import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -21,6 +26,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Service
 public class GeminiService {
 
+    public enum ChatIntent {
+        PRODUCT_SEARCH,        // tìm sản phẩm
+        PRODUCT_DETAIL,        // hỏi chi tiết sản phẩm
+        PRODUCT_RECOMMEND,     // gợi ý sản phẩm
+        
+        CART_INQUIRY,          // Thao tác/hỏi về giỏ hàng
+        
+        ORDER_STATUS,          // kiểm tra đơn
+        ORDER_HISTORY,         // lịch sử đơn
+        ORDER_CANCEL_REQUEST,  // hỏi hủy đơn (chỉ hướng dẫn)
+        
+        COUPON_LIST,           // xem mã giảm giá
+        COUPON_APPLY,          // hỏi cách dùng mã
+        
+        USER_GREETING,         // chào hỏi
+        SMALL_TALK,            // nói chuyện linh tinh
+        COMPLAINT,             // phàn nàn
+        UNKNOWN                // không hiểu
+    }
+
     @Value("${gemini.api.key}")
     private String apiKey;
 
@@ -29,30 +54,148 @@ public class GeminiService {
 
     private final ProductService productService;
     private final OrderService orderService;
+    private final CouponService couponService;
+    private final CartService cartService;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
 
     public GeminiService(ProductService productService,
             OrderService orderService,
+            CouponService couponService,
+            CartService cartService,
+            UserRepository userRepository,
             ObjectMapper objectMapper,
             RestTemplate restTemplate) {
         this.productService = productService;
         this.orderService = orderService;
+        this.couponService = couponService;
+        this.cartService = cartService;
+        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
+    }
+
+    private ChatIntent determineIntent(String query) {
+        if (query == null || query.trim().isEmpty()) return ChatIntent.UNKNOWN;
+        String q = query.toLowerCase();
+
+        // 1. Phàn nàn
+        if (q.contains("tồi") || q.contains("kém") || q.contains("chậm") || q.contains("lâu") || q.contains("thất vọng") || q.contains("bực") || q.contains("tệ")) {
+            return ChatIntent.COMPLAINT;
+        }
+
+        // 2. Liên quan đến đơn hàng
+        if (q.contains("hủy")) return ChatIntent.ORDER_CANCEL_REQUEST;
+        if (q.contains("lịch sử") && (q.contains("đơn") || q.contains("mua"))) return ChatIntent.ORDER_HISTORY;
+        if (q.contains("đơn") || q.contains("giao hàng") || q.contains("vận chuyển") || q.contains("tình trạng") || q.contains("bill") || q.contains("chưa nhận")) {
+            return ChatIntent.ORDER_STATUS;
+        }
+
+        // 3. Liên quan đến giỏ hàng
+        if (q.contains("giỏ hàng") || q.contains("giỏ")) {
+            return ChatIntent.CART_INQUIRY;
+        }
+
+        // 4. Liên quan đến mã giảm giá
+        if (q.contains("cách dùng") && (q.contains("mã") || q.contains("voucher") || q.contains("coupon"))) return ChatIntent.COUPON_APPLY;
+        if (q.contains("mã") || q.contains("giảm giá") || q.contains("khuyến mãi") || q.contains("voucher") || q.contains("sale") || q.contains("flashsale") || q.contains("freeship")) {
+            return ChatIntent.COUPON_LIST;
+        }
+
+        // 5. Chào hỏi
+        if (q.equals("chào") || q.equals("hi") || q.equals("hello") || q.equals("alo") || q.contains("có ai không")) {
+            return ChatIntent.USER_GREETING;
+        }
+
+        // 6. Small Talk / Trò chuyện linh tinh
+        if (q.contains("thời tiết") || q.contains("tên là gì") || q.contains("khỏe không") || q.contains("haha") || q.contains("đẹp không")) {
+            return ChatIntent.SMALL_TALK;
+        }
+
+        // 7. Liên quan đến Sản phẩm
+        if (q.contains("chi tiết") || q.contains("thành phần") || q.contains("hướng dẫn sử dụng") || q.contains("loại da")) return ChatIntent.PRODUCT_DETAIL;
+        if (q.contains("tư vấn") || q.contains("gợi ý") || q.contains("nên mua") || q.contains("bán chạy") || q.contains("nào tốt") || q.contains("phù hợp")) return ChatIntent.PRODUCT_RECOMMEND;
+        if (q.contains("tìm") || q.contains("có bán") || q.contains("giá") || q.contains("bao nhiêu") || q.contains("sản phẩm")) return ChatIntent.PRODUCT_SEARCH;
+
+        return ChatIntent.UNKNOWN;
     }
 
     public String getChatResponse(String userMessage, List<ChatMessageDTO> history) {
         int maxRetries = 2; // Thử lại tối đa 2 lần nếu gặp lỗi 503
         int retryCount = 0;
 
+        ChatIntent intent = determineIntent(userMessage);
+
         while (retryCount <= maxRetries) {
             try {
                 String url = apiUrl + "?key=" + apiKey;
 
-                // Fetch Context from Database
-                String productContext = this.productService.getProductsSummaryForChatbot(userMessage);
-                String orderContext = this.orderService.getOrdersSummaryForChatbot();
+                // Dynamically fetch Contexts based on Intent to save tokens
+                String productContext = "";
+                String orderContext = "";
+                String couponContext = "";
+                String cartContext = "";
+                
+                String policyContext = "- Đổi trả miễn phí 100% trong 7 ngày đầu nếu lỗi nhà sản xuất.\n" +
+                                       "- Miễn phí vận chuyển (Freeship) cho toàn bộ đơn hàng từ 500,000 VNĐ.\n" +
+                                       "- Giao hàng tiêu chuẩn 2-4 ngày trên toàn quốc.\n" +
+                                       "- Bông Cosmetic bán mỹ phẩm chính hãng 100%.";
+
+                // Routing variables based on sophisticated 15 Intention Enum
+                switch (intent) {
+                    case ORDER_STATUS:
+                    case ORDER_HISTORY:
+                    case ORDER_CANCEL_REQUEST:
+                        orderContext = this.orderService.getOrdersSummaryForChatbot();
+                        break;
+                    case COUPON_LIST:
+                    case COUPON_APPLY:
+                        couponContext = this.couponService.getCouponsSummaryForChatbot();
+                        // Lấy thêm sản phẩm vì khách có thể hỏi "sản phẩm nào đang sale/flashsale"
+                        productContext = this.productService.getProductsSummaryForChatbot(userMessage);
+                        break;
+                    case PRODUCT_SEARCH:
+                    case PRODUCT_DETAIL:
+                    case PRODUCT_RECOMMEND:
+                        productContext = this.productService.getProductsSummaryForChatbot(userMessage);
+                        break;
+                    case CART_INQUIRY:
+                        // Giỏ hàng sẽ được load ở phía dưới (chung cho mọi request cần giỏ)
+                        break;
+                    case COMPLAINT:
+                    case SMALL_TALK:
+                    case USER_GREETING:
+                        // No slow DB calls for general greetings or small talk
+                        break;
+                    case UNKNOWN:
+                        // Fallback behavior: provide top-selling products as a suggestion
+                        productContext = this.productService.getProductsSummaryForChatbot("");
+                        break;
+                }
+                
+                // User & Cart context (Always fetch identity & cart for rich upsell)
+                String currentUserEmail = SecurityUtil.getCurrentUserLogin().orElse(null);
+                String userNameContext = "Khách lạ (Chưa đăng nhập)";
+                
+                if (currentUserEmail != null) {
+                    User user = userRepository.findByEmail(currentUserEmail);
+                    if (user != null && user.getUserProfile() != null) {
+                        userNameContext = user.getUserProfile().getName();
+                    }
+                    
+                    Cart cart = cartService.getOrCreateCart();
+                    if (cart != null && cart.getItems() != null && !cart.getItems().isEmpty()) {
+                        StringBuilder cartSb = new StringBuilder();
+                        for (CartItem item : cart.getItems()) {
+                            cartSb.append("- ").append(item.getProduct().getName())
+                                  .append(" (Số lượng: ").append(item.getQuantity()).append(")\n");
+                        }
+                        cartContext = cartSb.toString();
+                    } else {
+                        cartContext = "Giỏ hàng trống.";
+                    }
+                }
 
                 // Prepare Payload for Gemini 2.5
                 Map<String, Object> requestBody = new HashMap<>();
@@ -60,19 +203,20 @@ public class GeminiService {
                 // System instructions (context)
                 Map<String, Object> systemInstructionMap = new HashMap<>();
                 Map<String, String> systemPart = new HashMap<>();
-                systemPart.put("text", "Bạn là trợ lý ảo thông minh của Tuna Ecommerce. " +
-                        "Hãy trả lời khách hàng một cách lịch sự, thân thiện. " +
-                        "\n--- DỮ LIỆU SẢN PHẨM ---\n" + productContext + "\n" +
-                        "\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext + "\n\n"
-                        +
-                        "Nhiệm vụ quan trọng của bạn: \n" +
-                        "1. Luôn ưu tiên trả lời dựa trên thông tin sản phẩm và đơn hàng được cung cấp ở trên.\n" +
-                        "2. Khi nhắc đến bất kỳ sản phẩm nào có trong danh sách trên, bạn BẮT BUỘC phải định dạng tên sản phẩm dưới dạng Markdown Link. Cú pháp: [Tên sản phẩm](/product/ID).\n" +
-                        "3. Nếu khách hỏi về đơn hàng, hãy dùng DỮ LIỆU ĐƠN HÀNG để trả lời chính xác mã đơn, sản phẩm bên trong và trạng thái. \n" +
-                        "4. Nếu khách chê đắt hoặc hỏi khuyến mãi, hãy khuyên họ vào trang chủ tìm mã giảm giá (Coupon), vì cửa hàng thường xuyên có ưu đãi.\n" +
-                        "5. Nếu khách muốn hủy đơn hoặc đổi trả, hãy hướng dẫn họ vào mục Tài khoản -> Đơn hàng (hoặc /account) để thao tác, hoặc báo rằng cửa hàng sẽ hỗ trợ sớm.\n" +
-                        "6. Luôn dẫn dắt khách hàng mua hàng, giữ thái độ tích cực. Trả lời ngắn gọn, súc tích và dễ hiểu.\n" +
-                        "Nếu không biết, hãy khuyên khách liên hệ hotline 1900xxxx hoặc chờ Admin chat trực tiếp.");
+                systemPart.put("text", "Bạn là 'Bông', Trợ lý AI dẻo miệng của thương hiệu Bông Cosmetic. " +
+                        "Hãy gọi khách là 'Nàng/Cậu' nếu không biết tên, hiện tại bạn đang chat với: [" + userNameContext + "]. " +
+                        "Hãy chủ động chào tên thật của khách để tạo sự thân thiết.\n" +
+                        "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CHƯA TÌM THẤY. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!" +
+                        (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM ---\n" + productContext) +
+                        (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
+                        (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
+                        "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
+                        "\n\n--- CHÍNH SÁCH ---\n" + policyContext +
+                        "\n\nNhiệm vụ khi tư vấn: " +
+                        "1. Soi GIỎ HÀNG: Gợi ý các món bổ trợ để Up-sale (Tuyệt đối định dạng Markdown [Tên sản phẩm](/product/ID)).\n" +
+                        "2. Đơn hàng: Nếu khách muốn mua tiếp thì khuyên, nếu hủy thì báo khách bấm vào mục Tài khoản -> Đơn hàng (bạn ko có quyền hủy).\n" +
+                        "3. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món đồ/đơn hàng khách cần."
+                );
                 systemInstructionMap.put("parts", List.of(systemPart));
                 requestBody.put("system_instruction", systemInstructionMap);
 

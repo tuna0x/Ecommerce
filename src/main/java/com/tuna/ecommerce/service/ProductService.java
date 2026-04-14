@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.tuna.ecommerce.domain.Inventory;
+import com.tuna.ecommerce.domain.Promotion;
+import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -641,29 +643,69 @@ public class ProductService {
         return this.productRepository.save(product);
     }
 
+    @Transactional(readOnly = true)
     public String getProductsSummaryForChatbot(String query) {
-        List<Product> products;
-        if (query != null && !query.isEmpty()) {
-            // Use Native Query for much faster performance with indexes
-            String sqlQuery = "%" + query + "%";
-            products = this.productRepository.searchByNameNative(sqlQuery);
-        } else {
-            products = this.productRepository.findAll(Pageable.ofSize(10)).getContent();
+        StringBuilder sb = new StringBuilder();
+
+        // 1. Fetch Top 5 Bán chạy nhất
+        List<Product> topSellers = this.productRepository.findAll(
+                org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "soldCount"))
+        ).getContent();
+
+        if (!topSellers.isEmpty()) {
+            sb.append("--- TOÀN TRANG: 5 SẢN PHẨM BÁN CHẠY NHẤT HIỆN GẦN ĐÂY ---\n");
+            for (Product p : topSellers) {
+                appendChatbotProductInfo(sb, p);
+            }
         }
 
-        if (products.isEmpty()) {
-            return "Hiện tại tôi không tìm thấy sản phẩm nào phù hợp với yêu cầu của bạn.";
+        // 2. Fetch Tìm kiếm nếu có query
+        if (query != null && !query.trim().isEmpty()) {
+            String sqlQuery = "%" + query.trim() + "%";
+            List<Product> searchResults = this.productRepository.searchByNameNative(sqlQuery);
+            if (!searchResults.isEmpty()) {
+                sb.append("\n--- KẾT QUẢ TÌM KIẾM LIÊN QUAN ---\n");
+                for (Product p : searchResults) {
+                    appendChatbotProductInfo(sb, p);
+                }
+            }
+        }
+        
+        if (sb.length() == 0) {
+            return "Hiện tại tôi không tìm thấy sản phẩm nào trong cửa hàng.";
         }
 
-        StringBuilder sb = new StringBuilder("Danh sách sản phẩm của cửa hàng:\n");
-        for (Product p : products) {
-            sb.append("- Tên: ").append(p.getName())
-                    .append(" (ID: ").append(p.getId()).append(")")
-                    .append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
-                    .append(", Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
-                    .append(", Đã bán: ").append(p.getSoldCount())
-                    .append("\n");
-        }
         return sb.toString();
+    }
+
+    private void appendChatbotProductInfo(StringBuilder sb, Product p) {
+        sb.append("- Tên: ").append(p.getName())
+                .append(" (ID: ").append(p.getId()).append(")");
+                
+        if (this.pricingService != null) {
+            List<Promotion> promotions = this.pricingService.getApplicablePromotions(p);
+            ResPriceResultDTO priceResult = this.pricingService.calculatePriceWithPromotions(p.getOriginalPrice(), promotions);
+            if (priceResult.getDiscountPrice() != null && priceResult.getDiscountPrice().compareTo(BigDecimal.ZERO) > 0) {
+                 sb.append(", Giá gốc: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
+                   .append(", [ĐANG CÓ FLASHSALE/GIẢM GIÁ] Giá chỉ còn: ").append(String.format("%,.0f VNĐ", priceResult.getFinalPrice().doubleValue()));
+            } else {
+                 sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
+            }
+        } else {
+            sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
+        }
+
+        sb.append(", Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
+                .append(", Đã bán: ").append(p.getSoldCount());
+        
+        if (p.getProductDetail() != null && p.getProductDetail().getDescription() != null) {
+            // Loại bỏ HTML tags để đưa vào AI
+            String desc = p.getProductDetail().getDescription().replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim();
+            if (desc.length() > 150) {
+                desc = desc.substring(0, 150) + "...";
+            }
+            sb.append(", Mô tả/Tính năng: ").append(desc);
+        }
+        sb.append("\n");
     }
 }
