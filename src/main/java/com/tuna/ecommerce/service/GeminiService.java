@@ -8,9 +8,9 @@ import java.util.Map;
 import com.tuna.ecommerce.domain.Cart;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.User;
-import com.tuna.ecommerce.domain.UserActivityLog;
+import com.tuna.ecommerce.domain.UserBehavior;
 import com.tuna.ecommerce.domain.request.chat.ChatMessageDTO;
-import com.tuna.ecommerce.repository.UserActivityLogRepository;
+import com.tuna.ecommerce.repository.UserBehaviorRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
@@ -59,7 +59,8 @@ public class GeminiService {
     private final CouponService couponService;
     private final CartService cartService;
     private final UserRepository userRepository;
-    private final UserActivityLogRepository userActivityLogRepository;
+    private final UserBehaviorRepository userBehaviorRepository;
+    private final TrackingService trackingService;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
 
@@ -68,7 +69,8 @@ public class GeminiService {
             CouponService couponService,
             CartService cartService,
             UserRepository userRepository,
-            UserActivityLogRepository userActivityLogRepository,
+            UserBehaviorRepository userBehaviorRepository,
+            TrackingService trackingService,
             ObjectMapper objectMapper,
             RestTemplate restTemplate) {
         this.productService = productService;
@@ -76,9 +78,43 @@ public class GeminiService {
         this.couponService = couponService;
         this.cartService = cartService;
         this.userRepository = userRepository;
-        this.userActivityLogRepository = userActivityLogRepository;
+        this.userBehaviorRepository = userBehaviorRepository;
+        this.trackingService = trackingService;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
+    }
+
+    private String formatBehaviorMetadata(UserBehavior b) {
+        try {
+            JsonNode meta = objectMapper.readTree(b.getMetadata());
+            String action = b.getActionType().name();
+            switch (action) {
+                case "VIEW_PRODUCT":
+                    return "Xem sản phẩm " + meta.path("productName").asText() + " (" + meta.path("price").asLong() + "đ)";
+                case "ADD_CART":
+                    return "Thêm " + meta.path("productName").asText() + " vào giỏ (SL: " + meta.path("quantity").asInt() + ")";
+                case "UPDATE_CART":
+                    return "Cập nhật giỏ hàng: " + meta.path("productName").asText() + " (SL: " + meta.path("newQuantity").asInt() + ")";
+                case "REMOVE_CART":
+                    return "Xóa khỏi giỏ: " + meta.path("productName").asText();
+                case "SEARCH":
+                    return "Tìm kiếm từ khóa: \"" + meta.path("keyword").asText() + "\" (" + meta.path("resultCount").asInt() + " kết quả)";
+                case "VIEW_CATEGORY":
+                    return "Xem danh mục: " + meta.path("categoryName").asText();
+                case "USE_COUPON":
+                    return "Sử dụng mã giảm giá: " + meta.path("couponCode").asText() + " (Giảm " + meta.path("discountAmount").asLong() + "đ)";
+                case "BEGIN_CHECKOUT":
+                    return "Bắt đầu thanh toán đơn hàng " + meta.path("cartTotal").asLong() + "đ";
+                case "CHAT_WITH_BOT":
+                    return "Đã hỏi AI: \"" + meta.path("messagePreview").asText() + "\"";
+                case "TIME_ON_PAGE":
+                    return "Dừng lại ở " + meta.path("path").asText() + " trong " + (meta.path("durationMs").asLong() / 1000) + " giây";
+                default:
+                    return action + ": " + b.getMetadata();
+            }
+        } catch (Exception e) {
+            return b.getActionType().name() + " (Dữ liệu lỗi)";
+        }
     }
 
     private ChatIntent determineIntent(String query) {
@@ -126,7 +162,7 @@ public class GeminiService {
         return ChatIntent.UNKNOWN;
     }
 
-    public String getChatResponse(String userMessage, List<ChatMessageDTO> history) {
+    public String getChatResponse(String userMessage, List<ChatMessageDTO> history, String sessionId, String deviceType, String pageUrl) {
         int maxRetries = 2; // Thử lại tối đa 2 lần nếu gặp lỗi 503
         int retryCount = 0;
 
@@ -202,16 +238,22 @@ public class GeminiService {
                         cartContext = "Giỏ hàng trống.";
                     }
 
-                    // Lấy 5 hành động gần nhất
-                    List<UserActivityLog> recentLogs = userActivityLogRepository.findTop5ByUserEmailOrderByCreatedAtDesc(currentUserEmail);
-                    if (recentLogs != null && !recentLogs.isEmpty()) {
+                    // Lấy 10 hành động gần nhất
+                    List<UserBehavior> recentBehaviors = userBehaviorRepository.findTop10ByUserEmailOrderByCreatedAtDesc(currentUserEmail);
+                    if (recentBehaviors != null && !recentBehaviors.isEmpty()) {
                         StringBuilder logSb = new StringBuilder();
-                        for (UserActivityLog l : recentLogs) {
-                            logSb.append("- ").append(l.getActionType().name())
-                                 .append(" (").append(l.getMetadata() != null ? l.getMetadata() : "N/A").append(")\n");
+                        for (UserBehavior b : recentBehaviors) {
+                            logSb.append("- ").append(formatBehaviorMetadata(b))
+                                 .append(" [Trang: ").append(b.getPageUrl() != null ? b.getPageUrl() : "N/A").append("]\n");
                         }
                         userActivityContext = logSb.toString();
                     }
+                }
+
+                String currentEnvironment = "Người dùng đang sử dụng thiết bị: " + (deviceType != null ? deviceType : "Không rõ") + 
+                                           "\nTrang hiện tại đang xem: " + (pageUrl != null ? pageUrl : "Trang chủ");
+                if (sessionId != null) {
+                    currentEnvironment += "\nSession ID: " + sessionId;
                 }
 
                 // Prepare Payload for Gemini 2.5
@@ -229,6 +271,7 @@ public class GeminiService {
                         (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
                         "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
                         (userActivityContext.isEmpty() ? "" : "\n\n--- LỊCH SỬ HÀNH ĐỘNG GẦN NHẤT CỦA KHÁCH ---\n" + userActivityContext) +
+                        "\n\n--- THÔNG TIN PHIÊN HIỆN TẠI ---\n" + currentEnvironment +
                         "\n\n--- CHÍNH SÁCH ---\n" + policyContext +
                         "\n\nNhiệm vụ khi tư vấn: " +
                         "1. Soi GIỎ HÀNG và LỊCH SỬ HÀNH ĐỘNG: Gợi ý các món bổ trợ để Up-sale dựa vào sản phẩm họ vừa xem/tương tác (Tuyệt đối định dạng Markdown [Tên sản phẩm](/product/ID)).\n" +
@@ -274,7 +317,26 @@ public class GeminiService {
 
                 if (responseEntity.getStatusCode().is2xxSuccessful()) {
                     JsonNode root = objectMapper.readTree(responseStr);
-                    return root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+                    String aiResponse = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+
+                    // Ghi log hành động chat từ backend
+                    Map<String, Object> logMeta = new HashMap<>();
+                    logMeta.put("userMessage", userMessage);
+                    logMeta.put("aiIntent", intent);
+                    logMeta.put("responsePreview", aiResponse.length() > 50 ? aiResponse.substring(0, 50) + "..." : aiResponse);
+                    
+                    trackingService.logActivity(
+                        currentUserEmail != null ? currentUserEmail : "anonymous",
+                        "server-side", // IP can be fetched from context if needed
+                        "CHAT_WITH_BOT",
+                        objectMapper.writeValueAsString(logMeta),
+                        sessionId,
+                        deviceType,
+                        null,
+                        pageUrl
+                    );
+
+                    return aiResponse;
                 }
 
                 return "Hệ thống đang bận, bạn vui lòng thử lại sau giây lát nhé! 🙏";

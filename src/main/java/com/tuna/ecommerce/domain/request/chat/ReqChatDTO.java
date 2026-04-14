@@ -9,4 +9,7 @@ import lombok.Setter;
 public class ReqChatDTO {
     private String message;
     private List<ChatMessageDTO> history;
+    private String sessionId;
+    private String deviceType;
+    private String pageUrl;
 }
