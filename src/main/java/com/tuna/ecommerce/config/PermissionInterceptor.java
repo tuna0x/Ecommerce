@@ -33,8 +33,8 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String requestURI = request.getRequestURI();
 
         // White list for public endpoints, websockets, and payment callbacks
-        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket") || path.startsWith("/api/v1/payment/"))) ||
-            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket") || requestURI.startsWith("/api/v1/payment/")))) {
+        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket") || path.startsWith("/api/v1/payment/") || path.startsWith("/api/v1/tracking/log"))) ||
+            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket") || requestURI.startsWith("/api/v1/payment/") || requestURI.startsWith("/api/v1/tracking/log")))) {
             return true;
         }
 

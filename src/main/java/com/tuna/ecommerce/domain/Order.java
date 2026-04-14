@@ -70,6 +70,9 @@ public class Order {
     private String confirmationToken;
     private Instant confirmedAt;
 
+    private String shippingCode;
+    private Instant deliveredAt;
+
     // 1-n
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
