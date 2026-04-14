@@ -47,6 +47,10 @@ public class UserProfile {
 
     private String publicId;
 
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String adminNotes;
+    private String tags;
+
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

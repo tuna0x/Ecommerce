@@ -33,7 +33,6 @@ public class TrackingService {
             String sessionId, String deviceType, String referrer, String pageUrl) {
         try {
             if (actionTypeStr == null || actionTypeStr.trim().isEmpty()) {
-                System.out.println(">>> Tracking skipped: actionType is empty");
                 return;
             }
 
@@ -41,7 +40,6 @@ public class TrackingService {
             try {
                 actionType = ActionTypeEnum.valueOf(actionTypeStr.toUpperCase());
             } catch (IllegalArgumentException e) {
-                System.out.println(">>> Tracking skipped: invalid actionType: " + actionTypeStr);
                 return;
             }
 
@@ -63,11 +61,7 @@ public class TrackingService {
             }
 
             userBehaviorRepository.save(behavior);
-            System.out.println(
-                    ">>> Tracking Success: " + actionType + " for " + (email != null ? email : "anonymous")
-                            + " [session=" + sessionId + ", device=" + deviceType + "]");
         } catch (Exception e) {
-            System.err.println(">>> Tracking FAILURE: " + e.getMessage());
             e.printStackTrace();
         }
     }

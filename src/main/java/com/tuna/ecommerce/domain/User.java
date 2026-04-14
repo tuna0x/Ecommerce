@@ -54,6 +54,10 @@ public class User {
 
     @Column(columnDefinition = "MEDIUMTEXT")
     private String refreshToken;
+
+    private Instant lastLoginAt;
+    private String lastIpAddress;
+
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

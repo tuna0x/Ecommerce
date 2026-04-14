@@ -109,7 +109,6 @@ public class SecurityUtil {
                         try {
                           return  jwtDecoder.decode(token);
                         } catch (Exception e) {
-                            System.out.println(">>> Refresh token error: " + e.getMessage());
                             throw e;
                         }
     }

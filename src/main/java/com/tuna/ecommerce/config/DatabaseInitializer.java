@@ -62,7 +62,6 @@ public class DatabaseInitializer implements CommandLineRunner {
         for (String table : tablesToCleanActive) {
             try {
                 jdbcTemplate.execute("ALTER TABLE " + table + " DROP COLUMN active");
-                System.out.println(">>> DROPPED LEGACY COLUMN [active] FROM [" + table + "]");
             } catch (Exception e) {
             }
         }
@@ -70,7 +69,6 @@ public class DatabaseInitializer implements CommandLineRunner {
         try {
             jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
             jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
-            System.out.println(">>> DROPPED LEGACY COLUMN [stock] FROM [products/variants]");
         } catch (Exception e) {
         }
 
@@ -204,6 +202,8 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get users with pagination", "/api/v1/users", "GET", "USERS", false));
         perms.add(new PermDef("Toggle user active status", "/api/v1/users/{id}/active", "PATCH", "USERS", false));
         perms.add(new PermDef("Update user role", "/api/v1/users/{id}/role", "PATCH", "USERS", false));
+        perms.add(new PermDef("Get user analytics 360", "/api/v1/users/{id}/analytics", "GET", "USERS", false));
+        perms.add(new PermDef("Update admin notes for user", "/api/v1/users/{id}/admin-notes", "PATCH", "USERS", false));
 
         // DASHBOARD
         perms.add(new PermDef("Get dashboard statistics", "/api/v1/dashboard/statistics", "GET", "DASHBOARD", false));
@@ -360,6 +360,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // TRACKING
         perms.add(new PermDef("Get all tracking logs", "/api/v1/tracking/logs", "GET", "TRACKING", false));
+        perms.add(new PermDef("Get tracking analytics", "/api/v1/tracking/analytics", "GET", "TRACKING", false));
 
         boolean updated = false;
         for (PermDef def : perms) {
@@ -367,7 +368,6 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (p == null) {
                 p = new Permission(def.name, def.path, def.method, def.module);
                 p = this.permissionRepository.save(p);
-                System.out.println(">>> CREATED Permission: " + def.name);
             }
 
             final Permission finalP = p;
@@ -378,7 +378,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                 if (adminRole.getPermissions().stream().noneMatch(x -> x != null && x.getId().equals(finalP.getId()))) {
                     adminRole.getPermissions().add(p);
                     updated = true;
-                    System.out.println(">>> ASSIGNED Permission: " + def.name + " TO SUPER_ADMIN");
                 }
             }
 
@@ -389,7 +388,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                 if (userRole.getPermissions().stream().noneMatch(x -> x != null && x.getId().equals(finalP.getId()))) {
                     userRole.getPermissions().add(p);
                     updated = true;
-                    System.out.println(">>> ASSIGNED Permission: " + def.name + " TO ROLE_USER");
                 }
             }
         }

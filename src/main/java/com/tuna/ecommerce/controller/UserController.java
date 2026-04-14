@@ -115,4 +115,17 @@ public class UserController {
         }
         return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
     }
+
+    @GetMapping("/users/{id}/analytics")
+    @APIMessage("Lấy dữ liệu phân tích người dùng thành công")
+    public ResponseEntity<com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO> getUserAnalytics(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(this.userService.getUserAnalytics(id));
+    }
+
+    @PatchMapping("/users/{id}/admin-notes")
+    @APIMessage("Cập nhật ghi chú Admin thành công")
+    public ResponseEntity<User> updateAdminNotes(@PathVariable("id") Long id, @RequestBody java.util.Map<String, String> request) {
+        String notes = request.get("notes");
+        return ResponseEntity.ok(this.userService.handleUpdateAdminNotes(id, notes));
+    }
 }
