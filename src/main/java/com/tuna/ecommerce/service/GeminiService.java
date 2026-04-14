@@ -311,7 +311,6 @@ public class GeminiService {
 
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-                System.out.println(">>> Calling Gemini API: " + url + " (Attempt: " + (retryCount + 1) + ")");
                 ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, entity, String.class);
                 String responseStr = responseEntity.getBody();
 

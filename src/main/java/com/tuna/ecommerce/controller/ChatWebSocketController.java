@@ -23,14 +23,11 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ResChatMessageDTO chatMessageDTO, Principal principal) {
         if (principal == null) {
-            System.err.println(">>> WebSocket Error: Principal is null. Ensure UserInterceptor is working.");
             return;
         }
 
         String senderEmail = principal.getName().toLowerCase();
         String receiverEmail = chatMessageDTO.getReceiverEmail().toLowerCase();
-        
-        System.out.println(">>> WebSocket Message received from: " + senderEmail + " to: " + receiverEmail);
         chatMessageDTO.setSenderEmail(senderEmail);
         chatMessageDTO.setReceiverEmail(receiverEmail);
 
@@ -42,7 +39,6 @@ public class ChatWebSocketController {
         );
 
         // Gửi tới người nhận qua queue: /user/{receiverEmail}/queue/messages
-        System.out.println(">>> Sending WebSocket message to receiver: " + receiverEmail);
         messagingTemplate.convertAndSendToUser(
                 receiverEmail,
                 "/queue/messages",

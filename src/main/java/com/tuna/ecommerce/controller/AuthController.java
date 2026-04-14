@@ -66,7 +66,10 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     @APIMessage("User logged in successfully")
-    public ResponseEntity<RestLoginDTO> login(@Valid @RequestBody ReqLoginDTO loginDTO){
+    public ResponseEntity<RestLoginDTO> login(@Valid @RequestBody ReqLoginDTO loginDTO, jakarta.servlet.http.HttpServletRequest request){
+        String ip = request.getRemoteAddr();
+        this.userService.updateLoginInfo(loginDTO.getUsername(), ip);
+
         // Nạp input gồm username/password vào Security
     UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(loginDTO.getUsername(), loginDTO.getPassword());
     // xác thực người dùng => cần viết hàm loadUserByUsername
@@ -115,8 +118,9 @@ public class AuthController {
 
     @PostMapping("/auth/social-login")
     @APIMessage("Google login successfully")
-    public ResponseEntity<RestLoginDTO> googleLogin(@Valid @RequestBody ReqSocialLoginDTO loginDTO) throws Exception {
+    public ResponseEntity<RestLoginDTO> googleLogin(@Valid @RequestBody ReqSocialLoginDTO loginDTO, jakarta.servlet.http.HttpServletRequest request) throws Exception {
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
 
@@ -129,6 +133,9 @@ public class AuthController {
         String email = payload.getEmail();
         String name = (String) payload.get("name");
         String pictureUrl = (String) payload.get("picture");
+        String ip = request.getRemoteAddr();
+        this.userService.updateLoginInfo(email, ip);
+
 
         User user = this.userService.findByUsername(email);
         if (user == null) {

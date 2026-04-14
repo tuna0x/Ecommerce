@@ -36,6 +36,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final CloudinaryService cloudinaryService;
+    private final com.tuna.ecommerce.repository.OrderRepository orderRepository;
+    private final com.tuna.ecommerce.repository.UserBehaviorRepository userBehaviorRepository;
 
     public User handleCreate(User user) {
         if (user.getRole() != null && user.getRole().getId() != 0) {
@@ -301,6 +303,96 @@ public class UserService {
             currentUser.setRefreshToken(token);
             this.userRepository.save(currentUser);
         }
+    }
+
+    public void updateLoginInfo(String email, String ip) {
+        User user = this.findByUsername(email);
+        if (user != null) {
+            user.setLastLoginAt(java.time.Instant.now());
+            user.setLastIpAddress(ip);
+            this.userRepository.save(user);
+        }
+    }
+
+    public com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO getUserAnalytics(Long userId) {
+        User user = this.getUserById(userId);
+        if (user == null) return null;
+
+        // 1. Calculate LTV & Orders
+        java.math.BigDecimal ltv = java.math.BigDecimal.ZERO;
+        long orderCount = 0;
+        java.util.Map<String, Long> statusDistribution = new java.util.HashMap<>();
+
+        if (user.getOrders() != null) {
+            orderCount = user.getOrders().size();
+            for (com.tuna.ecommerce.domain.Order order : user.getOrders()) {
+                if (order.getStatus() == com.tuna.ecommerce.ultil.constant.OrderStatusEnum.DELIVERED) {
+                    ltv = ltv.add(order.getFinalPrice());
+                }
+                String status = order.getStatus().toString();
+                statusDistribution.put(status, statusDistribution.getOrDefault(status, 0L) + 1);
+            }
+        }
+
+        // 2. Fetch Recent Activities
+        List<com.tuna.ecommerce.domain.UserBehavior> behaviors = this.userBehaviorRepository.findTop10ByUserEmailOrderByCreatedAtDesc(user.getEmail());
+        List<com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO.ActivityDTO> activities = behaviors.stream()
+            .map(b -> com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO.ActivityDTO.builder()
+                .action(b.getActionType().toString())
+                .metadata(b.getMetadata())
+                .pageUrl(b.getPageUrl())
+                .timestamp(b.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+
+        // 3. Auto-tagging Logic
+        List<String> autoTags = new java.util.ArrayList<>();
+        if (ltv.compareTo(new java.math.BigDecimal("10000000")) >= 0) {
+            autoTags.add("VIP");
+        } else if (ltv.compareTo(new java.math.BigDecimal("5000000")) >= 0) {
+            autoTags.add("Tiềm năng");
+        }
+
+        if (user.getCreatedAt().isAfter(java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS))) {
+            autoTags.add("Mới");
+        }
+
+        if (user.getLastLoginAt() != null && user.getLastLoginAt().isBefore(java.time.Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS))) {
+            autoTags.add("Nguy cơ");
+        }
+
+        // 4. Custom Tags from Profile
+        List<String> customTags = new java.util.ArrayList<>();
+        String adminNotes = "";
+        if (user.getUserProfile() != null) {
+            adminNotes = user.getUserProfile().getAdminNotes();
+            if (user.getUserProfile().getTags() != null && !user.getUserProfile().getTags().isEmpty()) {
+                customTags = java.util.Arrays.asList(user.getUserProfile().getTags().split(","));
+            }
+        }
+
+        return com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .lifetimeValue(ltv)
+                .totalOrders(orderCount)
+                .orderStatusDistribution(statusDistribution)
+                .lastLoginAt(user.getLastLoginAt())
+                .lastIpAddress(user.getLastIpAddress())
+                .autoTags(autoTags)
+                .customTags(customTags)
+                .adminNotes(adminNotes)
+                .recentActivities(activities)
+                .build();
+    }
+
+    public User handleUpdateAdminNotes(Long userId, String notes) {
+        User user = this.getUserById(userId);
+        if (user != null && user.getUserProfile() != null) {
+            user.getUserProfile().setAdminNotes(notes);
+            return this.userRepository.save(user);
+        }
+        return null;
     }
 
     public User getUserByRefreshTokenAndEmail(String token, String email) {

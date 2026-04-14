@@ -49,7 +49,6 @@ public class ChatController {
             @RequestParam String participant,
             Pageable pageable) {
         String currentUser = SecurityUtil.getCurrentUserLogin().orElse("");
-        System.out.println(">>> REST getHistory: currentUser=" + currentUser + ", participant=" + participant);
         List<ResChatMessageDTO> history = chatMessageService.getChatHistory(currentUser, participant, pageable);
         return ResponseEntity.ok().body(history);
     }
@@ -58,9 +57,7 @@ public class ChatController {
     @APIMessage("Lấy danh sách hội thoại thành công")
     public ResponseEntity<List<ResChatMessageDTO>> getConversations() {
         String currentUser = SecurityUtil.getCurrentUserLogin().orElse("");
-        System.out.println(">>> REST getConversations: currentUser=" + currentUser);
         List<ResChatMessageDTO> conversations = chatMessageService.getRecentConversations(currentUser);
-        System.out.println(">>> Found " + conversations.size() + " conversations");
         return ResponseEntity.ok().body(conversations);
     }
 }
