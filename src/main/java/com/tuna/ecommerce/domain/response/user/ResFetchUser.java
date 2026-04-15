@@ -24,6 +24,7 @@ public class ResFetchUser {
     private String createdBy;
     private String updateBy;
     private Boolean active;
+    private Boolean verified;
     private RoleUser role;
 
     @AllArgsConstructor

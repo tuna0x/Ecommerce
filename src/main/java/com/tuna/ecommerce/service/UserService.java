@@ -71,7 +71,7 @@ public class UserService {
     public User handleUpdate(User user) {
         User curUser = getUserById(user.getId());
         if (curUser != null) {
-            curUser.setEmail(user.getEmail());
+            // curUser.setEmail(user.getEmail()); // Email is username, cannot be changed
             if (user.getPassword() != null && !user.getPassword().isEmpty()) {
                 curUser.setPassword(user.getPassword());
             }
@@ -189,6 +189,7 @@ public class UserService {
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+        res.setVerified(user.getVerified());
 
         if (user.getRole() != null) {
             ResCreateUser.RoleUser roleRes = new ResCreateUser.RoleUser();
@@ -217,6 +218,7 @@ public class UserService {
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+        res.setVerified(user.getVerified());
 
         if (user.getRole() != null) {
             ResUpdateUser.RoleUser roleRes = new ResUpdateUser.RoleUser();
@@ -245,6 +247,7 @@ public class UserService {
         res.setCreatedBy(user.getCreatedBy());
         res.setUpdateBy(user.getUpdatedBy());
         res.setActive(user.getActive());
+        res.setVerified(user.getVerified());
 
         if (user.getRole() != null) {
             ResFetchUser.RoleUser roleRes = new ResFetchUser.RoleUser();
@@ -260,6 +263,16 @@ public class UserService {
         User user = this.getUserById(id);
         if (user != null) {
             user.setActive(active);
+            user = this.userRepository.save(user);
+        }
+        return user;
+    }
+
+    @CacheEvict(value = "user_permissions", key = "#result.email", condition = "#result != null")
+    public User handleToggleVerified(Long id, boolean verified) {
+        User user = this.getUserById(id);
+        if (user != null) {
+            user.setVerified(verified);
             user = this.userRepository.save(user);
         }
         return user;
@@ -379,6 +392,7 @@ public class UserService {
                 .orderStatusDistribution(statusDistribution)
                 .lastLoginAt(user.getLastLoginAt())
                 .lastIpAddress(user.getLastIpAddress())
+                .verified(user.getVerified())
                 .autoTags(autoTags)
                 .customTags(customTags)
                 .adminNotes(adminNotes)

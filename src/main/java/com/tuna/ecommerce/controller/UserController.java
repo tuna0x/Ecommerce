@@ -103,6 +103,17 @@ public class UserController {
         return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
     }
 
+    @PatchMapping("/users/{id}/verified")
+    @APIMessage("Toggle user verification status successfully")
+    public ResponseEntity<ResUpdateUser> toggleVerified(@PathVariable("id") Long id, @RequestBody User user)
+            throws IdInvalidException {
+        User cur = this.userService.handleToggleVerified(id, user.getVerified());
+        if (cur == null) {
+            throw new IdInvalidException("User id invalid");
+        }
+        return ResponseEntity.ok().body(this.userService.convertToResUpdateUser(cur));
+    }
+
     @PatchMapping("/users/{id}/role")
     @APIMessage("Update user role successfully")
     public ResponseEntity<ResUpdateUser> updateRole(@PathVariable("id") Long id, @RequestBody User user)

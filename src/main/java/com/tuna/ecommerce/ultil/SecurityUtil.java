@@ -53,6 +53,7 @@ public class SecurityUtil {
     userInsideToken.setId(dto.getUser().getId());
     userInsideToken.setName(dto.getUser().getName());
     userInsideToken.setEmail(dto.getUser().getEmail());
+    userInsideToken.setVerified(dto.getUser().getVerified());
 
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
@@ -80,6 +81,7 @@ public class SecurityUtil {
     userInsideToken.setId(dto.getUser().getId());
     userInsideToken.setName(dto.getUser().getName());
     userInsideToken.setEmail(dto.getUser().getEmail());
+    userInsideToken.setVerified(dto.getUser().getVerified());
 
         Instant now = Instant.now();
         Instant validity = now.plus(this.refreshTokenExpiration, ChronoUnit.SECONDS);
