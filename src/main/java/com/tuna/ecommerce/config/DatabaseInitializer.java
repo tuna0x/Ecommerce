@@ -177,6 +177,22 @@ public class DatabaseInitializer implements CommandLineRunner {
             c2.setUsageLimit(500);
             c2.setUsedCount(0);
             this.couponRepository.save(c2);
+
+            com.tuna.ecommerce.domain.Coupon c3 = new com.tuna.ecommerce.domain.Coupon();
+            c3.setName("Chào mừng bạn mới");
+            c3.setDescription("Giảm 20% cho đơn hàng đầu tiên");
+            c3.setCode("BONG20");
+            c3.setType(com.tuna.ecommerce.ultil.constant.CouponTypeEnum.PERCENT);
+            c3.setDiscountValue(BigDecimal.valueOf(20));
+            c3.setMinOrderValue(BigDecimal.valueOf(100000));
+            c3.setStartDate(LocalDateTime.now().minusDays(1));
+            c3.setEndDate(LocalDateTime.now().plusDays(365));
+            c3.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
+            c3.setPublic(false);
+            c3.setFirstOrderOnly(true);
+            c3.setUsageLimit(10000);
+            c3.setUsedCount(0);
+            this.couponRepository.save(c3);
             System.out.println(">>> CREATED DEFAULT COUPONS");
         }
 
@@ -397,6 +413,11 @@ public class DatabaseInitializer implements CommandLineRunner {
         // TRACKING
         perms.add(new PermDef("Get all tracking logs", "/api/v1/tracking/logs", "GET", "TRACKING", false));
         perms.add(new PermDef("Get tracking analytics", "/api/v1/tracking/analytics", "GET", "TRACKING", false));
+
+        // SUBSCRIBERS
+        perms.add(new PermDef("Subscribe to newsletter", "/api/v1/subscribers", "POST", "SUBSCRIBERS", true));
+        perms.add(new PermDef("Get subscribers with pagination", "/api/v1/subscribers", "GET", "SUBSCRIBERS", false));
+        perms.add(new PermDef("Delete a subscriber", "/api/v1/subscribers/{id}", "DELETE", "SUBSCRIBERS", false));
 
         boolean updated = false;
         for (PermDef def : perms) {
