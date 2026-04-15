@@ -16,6 +16,15 @@ import com.tuna.ecommerce.domain.response.inventory.ResInventoryDTO;
 import com.tuna.ecommerce.service.InventoryService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import com.turkraft.springfilter.boot.Filter;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import java.io.IOException;
 
 import lombok.AllArgsConstructor;
 
@@ -55,5 +64,26 @@ public class InventoryController {
     @APIMessage("Get inventory logs successfully")
     public ResponseEntity<List<InventoryLog>> getLogs(@PathVariable("id") Long id) throws IdInvalidException {
         return ResponseEntity.ok(inventoryService.getHistory(id));
+    }
+
+    @GetMapping("/logs")
+    @APIMessage("Get all inventory logs successfully")
+    public ResponseEntity<ResultPaginationDTO> getAllLogs(
+            @Filter Specification<InventoryLog> spec,
+            Pageable pageable) {
+        return ResponseEntity.ok(inventoryService.getGlobalHistory(spec, pageable));
+    }
+
+    @GetMapping("/logs/export")
+    @APIMessage("Export inventory logs successfully")
+    public ResponseEntity<Resource> exportLogs(@Filter Specification<InventoryLog> spec) throws IOException {
+        byte[] data = inventoryService.exportGlobalHistoryToExcel(spec);
+        ByteArrayResource resource = new ByteArrayResource(data);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=inventory_logs.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .contentLength(data.length)
+                .body(resource);
     }
 }

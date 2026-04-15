@@ -15,7 +15,17 @@ import com.tuna.ecommerce.repository.InventoryLogRepository;
 import com.tuna.ecommerce.repository.InventoryRepository;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.domain.response.inventory.ResInventoryDTO;
+import com.tuna.ecommerce.domain.response.inventory.ResInventoryLogDTO;
 import com.tuna.ecommerce.domain.request.inventory.ReqInventoryAdjustDTO;
+import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import com.tuna.ecommerce.ultil.constant.InventoryLogType;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import lombok.AllArgsConstructor;
@@ -212,6 +222,133 @@ public class InventoryService {
         Inventory inventory = inventoryRepository.findById(inventoryId)
                 .orElseThrow(() -> new IdInvalidException("Inventory not found"));
         return inventoryLogRepository.findByInventoryOrderByCreatedAtDesc(inventory);
+    }
+
+    public ResultPaginationDTO getGlobalHistory(Specification<InventoryLog> spec, Pageable pageable) {
+        Page<InventoryLog> pageLogs = inventoryLogRepository.findAll(spec, pageable);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
+        meta.setPage(pageLogs.getNumber() + 1);
+        meta.setPageSize(pageLogs.getSize());
+        meta.setPages(pageLogs.getTotalPages());
+        meta.setTotal(pageLogs.getTotalElements());
+
+        rs.setMeta(meta);
+        List<ResInventoryLogDTO> list = pageLogs.getContent().stream()
+                .map(this::convertToResInventoryLogDTO)
+                .collect(Collectors.toList());
+        rs.setResult(list);
+        return rs;
+    }
+
+    public byte[] exportGlobalHistoryToExcel(Specification<InventoryLog> spec) throws IOException {
+        List<InventoryLog> logs = inventoryLogRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAt"));
+        
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Báo cáo Kho hàng");
+
+            // Header Style
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font font = workbook.createFont();
+            font.setBold(true);
+            headerStyle.setFont(font);
+
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {"ID", "Thời gian", "Sản phẩm", "SKU", "Biến động", "Loại", "Ghi chú", "Người thực hiện"};
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Fill data
+            int rowIdx = 1;
+            for (InventoryLog log : logs) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(log.getId());
+                row.createCell(1).setCellValue(log.getCreatedAt() != null ? log.getCreatedAt().toString() : "—");
+                
+                String pName = "N/A";
+                String sku = "N/A";
+                if (log.getInventory() != null && log.getInventory().getProductVariant() != null) {
+                    sku = log.getInventory().getProductVariant().getSku();
+                    if (log.getInventory().getProductVariant().getProduct() != null) {
+                        pName = log.getInventory().getProductVariant().getProduct().getName();
+                    }
+                }
+                
+                row.createCell(2).setCellValue(pName);
+                row.createCell(3).setCellValue(sku != null ? sku : "N/A");
+                row.createCell(4).setCellValue(log.getQuantityChange());
+                row.createCell(5).setCellValue(log.getType() != null ? log.getType().toString() : "UNKNOWN");
+                row.createCell(6).setCellValue(log.getNote() != null ? log.getNote() : "");
+                row.createCell(7).setCellValue(log.getCreatedBy() != null ? log.getCreatedBy() : "System");
+            }
+
+            // Auto-size columns with fallback
+            for (int i = 0; i < columns.length; i++) {
+                try {
+                    sheet.autoSizeColumn(i);
+                } catch (Exception e) {
+                    sheet.setColumnWidth(i, 5000); // Fallback to fixed width
+                }
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    public ResInventoryLogDTO convertToResInventoryLogDTO(InventoryLog log) {
+        if (log == null) return null;
+
+        ResInventoryLogDTO.InventoryDTO invDTO = null;
+        if (log.getInventory() != null) {
+            Inventory inv = log.getInventory();
+            ProductVariant variant = inv.getProductVariant();
+
+            ResInventoryLogDTO.ProductDTO productDTO = null;
+            ResInventoryLogDTO.ProductVariantDTO variantDTO = null;
+
+            if (variant != null) {
+                Product product = variant.getProduct();
+                if (product != null) {
+                    String thumbnail = null;
+                    if (product.getImages() != null && !product.getImages().isEmpty()) {
+                        thumbnail = product.getImages().get(0).getImageUrl();
+                    }
+                    productDTO = ResInventoryLogDTO.ProductDTO.builder()
+                            .id(product.getId())
+                            .name(product.getName())
+                            .thumbnail(thumbnail)
+                            .build();
+                }
+
+                variantDTO = ResInventoryLogDTO.ProductVariantDTO.builder()
+                        .id(variant.getId())
+                        .sku(variant.getSku())
+                        .product(productDTO)
+                        .build();
+            }
+
+            invDTO = ResInventoryLogDTO.InventoryDTO.builder()
+                    .id(inv.getId())
+                    .productVariant(variantDTO)
+                    .build();
+        }
+
+        return ResInventoryLogDTO.builder()
+                .id(log.getId())
+                .quantityChange(log.getQuantityChange())
+                .type(log.getType())
+                .note(log.getNote())
+                .createdAt(log.getCreatedAt())
+                .createdBy(log.getCreatedBy())
+                .inventory(invDTO)
+                .build();
     }
 
     @Transactional

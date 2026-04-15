@@ -9,7 +9,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
-import com.nimbusds.jose.util.Resource;
+import org.springframework.core.io.Resource;
 import com.tuna.ecommerce.domain.response.RestResponse;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 
