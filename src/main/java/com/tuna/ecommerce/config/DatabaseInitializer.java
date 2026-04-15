@@ -36,11 +36,13 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final PromotionRepository promotionRepository;
     private final CouponRepository couponRepository;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    private final com.tuna.ecommerce.repository.ProductRepository productRepository;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
             BannerRepository bannerRepository, PromotionRepository promotionRepository,
-            CouponRepository couponRepository, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+            CouponRepository couponRepository, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
+            com.tuna.ecommerce.repository.ProductRepository productRepository) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -50,6 +52,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         this.promotionRepository = promotionRepository;
         this.couponRepository = couponRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.productRepository = productRepository;
     }
 
     @Override
@@ -170,9 +173,18 @@ public class DatabaseInitializer implements CommandLineRunner {
             c2.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
             c2.setPublic(true);
             this.couponRepository.save(c2);
-
             System.out.println(">>> CREATED DEFAULT COUPONS");
         }
+
+        // 6. Sync Product nameUnsigned
+        List<com.tuna.ecommerce.domain.Product> productsForSync = this.productRepository.findAll();
+        for (com.tuna.ecommerce.domain.Product p : productsForSync) {
+            if (p.getNameUnsigned() == null) {
+                p.setNameUnsigned(com.tuna.ecommerce.domain.Product.removeVietnameseAccents(p.getName()));
+                this.productRepository.save(p);
+            }
+        }
+        System.out.println(">>> SYNCED NAME_UNSIGNED FOR PRODUCTS");
 
         System.out.println(">>> FINISH INIT DATABASE");
     }
@@ -196,7 +208,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // USERS
         perms.add(new PermDef("Create a user", "/api/v1/users", "POST", "USERS", false));
-        perms.add(new PermDef("Update a user", "/api/v1/users", "PUT", "USERS", false));
+        perms.add(new PermDef("Update a user", "/api/v1/users", "PUT", "USERS", true));
         perms.add(new PermDef("Delete a user", "/api/v1/users/{id}", "DELETE", "USERS", false));
         perms.add(new PermDef("Get a user by id", "/api/v1/users/{id}", "GET", "USERS", false));
         perms.add(new PermDef("Get users with pagination", "/api/v1/users", "GET", "USERS", false));

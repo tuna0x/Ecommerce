@@ -74,8 +74,9 @@ public class ProductController {
     public ResponseEntity<ResultPaginationDTO> getAllProduct(
             @Filter Specification<Product> spec,
             @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
+            @org.springframework.web.bind.annotation.RequestParam(value = "search", required = false) String search,
             Pageable pageable) {
-        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, categoryId, pageable));
+        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, categoryId, search, pageable));
     }
 
     @GetMapping("/products/flash-sale")
