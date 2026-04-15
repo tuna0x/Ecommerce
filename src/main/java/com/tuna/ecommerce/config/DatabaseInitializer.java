@@ -230,6 +230,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(
                 new PermDef("Update admin notes for user", "/api/v1/users/{id}/admin-notes", "PATCH", "USERS", false));
         perms.add(new PermDef("Check email existence", "/api/v1/auth/check-email", "GET", "USERS", true));
+        perms.add(new PermDef("Change password", "/api/v1/auth/change-password", "POST", "AUTH", true));
 
         // DASHBOARD
         perms.add(new PermDef("Get dashboard statistics", "/api/v1/dashboard/statistics", "GET", "DASHBOARD", false));
