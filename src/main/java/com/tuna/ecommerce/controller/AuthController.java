@@ -104,8 +104,8 @@ public class AuthController {
                 userLogin.setAge(curUserDB.getUserProfile().getAge());
                 userLogin.setGender(curUserDB.getUserProfile().getGender());
             }
+            userLogin.setVerified(curUserDB.getVerified());
             res.setUser(userLogin);
-
         }
         String access_token = this.securityUtil.createAccessToken(authentication.getName(), res);
         res.setAccessToken(access_token);
@@ -161,6 +161,12 @@ public class AuthController {
             }
         }
 
+        // Auto verify google user
+        if (user.getVerified() == null || !user.getVerified()) {
+            user.setVerified(true);
+            this.userService.handleUpdate(user);
+        }
+
         // Check if user is active
         if (user.getActive() != null && !user.getActive()) {
             throw new IdInvalidException(
@@ -178,6 +184,7 @@ public class AuthController {
             userLogin.setAge(user.getUserProfile().getAge());
             userLogin.setGender(user.getUserProfile().getGender());
         }
+        userLogin.setVerified(user.getVerified());
         res.setUser(userLogin);
 
         String access_token = this.securityUtil.createAccessToken(user.getEmail(), res);
@@ -215,6 +222,7 @@ public class AuthController {
                 userLogin.setAge(curUser.getUserProfile().getAge());
                 userLogin.setGender(curUser.getUserProfile().getGender());
             }
+            userLogin.setVerified(curUser.getVerified());
             userGetAccount.setUser(userLogin);
         }
         return ResponseEntity.ok().body(userGetAccount);
@@ -259,6 +267,7 @@ public class AuthController {
                 userLogin.setAge(curUserDB.getUserProfile().getAge());
                 userLogin.setGender(curUserDB.getUserProfile().getGender());
             }
+            userLogin.setVerified(curUserDB.getVerified());
             res.setUser(userLogin);
         }
         String access_token = this.securityUtil.createAccessToken(email, res);
@@ -326,6 +335,7 @@ public class AuthController {
             userLogin.setAge(newUser.getUserProfile().getAge());
             userLogin.setGender(newUser.getUserProfile().getGender());
         }
+        userLogin.setVerified(newUser.getVerified());
         res.setUser(userLogin);
 
         // Create tokens
@@ -367,6 +377,14 @@ public class AuthController {
         if (!isValid) {
             throw new IdInvalidException("Mã OTP không chính xác hoặc đã hết hạn");
         }
+
+        // Update user verified status
+        User user = this.userService.findByUsername(email);
+        if (user != null) {
+            user.setVerified(true);
+            this.userService.handleUpdate(user);
+        }
+
         return ResponseEntity.ok().build();
     }
 }

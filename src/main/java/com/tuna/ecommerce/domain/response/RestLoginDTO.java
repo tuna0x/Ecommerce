@@ -32,6 +32,7 @@ public class RestLoginDTO {
         private Integer age;
         private GenderEnum gender;
         private Role role;
+        private Boolean verified;
 
     }
 
@@ -54,5 +55,6 @@ public class RestLoginDTO {
         private String image;
         private Integer age;
         private GenderEnum gender;
+        private Boolean verified;
     }
 }

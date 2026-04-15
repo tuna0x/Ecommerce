@@ -30,6 +30,7 @@ public class ResUserAnalyticsDTO {
     // Security & Status
     private Instant lastLoginAt;
     private String lastIpAddress;
+    private Boolean verified;
     
     // Insights
     private List<String> autoTags;
