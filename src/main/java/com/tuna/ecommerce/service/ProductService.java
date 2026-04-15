@@ -101,14 +101,8 @@ public class ProductService {
 
     @jakarta.annotation.PostConstruct
     public void initPrices() {
-        // One-time sync for existing products that don't have a final price yet
-        List<Product> products = this.productRepository.findAll();
-        for (Product p : products) {
-            if (p.getPrice() == null) {
-                this.updateProductPrice(p);
-                this.productRepository.save(p);
-            }
-        }
+        // Full sync on startup to ensure all filtered prices are accurate
+        this.syncAllProductsPrice();
     }
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
@@ -368,7 +362,7 @@ public class ProductService {
         this.updateProductPrice(product);
     }
 
-    private void updateProductPrice(Product product) {
+    public void updateProductPrice(Product product) {
         if (product == null || product.getOriginalPrice() == null) {
             return;
         }
@@ -380,6 +374,16 @@ public class ProductService {
             product.setPrice(product.getOriginalPrice());
         }
     }
+    
+    @Transactional
+    public void syncAllProductsPrice() {
+        List<Product> products = this.productRepository.findAll();
+        for (Product p : products) {
+            this.updateProductPrice(p);
+            this.productRepository.save(p);
+        }
+    }
+
 
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
@@ -406,9 +410,9 @@ public class ProductService {
             String unsignedSearch = Product.removeVietnameseAccents(search.trim());
             Specification<Product> unsignedSpec = (root, query, cb) ->
                     cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch + "%");
-            // OR with the original spec from springfilter (which searches `name`)
+            // AND with the original spec from springfilter (which searches `name`)
             if (spec != null) {
-                spec = spec.or(unsignedSpec);
+                spec = spec.and(unsignedSpec);
             } else {
                 spec = unsignedSpec;
             }

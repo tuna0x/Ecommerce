@@ -39,6 +39,8 @@ public class PromotionService {
     private final ProductPromotionRepository productPromotionRepository;
     private final CategoryRepository categoryRepository;
     private final NotificationService notificationService;
+    private final ProductService productService;
+
 
     @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public Promotion createPromotion(ReqCreatePromotionDTO req) throws IdInvalidException {
@@ -68,8 +70,10 @@ public class PromotionService {
             this.assignCategoryProductsToPromotion(promotion.getId(), req.getCategoryId());
         }
 
+        this.productService.syncAllProductsPrice();
         return promotion;
     }
+
 
     @CacheEvict(value = { "products", "related_products", "flash_sale" }, allEntries = true)
     public void isActive(Long id) throws IdInvalidException {
@@ -79,6 +83,8 @@ public class PromotionService {
         }
         promotion.setActive(true);
         this.promotionRepository.save(promotion);
+        this.productService.syncAllProductsPrice();
+
 
         // Gửi thông báo cho tất cả người dùng
         this.notificationService.sendNotificationToAllUsers(
@@ -96,6 +102,8 @@ public class PromotionService {
         }
         promotion.setActive(false);
         this.promotionRepository.save(promotion);
+        this.productService.syncAllProductsPrice();
+
     }
 
     public Promotion getPromotionById(Long id) {
@@ -159,8 +167,10 @@ public class PromotionService {
                 this.assignCategoryProductsToPromotion(saved.getId(), dto.getCategoryId());
             }
 
+            this.productService.syncAllProductsPrice();
             return saved;
         }
+
         return null;
     }
 
@@ -170,7 +180,9 @@ public class PromotionService {
     })
     public void deletePromotion(Long id) {
         promotionRepository.deleteById(id);
+        this.productService.syncAllProductsPrice();
     }
+
 
     public ResultPaginationDTO handleGetAll(Specification<Promotion> spec, Pageable page) {
         Page<Promotion> promotionContent = this.promotionRepository.findAll(spec, page);
@@ -206,7 +218,10 @@ public class PromotionService {
         productPromotion.setProduct(product);
         productPromotion.setPromotion(promotion);
         this.productPromotionRepository.save(productPromotion);
+        this.productService.updateProductPrice(product);
+        this.productRepository.save(product);
     }
+
 
     public boolean existById(Long id) {
         return this.promotionRepository.existsById(id);
@@ -245,8 +260,10 @@ public class PromotionService {
                     .filter(pp -> pp != null)
                     .collect(Collectors.toList());
             this.productPromotionRepository.saveAll(newAssignments);
+            this.productService.syncAllProductsPrice();
         }
     }
+
 
     @Transactional
     public void assignAllProductsToPromotion(Long promotionId) throws IdInvalidException {
