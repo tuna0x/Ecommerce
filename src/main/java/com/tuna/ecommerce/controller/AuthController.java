@@ -359,10 +359,20 @@ public class AuthController {
                 .body(res);
     }
 
+    @APIMessage("Kiểm tra email thành công")
+    @GetMapping("/auth/check-email")
+    public ResponseEntity<Boolean> checkEmail(@org.springframework.web.bind.annotation.RequestParam String email) {
+        return ResponseEntity.ok(this.userService.exitsByEmail(email));
+    }
+
     @PostMapping("/auth/otp/send")
     @APIMessage("Mã OTP đã được gửi đến email của bạn")
-    public ResponseEntity<Void> sendOtp(@RequestBody java.util.Map<String, String> request) {
+    public ResponseEntity<Void> sendOtp(@RequestBody java.util.Map<String, String> request) throws IdInvalidException {
         String email = request.get("email");
+        boolean isEmailExits = this.userService.exitsByEmail(email);
+        if (isEmailExits) {
+            throw new IdInvalidException("Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập.");
+        }
         this.otpService.generateAndSendOtp(email);
         return ResponseEntity.ok().build();
     }
