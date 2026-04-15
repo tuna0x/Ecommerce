@@ -36,8 +36,8 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String requestURI = request.getRequestURI();
 
         // White list for public endpoints, websockets, and payment callbacks
-        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket") || path.startsWith("/api/v1/payment/") || path.startsWith("/api/v1/tracking/log") || path.startsWith("/api/v1/tracking/logs") || path.startsWith("/api/v1/tracking/analytics") || path.startsWith("/api/v1/users/{id}/analytics") || path.startsWith("/api/v1/users/{id}/admin-notes"))) ||
-            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket") || requestURI.startsWith("/api/v1/payment/") || requestURI.startsWith("/api/v1/tracking/log") || requestURI.startsWith("/api/v1/tracking/logs") || requestURI.startsWith("/api/v1/tracking/analytics") || requestURI.contains("/analytics") || requestURI.contains("/admin-notes")))) {
+        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket") || path.startsWith("/api/v1/payment/") || path.startsWith("/api/v1/wishlist/") || path.startsWith("/api/v1/tracking/log") || path.startsWith("/api/v1/tracking/logs") || path.startsWith("/api/v1/tracking/analytics") || path.startsWith("/api/v1/users/{id}/analytics") || path.startsWith("/api/v1/users/{id}/admin-notes"))) ||
+            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket") || requestURI.startsWith("/api/v1/payment/") || requestURI.startsWith("/api/v1/wishlist/") || requestURI.startsWith("/api/v1/tracking/log") || requestURI.startsWith("/api/v1/tracking/logs") || requestURI.startsWith("/api/v1/tracking/analytics") || requestURI.contains("/analytics") || requestURI.contains("/admin-notes")))) {
             return true;
         }
 

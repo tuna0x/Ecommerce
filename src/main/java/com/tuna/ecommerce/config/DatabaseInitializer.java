@@ -342,6 +342,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Update item in cart", "/api/v1/cart", "PUT", "CART", true));
         perms.add(new PermDef("Delete item in cart by id", "/api/v1/cart/{id}", "DELETE", "CART", true));
 
+        // WISHLIST
+        perms.add(new PermDef("VIEW wishlist", "/api/v1/wishlist", "GET", "WISHLIST", true));
+        perms.add(new PermDef("VIEW wishlist check", "/api/v1/wishlist/check/{productId}", "GET", "WISHLIST", true));
+        perms.add(new PermDef("CREATE wishlist", "/api/v1/wishlist/{productId}", "POST", "WISHLIST", true));
+        perms.add(new PermDef("DELETE wishlist", "/api/v1/wishlist/{productId}", "DELETE", "WISHLIST", true));
+
         // ORDER
         perms.add(new PermDef("Create a order", "/api/v1/order/checkout", "POST", "ORDER", true));
         perms.add(new PermDef("Get order by id", "/api/v1/order/{id}", "GET", "ORDER", true));
@@ -397,6 +403,9 @@ public class DatabaseInitializer implements CommandLineRunner {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);
             if (p == null) {
                 p = new Permission(def.name, def.path, def.method, def.module);
+                p = this.permissionRepository.save(p);
+            } else if (!p.getName().equals(def.name)) {
+                p.setName(def.name);
                 p = this.permissionRepository.save(p);
             }
 
