@@ -66,6 +66,7 @@ public class OrderService {
     private final PaymentRepository paymentRepository;
     private final UserCouponRepository userCouponRepository;
     private final EmailService emailService;
+    private final CouponService couponService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -80,7 +81,8 @@ public class OrderService {
             @Lazy PaymentService paymentService,
             PaymentRepository paymentRepository,
             UserCouponRepository userCouponRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            CouponService couponService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -94,6 +96,7 @@ public class OrderService {
         this.paymentRepository = paymentRepository;
         this.userCouponRepository = userCouponRepository;
         this.emailService = emailService;
+        this.couponService = couponService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -236,23 +239,11 @@ public class OrderService {
         // Coupon logic
         String couponCode = req.getCouponCode();
         if (couponCode != null && !couponCode.isBlank()) {
-            Coupon coupon = this.couponRepository.findByCode(couponCode)
-                    .orElseThrow(() -> new IdInvalidException("Mã giảm giá không tồn tại: " + couponCode));
+            // Use CouponService to validate all complex rules (First order, Subscriber only, etc.)
+            Coupon coupon = this.couponService.validateCoupon(couponCode, email);
 
-            int usedCount = coupon.getUsedCount() != null ? coupon.getUsedCount() : 0;
-            int usageLimit = coupon.getUsageLimit() != null ? coupon.getUsageLimit() : 0;
-
-            if (usedCount >= usageLimit) {
-                throw new IdInvalidException("Mã giảm giá đã hết lượt sử dụng");
-            }
             if (coupon.getMinOrderValue() != null && subTotal.compareTo(coupon.getMinOrderValue()) < 0) {
                 throw new IdInvalidException("Đơn hàng chưa đủ giá trị tối thiểu để áp dụng mã.");
-            }
-            if (coupon.getStatus() != com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE) {
-                throw new IdInvalidException("Mã giảm giá không còn hoạt động");
-            }
-            if (coupon.getEndDate().isBefore(LocalDateTime.now())) {
-                throw new IdInvalidException("Mã giảm giá đã hết hạn");
             }
 
             // Check if user has this coupon in their wallet and if it's already used

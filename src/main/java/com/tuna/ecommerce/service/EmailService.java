@@ -108,4 +108,16 @@ public class EmailService {
         
         this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
     }
+
+    @Async
+    public void sendWelcomeNewsletterEmail(String to) {
+        String subject = "Chào mừng bạn đến với Bông Cosmetic - Nhận ngay ưu đãi 20%";
+        
+        Context context = new Context();
+        // Bạn có thể truyền thêm các biến vào đây nếu template cần
+        
+        String content = templateEngine.process("email/welcome-newsletter", context);
+        
+        this.sendEmailSync(to, subject, content, true);
+    }
 }

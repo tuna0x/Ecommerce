@@ -26,11 +26,20 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final com.tuna.ecommerce.repository.UserRepository userRepository;
     private final com.tuna.ecommerce.repository.UserCouponRepository userCouponRepository;
+    private final com.tuna.ecommerce.repository.OrderRepository orderRepository;
+    private final com.tuna.ecommerce.repository.SubscriberRepository subscriberRepository;
 
     public Coupon validateCoupon(String code, String email) throws com.tuna.ecommerce.ultil.err.IdInvalidException {
         Coupon coupon = this.getByCode(code);
         if (coupon == null) {
             throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá không tồn tại.");
+        }
+
+        // Logic check for BONG20 (Subscription required)
+        if ("BONG20".equalsIgnoreCase(code)) {
+            if (!this.subscriberRepository.existsByEmail(email)) {
+                throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Vui lòng đăng ký nhận bản tin để sử dụng mã giảm giá này!");
+            }
         }
 
         if (coupon.getStatus() != CouponStatus.ACTIVE) {
@@ -50,6 +59,14 @@ public class CouponService {
 
         com.tuna.ecommerce.domain.User user = userRepository.findByEmail(email);
         if (user != null) {
+            // Check if coupon is for first order only
+            if (coupon.isFirstOrderOnly()) {
+                long orderCount = this.orderRepository.countByUserId(user.getId());
+                if (orderCount > 0) {
+                    throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá này chỉ dành cho đơn hàng đầu tiên.");
+                }
+            }
+
             boolean alreadyUsed = userCouponRepository.findByUserAndCoupon(user, coupon)
                     .map(com.tuna.ecommerce.domain.UserCoupon::isUsed)
                     .orElse(false);

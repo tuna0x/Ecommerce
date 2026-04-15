@@ -26,6 +26,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Optional<Order> findByUserIdAndId(Long userId, Long id);
 
     Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    long countByUserId(Long userId);
 
     @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
     Page<Order> findAllByOrderByCreatedAtDesc(Pageable pageable);

@@ -50,6 +50,7 @@ public class Coupon {
     private CouponStatus status;
     @JsonProperty("isPublic")
     private boolean isPublic;
+    private boolean isFirstOrderOnly;
     private Instant createdAt;
     private Instant updatedAt;
 
