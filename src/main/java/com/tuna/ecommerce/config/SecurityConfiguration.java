@@ -61,6 +61,8 @@ public class SecurityConfiguration {
                 "/api/v1/auth/otp/send",
                 "/api/v1/auth/otp/verify",
                 "/api/v1/auth/check-email",
+                "/api/v1/auth/forgot-password",
+                "/api/v1/auth/reset-password",
                 "/websocket/**",
                 "/actuator/health",
                 "/api/v1/public/**",

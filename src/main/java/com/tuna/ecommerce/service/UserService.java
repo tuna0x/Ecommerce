@@ -430,4 +430,11 @@ public class UserService {
 
         return this.userRepository.save(user);
     }
+    public void updatePassword(String email, String newPassword) {
+        User user = this.findByUsername(email);
+        if (user != null) {
+            user.setPassword(newPassword);
+            this.userRepository.save(user);
+        }
+    }
 }

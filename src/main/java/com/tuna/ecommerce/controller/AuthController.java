@@ -22,6 +22,8 @@ import com.tuna.ecommerce.domain.request.auth.ReqLoginDTO;
 import com.tuna.ecommerce.domain.request.auth.ReqRegisterDTO;
 import com.tuna.ecommerce.domain.response.RestLoginDTO;
 import com.tuna.ecommerce.domain.request.auth.ReqSocialLoginDTO;
+import com.tuna.ecommerce.domain.request.auth.ReqChangePasswordDTO;
+import com.tuna.ecommerce.domain.request.auth.ReqResetPasswordDTO;
 import com.tuna.ecommerce.domain.response.user.ResCreateUser;
 import com.tuna.ecommerce.service.OtpService;
 import com.tuna.ecommerce.service.UserService;
@@ -395,6 +397,52 @@ public class AuthController {
             this.userService.handleUpdate(user);
         }
 
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/auth/forgot-password")
+    @APIMessage("Mã OTP đã được gửi đến email của bạn")
+    public ResponseEntity<Void> forgotPassword(@RequestBody java.util.Map<String, String> request)
+            throws IdInvalidException {
+        String email = request.get("email");
+        boolean isEmailExits = this.userService.exitsByEmail(email);
+        if (!isEmailExits) {
+            throw new IdInvalidException("Email này chưa được đăng ký trong hệ thống.");
+        }
+        this.otpService.generateAndSendOtp(email);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/auth/reset-password")
+    @APIMessage("Đặt lại mật khẩu thành công")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ReqResetPasswordDTO req)
+            throws IdInvalidException {
+        boolean isValid = this.otpService.verifyOtp(req.getEmail(), req.getOtp());
+        if (!isValid) {
+            throw new IdInvalidException("Mã OTP không chính xác hoặc đã hết hạn");
+        }
+
+        String hashPassWord = this.passwordEncoder.encode(req.getNewPassword());
+        this.userService.updatePassword(req.getEmail(), hashPassWord);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/auth/change-password")
+    @APIMessage("Đổi mật khẩu thành công")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ReqChangePasswordDTO req)
+            throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null) {
+            throw new IdInvalidException("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn");
+        }
+
+        User user = this.userService.findByUsername(email);
+        if (!this.passwordEncoder.matches(req.getCurrentPassword(), user.getPassword())) {
+            throw new IdInvalidException("Mật khẩu hiện tại không chính xác");
+        }
+
+        String hashPassWord = this.passwordEncoder.encode(req.getNewPassword());
+        this.userService.updatePassword(email, hashPassWord);
         return ResponseEntity.ok().build();
     }
 }
