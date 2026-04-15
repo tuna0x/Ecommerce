@@ -158,6 +158,8 @@ public class DatabaseInitializer implements CommandLineRunner {
             c1.setEndDate(LocalDateTime.now().plusDays(90));
             c1.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
             c1.setPublic(true);
+            c1.setUsageLimit(1000);
+            c1.setUsedCount(0);
             this.couponRepository.save(c1);
 
             com.tuna.ecommerce.domain.Coupon c2 = new com.tuna.ecommerce.domain.Coupon();
@@ -172,8 +174,18 @@ public class DatabaseInitializer implements CommandLineRunner {
             c2.setEndDate(LocalDateTime.now().plusDays(30));
             c2.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
             c2.setPublic(true);
+            c2.setUsageLimit(500);
+            c2.setUsedCount(0);
             this.couponRepository.save(c2);
             System.out.println(">>> CREATED DEFAULT COUPONS");
+        }
+
+        // 5.1 Cleanup existing Coupons with null usedCount
+        try {
+            jdbcTemplate.execute("UPDATE coupons SET used_count = 0 WHERE used_count IS NULL");
+            jdbcTemplate.execute("UPDATE coupons SET usage_limit = 1000 WHERE usage_limit IS NULL");
+        } catch (Exception e) {
+            System.err.println(">>> FAILED TO CLEANUP COUPONS: " + e.getMessage());
         }
 
         // 6. Sync Product nameUnsigned
