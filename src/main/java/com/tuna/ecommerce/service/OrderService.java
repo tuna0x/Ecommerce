@@ -3,6 +3,7 @@ package com.tuna.ecommerce.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -132,7 +133,12 @@ public class OrderService {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startDate));
             }
             if (endDate != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), endDate));
+                // End date is usually 00:00:00. Adjust to the end of the day (23:59:59)
+                Instant adjustedEndDate = endDate.truncatedTo(ChronoUnit.DAYS)
+                        .plus(23, ChronoUnit.HOURS)
+                        .plus(59, ChronoUnit.MINUTES)
+                        .plus(59, ChronoUnit.SECONDS);
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), adjustedEndDate));
             }
             if (query != null) {
                 query.orderBy(cb.desc(root.get("createdAt")));
@@ -233,7 +239,10 @@ public class OrderService {
             Coupon coupon = this.couponRepository.findByCode(couponCode)
                     .orElseThrow(() -> new IdInvalidException("Mã giảm giá không tồn tại: " + couponCode));
 
-            if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
+            int usedCount = coupon.getUsedCount() != null ? coupon.getUsedCount() : 0;
+            int usageLimit = coupon.getUsageLimit() != null ? coupon.getUsageLimit() : 0;
+
+            if (usedCount >= usageLimit) {
                 throw new IdInvalidException("Mã giảm giá đã hết lượt sử dụng");
             }
             if (coupon.getMinOrderValue() != null && subTotal.compareTo(coupon.getMinOrderValue()) < 0) {

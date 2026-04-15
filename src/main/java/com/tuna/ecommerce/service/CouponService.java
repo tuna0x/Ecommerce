@@ -41,7 +41,10 @@ public class CouponService {
             throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá đã hết hạn.");
         }
 
-        if (coupon.getUsedCount() >= coupon.getUsageLimit()) {
+        int usedCount = coupon.getUsedCount() != null ? coupon.getUsedCount() : 0;
+        int usageLimit = coupon.getUsageLimit() != null ? coupon.getUsageLimit() : 0;
+
+        if (usedCount >= usageLimit) {
             throw new com.tuna.ecommerce.ultil.err.IdInvalidException("Mã giảm giá đã hết lượt sử dụng tổng quát.");
         }
 

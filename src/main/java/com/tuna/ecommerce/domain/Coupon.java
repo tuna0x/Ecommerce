@@ -45,8 +45,8 @@ public class Coupon {
     private LocalDateTime endDate;
     private BigDecimal minOrderValue;
     private BigDecimal maxDiscountValue;
-    private Integer usageLimit;
-    private Integer usedCount;
+    private Integer usageLimit = 0;
+    private Integer usedCount = 0;
     private CouponStatus status;
     @JsonProperty("isPublic")
     private boolean isPublic;
