@@ -1,9 +1,11 @@
 package com.tuna.ecommerce.domain;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tuna.ecommerce.ultil.SecurityUtil;
@@ -40,6 +42,7 @@ public class Product {
     private Long id;
     @NotBlank(message = "name is not blank")
     private String name;
+    private String nameUnsigned; // Unaccented version for search
     private BigDecimal originalPrice;
     private BigDecimal price; // Final selling price after promotions
     private Instant createdAt;
@@ -95,7 +98,7 @@ public class Product {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         this.createdAt = Instant.now();
-
+        this.nameUnsigned = removeVietnameseAccents(this.name);
     }
 
     @PreUpdate
@@ -104,7 +107,17 @@ public class Product {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         this.updatedAt = Instant.now();
+        this.nameUnsigned = removeVietnameseAccents(this.name);
+    }
 
+    private static final Pattern DIACRITICS_PATTERN = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+
+    public static String removeVietnameseAccents(String str) {
+        if (str == null) return null;
+        String normalized = Normalizer.normalize(str, Normalizer.Form.NFD);
+        normalized = DIACRITICS_PATTERN.matcher(normalized).replaceAll("");
+        normalized = normalized.replace('đ', 'd').replace('Đ', 'D');
+        return normalized.toLowerCase();
     }
 
     public void addImage(ProductImage productImage) {

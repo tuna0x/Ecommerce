@@ -393,13 +393,27 @@ public class ProductService {
         }
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, Pageable page) {
+    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search, Pageable page) {
         if (categoryId != null) {
             List<Long> categoryIds = this.categoryService.getAllIdsInHierarchy(categoryId);
             Specification<Product> categorySpec = (root, query, cb) -> root.get("category").get("id")
                     .in(categoryIds);
             spec = (spec == null) ? categorySpec : spec.and(categorySpec);
         }
+
+        // Unaccented search: if search param exists, add OR condition for nameUnsigned
+        if (search != null && !search.trim().isEmpty()) {
+            String unsignedSearch = Product.removeVietnameseAccents(search.trim());
+            Specification<Product> unsignedSpec = (root, query, cb) ->
+                    cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch + "%");
+            // OR with the original spec from springfilter (which searches `name`)
+            if (spec != null) {
+                spec = spec.or(unsignedSpec);
+            } else {
+                spec = unsignedSpec;
+            }
+        }
+
         Page<Product> product = this.productRepository.findAll(spec, page);
         ResultPaginationDTO rs = new ResultPaginationDTO();
         ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
