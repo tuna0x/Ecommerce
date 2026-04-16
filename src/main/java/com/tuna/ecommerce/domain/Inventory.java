@@ -33,6 +33,9 @@ public class Inventory {
     @JoinColumn(name = "product_variant_id")
     private ProductVariant productVariant;
 
+    @jakarta.persistence.OneToMany(mappedBy = "inventory", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<InventoryLog> inventoryLogs = new java.util.ArrayList<>();
+
     private int stock;
     private int reservedStock = 0; // Hàng đang được giữ
     private int minStockThreshold = 10; // Ngưỡng báo hết hàng
