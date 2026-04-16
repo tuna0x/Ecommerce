@@ -3,6 +3,7 @@ package com.tuna.ecommerce.domain;
 import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -34,10 +35,12 @@ public class FlashSaleItem {
 
     @ManyToOne
     @JoinColumn(name = "product_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Product product;
 
     @ManyToOne
     @JoinColumn(name = "variant_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private ProductVariant variant;
 
     private BigDecimal flashSalePrice;
