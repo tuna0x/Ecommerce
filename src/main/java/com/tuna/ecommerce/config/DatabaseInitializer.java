@@ -37,12 +37,14 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final CouponRepository couponRepository;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     private final com.tuna.ecommerce.repository.ProductRepository productRepository;
+    private final com.tuna.ecommerce.repository.BlogRepository blogRepository;
 
     public DatabaseInitializer(PermissionRepository permissionRepository, RoleRepository roleRepository,
             UserRepository userRepository, PasswordEncoder passwordEncoder, BrandRepository brandRepository,
             BannerRepository bannerRepository, PromotionRepository promotionRepository,
             CouponRepository couponRepository, org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            com.tuna.ecommerce.repository.ProductRepository productRepository) {
+            com.tuna.ecommerce.repository.ProductRepository productRepository,
+            com.tuna.ecommerce.repository.BlogRepository blogRepository) {
         this.permissionRepository = permissionRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
@@ -53,6 +55,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         this.couponRepository = couponRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.productRepository = productRepository;
+        this.blogRepository = blogRepository;
     }
 
     @Override
@@ -213,6 +216,31 @@ public class DatabaseInitializer implements CommandLineRunner {
             }
         }
         System.out.println(">>> SYNCED NAME_UNSIGNED FOR PRODUCTS");
+
+        // 7. Seed Blogs
+        if (this.blogRepository.count() == 0) {
+            com.tuna.ecommerce.domain.Blog b1 = new com.tuna.ecommerce.domain.Blog();
+            b1.setTitle("10 Bước Skincare Hàn Quốc Cho Làn Da Hoàn Hảo");
+            b1.setExcerpt("Khám phá quy trình chăm sóc da 10 bước nổi tiếng của Hàn Quốc giúp bạn có làn da căng bóng, mịn màng như idol K-pop.");
+            b1.setContent("<h2>Quy trình skincare 10 bước chuẩn Hàn</h2><p>Làn da thủy tinh (glass skin) không tự nhiên mà có. Đó là kết quả của một quy trình chăm sóc tỉ mỉ...</p>");
+            b1.setImage("https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&h=400&fit=crop");
+            b1.setCategory("Chăm sóc da");
+            b1.setAuthor("Thu Trang");
+            b1.setReadTime("8 phút");
+            this.blogRepository.save(b1);
+
+            com.tuna.ecommerce.domain.Blog b2 = new com.tuna.ecommerce.domain.Blog();
+            b2.setTitle("Review Serum Vitamin C: Top 5 Sản Phẩm Đáng Mua Nhất 2024");
+            b2.setExcerpt("So sánh chi tiết 5 loại serum Vitamin C bán chạy nhất hiện nay từ thành phần, hiệu quả đến giá thành.");
+            b2.setContent("<h2>Tại sao Serum Vitamin C lại quan trọng?</h2><p>Vitamin C là thành phần chống oxy hóa mạnh mẽ giúp làm sáng da và mờ thâm...</p>");
+            b2.setImage("https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=600&h=400&fit=crop");
+            b2.setCategory("Review sản phẩm");
+            b2.setAuthor("Minh Đức");
+            b2.setReadTime("10 phút");
+            this.blogRepository.save(b2);
+
+            System.out.println(">>> CREATED DEFAULT BLOGS");
+        }
 
         System.out.println(">>> FINISH INIT DATABASE");
     }
@@ -413,6 +441,13 @@ public class DatabaseInitializer implements CommandLineRunner {
         // TRACKING
         perms.add(new PermDef("Get all tracking logs", "/api/v1/tracking/logs", "GET", "TRACKING", false));
         perms.add(new PermDef("Get tracking analytics", "/api/v1/tracking/analytics", "GET", "TRACKING", false));
+
+        // BLOGS
+        perms.add(new PermDef("Create a blog", "/api/v1/blogs", "POST", "BLOGS", false));
+        perms.add(new PermDef("Update a blog", "/api/v1/blogs", "PUT", "BLOGS", false));
+        perms.add(new PermDef("Delete a blog", "/api/v1/blogs/{id}", "DELETE", "BLOGS", false));
+        perms.add(new PermDef("Get a blog by id", "/api/v1/blogs/{id}", "GET", "BLOGS", true));
+        perms.add(new PermDef("Get blogs with pagination", "/api/v1/blogs", "GET", "BLOGS", true));
 
         // SUBSCRIBERS
         perms.add(new PermDef("Subscribe to newsletter", "/api/v1/subscribers", "POST", "SUBSCRIBERS", true));
