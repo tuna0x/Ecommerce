@@ -1,7 +1,9 @@
 package com.tuna.ecommerce.service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
@@ -19,147 +21,124 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
-
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
-    private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepository;
 
-    public ResDashboardDTO getStatistics(java.time.Instant startDate, java.time.Instant endDate) {
-        ResDashboardDTO dto = new ResDashboardDTO();
-
-        // Basic KPIs
+    public ResDashboardDTO getStatistics(Instant startDate, Instant endDate) {
+        // 1. Overview Stats
         BigDecimal totalRevenue = orderRepository.calculateTotalRevenue(startDate, endDate);
-        dto.setTotalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
-        dto.setTotalOrders(orderRepository.countTotalOrders(startDate, endDate));
-        dto.setTotalUsers(userRepository.count());
-        dto.setTotalProducts(productRepository.count());
-
-        // Monthly Revenue Trend
-        List<Object[]> monthlyData = orderRepository.findMonthlyRevenue(startDate, endDate);
-        List<ResDashboardDTO.MonthlyRevenue> monthlyRevenue = monthlyData.stream().map(obj -> {
-            ResDashboardDTO.MonthlyRevenue rev = new ResDashboardDTO.MonthlyRevenue();
-            rev.setMonth((String) obj[0]);
-            rev.setRevenue(obj[1] != null ? (BigDecimal) obj[1] : BigDecimal.ZERO);
-            rev.setOrderCount(obj[2] != null ? ((Number) obj[2]).longValue() : 0L);
-            return rev;
-        }).collect(Collectors.toList());
-        dto.setMonthlyRevenue(monthlyRevenue);
-
-        // Top 5 selling products
-        List<Object[]> topSelling = orderItemRepository.findTopSellingProducts(startDate, endDate, PageRequest.of(0, 5));
-        List<ResDashboardDTO.ProductStat> topSellingDTO = topSelling.stream().map(obj -> {
-            ResDashboardDTO.ProductStat stat = new ResDashboardDTO.ProductStat();
-            stat.setName((String) obj[0]);
-            stat.setQuantity(((Number) obj[1]).longValue());
-            return stat;
-        }).collect(Collectors.toList());
-        dto.setTopSellingProducts(topSellingDTO);
-
-        // Inventory Analytics
-        ResDashboardDTO.InventorySummary invSummary = new ResDashboardDTO.InventorySummary();
-        BigDecimal capitalValue = inventoryRepository.calculateTotalCapitalValue();
-        invSummary.setTotalCapitalValue(capitalValue != null ? capitalValue : BigDecimal.ZERO);
-        invSummary.setTotalItems(inventoryRepository.count());
-        invSummary.setLowStockCount(inventoryRepository.countLowStock());
-        invSummary.setOutOfStockCount(inventoryRepository.countOutOfStock());
-
-        // Top 8 Products by Value
-        List<Object[]> topValueData = inventoryRepository.findTopProductsByValue();
-        List<ResDashboardDTO.ProductValueStat> topValueDTO = topValueData.stream().limit(8).map(obj -> {
-            ResDashboardDTO.ProductValueStat stat = new ResDashboardDTO.ProductValueStat();
-            stat.setName((String) obj[0]);
-            stat.setValue(obj[1] != null ? (BigDecimal) obj[1] : BigDecimal.ZERO);
-            return stat;
-        }).collect(Collectors.toList());
-        invSummary.setTopProductsByValue(topValueDTO);
-
-        dto.setInventorySummary(invSummary);
-
-        // Category Distribution (based on Orders)
-        List<Object[]> categoryData = orderRepository.findCategoryOrderDistribution(startDate, endDate);
-        List<ResDashboardDTO.CategoryStat> allCategoryStats = categoryData.stream().map(obj -> {
-            ResDashboardDTO.CategoryStat stat = new ResDashboardDTO.CategoryStat();
-            stat.setCategory((String) obj[0]);
-            stat.setCount(((Number) obj[1]).longValue());
-            stat.setValue(obj[2] != null ? (BigDecimal) obj[2] : BigDecimal.ZERO);
-            return stat;
-        }).sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
-          .collect(Collectors.toList());
-
-        List<ResDashboardDTO.CategoryStat> categoryStats = allCategoryStats.stream().limit(5).collect(Collectors.toList());
-        if (allCategoryStats.size() > 5) {
-            long otherCount = allCategoryStats.stream().skip(5).mapToLong(ResDashboardDTO.CategoryStat::getCount).sum();
-            BigDecimal otherValue = allCategoryStats.stream().skip(5).map(ResDashboardDTO.CategoryStat::getValue).reduce(BigDecimal.ZERO, BigDecimal::add);
-            ResDashboardDTO.CategoryStat otherStat = new ResDashboardDTO.CategoryStat();
-            otherStat.setCategory("Khác");
-            otherStat.setCount(otherCount);
-            otherStat.setValue(otherValue);
-            categoryStats.add(otherStat);
-        }
-        dto.setCategoryDistribution(categoryStats);
-        
-        // Populate Recent Orders
-        List<com.tuna.ecommerce.domain.Order> recentOrdersData = orderRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 5)).getContent();
-        List<ResDashboardDTO.RecentOrder> recentOrdersDTO = recentOrdersData.stream().map(order -> {
-            ResDashboardDTO.RecentOrder ro = new ResDashboardDTO.RecentOrder();
-            ro.setId(order.getId());
-            ro.setTransactionId(order.getPayment() != null ? order.getPayment().getTransactionId() : "N/A");
-            ro.setCustomerName(order.getReceiverName());
-            ro.setTotal(order.getFinalPrice());
-            ro.setStatus(order.getStatus().toString());
-            ro.setCreatedAt(order.getCreatedAt());
-            return ro;
-        }).collect(Collectors.toList());
-        dto.setRecentOrders(recentOrdersDTO);
-
-        // Populate Low Stock Products
-        List<Object[]> lowStockData = inventoryRepository.findLowStockItems();
-        List<ResDashboardDTO.LowStockProduct> lowStockDTO = lowStockData.stream().limit(5).map(obj -> {
-            ResDashboardDTO.LowStockProduct lsp = new ResDashboardDTO.LowStockProduct();
-            lsp.setId(((Number) obj[0]).longValue());
-            lsp.setName((String) obj[1]);
-            lsp.setImage((String) obj[2]);
-            lsp.setStock(((Number) obj[3]).longValue());
-            return lsp;
-        }).collect(Collectors.toList());
-        dto.setLowStockProducts(lowStockDTO);
-        
-        // --- NEW STATISTICS ---
-        
-        // 1. Order Status Distribution
-        List<Object[]> statusData = orderRepository.countOrdersByStatus(startDate, endDate);
-        java.util.Map<String, Long> statusDistribution = new java.util.HashMap<>();
-        for (Object[] obj : statusData) {
-            statusDistribution.put(obj[0].toString(), ((Number) obj[1]).longValue());
-        }
-        dto.setOrderStatusDistribution(statusDistribution);
-        
-        // 2. Customer Loyalty
-        dto.setNewUsersCount(userRepository.countNewUsers(startDate, endDate));
-        dto.setReturningUsersCount(orderRepository.countReturningUsers(startDate, endDate));
-        
-        // 3. Average Order Value
+        long totalOrders = orderRepository.countTotalOrders(startDate, endDate);
+        long totalUsers = userRepository.count();
+        long totalProducts = productRepository.count();
         Double aov = orderRepository.calculateAverageOrderValue(startDate, endDate);
-        dto.setAverageOrderValue(aov != null ? BigDecimal.valueOf(aov) : BigDecimal.ZERO);
-        
-        // 4. Revenue Growth Rate
-        java.time.Duration duration = java.time.Duration.between(startDate, endDate);
-        java.time.Instant prevStartDate = startDate.minus(duration);
-        BigDecimal currentRevenue = dto.getTotalRevenue();
+        long newUsers = userRepository.countNewUsers(startDate, endDate);
+        long returningUsers = orderRepository.countReturningUsers(startDate, endDate);
+
+        // 2. Growth Rate Calculation
+        long durationDays = java.time.Duration.between(startDate, endDate).toDays();
+        Instant prevStartDate = startDate.minus(durationDays, java.time.temporal.ChronoUnit.DAYS);
         BigDecimal prevRevenue = orderRepository.calculateTotalRevenue(prevStartDate, startDate);
-        
-        if (prevRevenue == null || prevRevenue.equals(BigDecimal.ZERO)) {
-            dto.setRevenueGrowthRate(currentRevenue.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0);
-        } else {
-            double growth = currentRevenue.subtract(prevRevenue)
-                                         .divide(prevRevenue, 4, java.math.RoundingMode.HALF_UP)
-                                         .multiply(new BigDecimal(100))
-                                         .doubleValue();
-            dto.setRevenueGrowthRate(growth);
+        double growthRate = 0;
+        if (prevRevenue != null && prevRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            growthRate = (totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
+                    .subtract(prevRevenue)
+                    .divide(prevRevenue, 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal(100)).doubleValue();
         }
 
-        return dto;
+        // 3. Distributions
+        List<Object[]> statusData = orderRepository.countOrdersByStatus(startDate, endDate);
+        Map<String, Long> statusDist = statusData.stream()
+                .collect(Collectors.toMap(row -> row[0].toString(), row -> ((Number) row[1]).longValue()));
+
+        List<Object[]> catData = orderRepository.findCategoryOrderDistribution(startDate, endDate);
+        List<ResDashboardDTO.CategoryStat> catDist = catData.stream()
+                .map(row -> ResDashboardDTO.CategoryStat.builder()
+                        .category((String) row[0])
+                        .count(((Number) row[1]).longValue())
+                        .value(new BigDecimal(row[2].toString()))
+                        .build())
+                .collect(Collectors.toList());
+
+        // 4. Monthly Revenue (Chart)
+        List<Object[]> monthlyData = orderRepository.findMonthlyRevenue(startDate, endDate);
+        List<ResDashboardDTO.MonthlyRevenue> monthlyRevenue = monthlyData.stream()
+                .map(row -> ResDashboardDTO.MonthlyRevenue.builder()
+                        .month((String) row[0])
+                        .revenue(new BigDecimal(row[1].toString()))
+                        .orderCount(((Number) row[2]).longValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 5. Top Selling Products
+        List<Object[]> topProductData = orderItemRepository.findTopSellingProducts(startDate, endDate, PageRequest.of(0, 5));
+        List<ResDashboardDTO.ProductStat> topProducts = topProductData.stream()
+                .map(row -> ResDashboardDTO.ProductStat.builder()
+                        .name((String) row[0])
+                        .quantity(((Number) row[1]).longValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 6. Inventory Logic
+        List<Object[]> topProdByValueData = inventoryRepository.findTopProductsByValue();
+        List<ResDashboardDTO.ProductValueStat> topProductsByValue = topProdByValueData.stream()
+                .limit(5)
+                .map(row -> ResDashboardDTO.ProductValueStat.builder()
+                        .name((String) row[0])
+                        .value(new BigDecimal(row[1].toString()))
+                        .build())
+                .collect(Collectors.toList());
+
+        ResDashboardDTO.InventorySummary invSummary = ResDashboardDTO.InventorySummary.builder()
+                .totalCapitalValue(inventoryRepository.calculateTotalCapitalValue())
+                .totalItems(inventoryRepository.count())
+                .lowStockCount(inventoryRepository.countLowStock())
+                .outOfStockCount(inventoryRepository.countOutOfStock())
+                .topProductsByValue(topProductsByValue)
+                .build();
+
+        List<Object[]> lowStockData = inventoryRepository.findLowStockItems();
+        List<ResDashboardDTO.LowStockProduct> lowStockProducts = lowStockData.stream()
+                .map(row -> ResDashboardDTO.LowStockProduct.builder()
+                        .id(((Number) row[0]).longValue())
+                        .name((String) row[1])
+                        .image((String) row[2])
+                        .stock(((Number) row[3]).intValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 7. Recent Activity
+        List<com.tuna.ecommerce.domain.Order> recentOrdersList = orderRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 10)).getContent();
+        List<ResDashboardDTO.RecentOrder> recentOrders = recentOrdersList.stream()
+                .map(order -> ResDashboardDTO.RecentOrder.builder()
+                        .id(order.getId())
+                        .transactionId(order.getPayment() != null ? order.getPayment().getTransactionId() : "N/A")
+                        .customerName(order.getReceiverName())
+                        .total(order.getFinalPrice())
+                        .status(order.getStatus().toString())
+                        .createdAt(order.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResDashboardDTO.builder()
+                .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
+                .totalOrders(totalOrders)
+                .totalUsers(totalUsers)
+                .totalProducts(totalProducts)
+                .averageOrderValue(aov != null ? aov : 0.0)
+                .revenueGrowthRate(growthRate)
+                .newUsersCount(newUsers)
+                .returningUsersCount(returningUsers)
+                .orderStatusDistribution(statusDist)
+                .monthlyRevenue(monthlyRevenue)
+                .categoryDistribution(catDist)
+                .topSellingProducts(topProducts)
+                .inventorySummary(invSummary)
+                .lowStockProducts(lowStockProducts)
+                .recentOrders(recentOrders)
+                .build();
     }
 }

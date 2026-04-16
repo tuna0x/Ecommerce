@@ -63,6 +63,7 @@ public class GeminiService {
     private final TrackingService trackingService;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+    private final TelegramService telegramService;
 
     public GeminiService(ProductService productService,
             OrderService orderService,
@@ -72,7 +73,8 @@ public class GeminiService {
             UserBehaviorRepository userBehaviorRepository,
             TrackingService trackingService,
             ObjectMapper objectMapper,
-            RestTemplate restTemplate) {
+            RestTemplate restTemplate,
+            TelegramService telegramService) {
         this.productService = productService;
         this.orderService = orderService;
         this.couponService = couponService;
@@ -82,6 +84,7 @@ public class GeminiService {
         this.trackingService = trackingService;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
+        this.telegramService = telegramService;
     }
 
     private String formatBehaviorMetadata(UserBehavior b) {
@@ -280,7 +283,8 @@ public class GeminiService {
                 systemPart.put("text", "Bạn là 'Bông', Chuyên gia tư vấn da liễu dẻo miệng của thương hiệu Bông Cosmetic. " +
                         "Hãy gọi khách là 'Nàng/Cậu' nếu không biết tên, hiện tại bạn đang chat với: [" + userNameContext + "]. " +
                         "Hãy chủ động chào tên thật của khách để tạo sự thân thiết.\n" +
-                        "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CHƯA TÌM THẤY. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!" +
+                        "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CỬA HÀNG CHƯA CÓ THÔNG TIN NÀY. " +
+                        "Sau đó hãy đề xuất khách hàng để lại thông tin hoặc đợi một chút để nhân viên trực shop hỗ trợ trực tiếp. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!" +
                         (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM HIỆN CÓ TRONG CỬA HÀNG ---\n" + productContext) +
                         (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
                         (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
@@ -351,6 +355,14 @@ public class GeminiService {
                         null,
                         pageUrl
                     );
+
+                    // Alert Admin if user is complaining or AI is struggling (UNKNOWN intent)
+                    if (intent == ChatIntent.COMPLAINT) {
+                        telegramService.sendAiAlert(currentUserEmail, userMessage, "Khách hàng đang phàn nàn/bực bội");
+                    } else if (intent == ChatIntent.UNKNOWN && userMessage.length() > 5) {
+                         // Only alert for meaningful unknown queries, not just random letters
+                        telegramService.sendAiAlert(currentUserEmail, userMessage, "AI không hiểu hoặc không tìm thấy dữ liệu phù hợp");
+                    }
 
                     return aiResponse;
                 }

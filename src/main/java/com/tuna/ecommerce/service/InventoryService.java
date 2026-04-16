@@ -36,6 +36,7 @@ public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final TelegramService telegramService;
 
     public int getCurrentStock(Long productId, Long variantId) throws IdInvalidException {
         return getOrCreateInventory(productId, variantId).getStock();
@@ -83,6 +84,8 @@ public class InventoryService {
         log.setType(InventoryLogType.RESERVE);
         log.setNote("Giữ hàng cho đơn hàng mới");
         inventoryLogRepository.save(log);
+        
+        checkLowStockAndNotify(inventory);
 
         return inventory;
     }
@@ -107,6 +110,8 @@ public class InventoryService {
         log.setType(InventoryLogType.SALE);
         log.setNote(note != null ? note : "Xác nhận đơn hàng và trừ kho chính thức");
         inventoryLogRepository.save(log);
+
+        checkLowStockAndNotify(inventory);
     }
 
     @Transactional
@@ -151,7 +156,23 @@ public class InventoryService {
         log.setNote(note);
         inventoryLogRepository.save(log);
 
+        checkLowStockAndNotify(inventory);
+
         return convertToResInventoryDTO(inventory);
+    }
+    
+    private void checkLowStockAndNotify(Inventory inventory) {
+        if (inventory.getStock() < inventory.getMinStockThreshold()) {
+            String productName = "N/A";
+            String sku = "N/A";
+            if (inventory.getProductVariant() != null) {
+                sku = inventory.getProductVariant().getSku();
+                if (inventory.getProductVariant().getProduct() != null) {
+                    productName = inventory.getProductVariant().getProduct().getName();
+                }
+            }
+            telegramService.sendLowStockAlert(productName, sku, inventory.getStock());
+        }
     }
 
     @Transactional
