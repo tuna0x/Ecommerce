@@ -469,6 +469,8 @@ public class OrderService {
                     // Chỉ tính "đã bán" khi đơn hàng được xác nhận
                     item.getProduct().setSoldCount(item.getProduct().getSoldCount() + item.getQuantity());
                 }
+                // Send Telegram Notification to Admin
+                this.telegramService.sendOrderConfirmedNotification(order);
                 break;
             case DELIVERING:
                 title = "Đơn hàng đang được giao";

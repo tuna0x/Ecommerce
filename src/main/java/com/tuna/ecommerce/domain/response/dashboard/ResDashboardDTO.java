@@ -1,49 +1,44 @@
 package com.tuna.ecommerce.domain.response.dashboard;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Builder
 public class ResDashboardDTO {
+    // Overview Stats
     private BigDecimal totalRevenue;
     private long totalOrders;
     private long totalUsers;
     private long totalProducts;
-    private List<ProductStat> topSellingProducts;
-    private List<MonthlyRevenue> monthlyRevenue;
-    private List<CategoryStat> categoryDistribution;
-    private InventorySummary inventorySummary;
-    private List<RecentOrder> recentOrders;
-    private List<LowStockProduct> lowStockProducts;
-    
-    // New Statistics fields
-    private java.util.Map<String, Long> orderStatusDistribution;
+    private Double averageOrderValue;
+    private double revenueGrowthRate;
     private long newUsersCount;
     private long returningUsersCount;
-    private BigDecimal averageOrderValue;
-    private Double revenueGrowthRate;
+
+    // Distributions & Charts
+    private Map<String, Long> orderStatusDistribution;
+    private List<ProductStat> topSellingProducts;
+    private List<CategoryStat> categoryDistribution;
+    private List<MonthlyRevenue> monthlyRevenue; // Renamed from revenueChart for FE compatibility
+
+    // Inventory Section
+    private InventorySummary inventorySummary;
+    private List<LowStockProduct> lowStockProducts;
+
+    // Activity Section
+    private List<RecentOrder> recentOrders;
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ProductStat {
-        private String name;
-        private long quantity;
-    }
-
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Builder
     public static class MonthlyRevenue {
         private String month;
         private BigDecimal revenue;
@@ -52,8 +47,15 @@ public class ResDashboardDTO {
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Builder
+    public static class ProductStat {
+        private String name;
+        private long quantity;
+    }
+
+    @Getter
+    @Setter
+    @Builder
     public static class CategoryStat {
         private String category;
         private long count;
@@ -62,8 +64,7 @@ public class ResDashboardDTO {
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Builder
     public static class InventorySummary {
         private BigDecimal totalCapitalValue;
         private long totalItems;
@@ -74,8 +75,7 @@ public class ResDashboardDTO {
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Builder
     public static class ProductValueStat {
         private String name;
         private BigDecimal value;
@@ -83,25 +83,23 @@ public class ResDashboardDTO {
 
     @Getter
     @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Builder
+    public static class LowStockProduct {
+        private Long id;
+        private String name;
+        private String image; // Added for FE product cards
+        private int stock;
+    }
+
+    @Getter
+    @Setter
+    @Builder
     public static class RecentOrder {
         private Long id;
         private String transactionId;
         private String customerName;
         private BigDecimal total;
         private String status;
-        private java.time.Instant createdAt;
-    }
-
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class LowStockProduct {
-        private Long id;
-        private String name;
-        private String image;
-        private long stock;
+        private Instant createdAt;
     }
 }
