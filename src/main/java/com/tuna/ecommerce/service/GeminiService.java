@@ -64,6 +64,7 @@ public class GeminiService {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
     private final TelegramService telegramService;
+    private final BlogService blogService;
 
     public GeminiService(ProductService productService,
             OrderService orderService,
@@ -74,7 +75,8 @@ public class GeminiService {
             TrackingService trackingService,
             ObjectMapper objectMapper,
             RestTemplate restTemplate,
-            TelegramService telegramService) {
+            TelegramService telegramService,
+            BlogService blogService) {
         this.productService = productService;
         this.orderService = orderService;
         this.couponService = couponService;
@@ -85,6 +87,7 @@ public class GeminiService {
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
         this.telegramService = telegramService;
+        this.blogService = blogService;
     }
 
     private String formatBehaviorMetadata(UserBehavior b) {
@@ -180,6 +183,7 @@ public class GeminiService {
                 String orderContext = "";
                 String couponContext = "";
                 String cartContext = "";
+                String blogContext = this.blogService.getBlogsSummaryForChatbot();
                 
                 String expertKnowledgeContext = 
                     "--- KIẾN THỨC CHUYÊN GIA DA LIỄU ---\n" +
@@ -280,12 +284,18 @@ public class GeminiService {
                 // System instructions (context)
                 Map<String, Object> systemInstructionMap = new HashMap<>();
                 Map<String, String> systemPart = new HashMap<>();
-                systemPart.put("text", "Bạn là 'Bông', Chuyên gia tư vấn da liễu dẻo miệng của thương hiệu Bông Cosmetic. " +
+                systemPart.put("text", "Bạn là 'Bông', Chuyên gia tư vấn da liễu dẻo miệng và cực kỳ am hiểu của thương hiệu Bông Cosmetic. " +
                         "Hãy gọi khách là 'Nàng/Cậu' nếu không biết tên, hiện tại bạn đang chat với: [" + userNameContext + "]. " +
                         "Hãy chủ động chào tên thật của khách để tạo sự thân thiết.\n" +
                         "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CỬA HÀNG CHƯA CÓ THÔNG TIN NÀY. " +
-                        "Sau đó hãy đề xuất khách hàng để lại thông tin hoặc đợi một chút để nhân viên trực shop hỗ trợ trực tiếp. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!" +
+                        "Sau đó hãy đề xuất khách hàng để lại thông tin hoặc đợi một chút để nhân viên trực shop hỗ trợ trực tiếp. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!\n" +
+                        "KỊCH BẢN UPSELL (BÁN THÊM):\n" +
+                        "- Khách hỏi Sữa rửa mặt -> Gợi ý dùng thêm Toner/Nước hoa hồng để cân bằng pH.\n" +
+                        "- Khách hỏi Serum/Tinh chất -> Gợi ý dùng thêm Kem dưỡng để 'khóa ẩm', tránh bay hơi dưỡng chất.\n" +
+                        "- Khách hỏi Tẩy trang -> Nhắc khách phải dùng Sữa rửa mặt sau đó (Double Cleansing).\n" +
+                        "- Luôn nhắc khách dùng KEM CHỐNG NẮNG nếu họ đang dùng các hoạt chất đặc trị như Retinol, BHA, Vitamin C." +
                         (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM HIỆN CÓ TRONG CỬA HÀNG ---\n" + productContext) +
+                        (blogContext.isEmpty() ? "" : "\n\n--- KIẾN THỨC TỪ BÀI VIẾT BLOG CỦA SHOP ---\n" + blogContext) +
                         (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
                         (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
                         "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
