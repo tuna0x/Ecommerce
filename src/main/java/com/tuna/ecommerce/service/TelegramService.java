@@ -7,8 +7,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.OrderItem;
@@ -27,9 +30,14 @@ public class TelegramService {
     private String chatId;
 
     private final RestTemplate restTemplate;
+    private final DashboardService dashboardService;
+    private final ObjectMapper objectMapper;
+    private long lastUpdateId = 0;
 
-    public TelegramService(RestTemplate restTemplate) {
+    public TelegramService(RestTemplate restTemplate, DashboardService dashboardService, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
+        this.dashboardService = dashboardService;
+        this.objectMapper = objectMapper;
     }
 
     @Async
@@ -164,6 +172,76 @@ public class TelegramService {
             log.info(">>> SUCCESS: Low stock alert sent for variant {}", sku);
         } catch (Exception e) {
             log.error(">>> FAILED to send Low Stock Alert: {}", e.getMessage());
+        }
+    }
+
+    @Scheduled(fixedDelay = 5000)
+    public void pollUpdates() {
+        if ("xxx".equals(botToken) || "xxx".equals(chatId)) return;
+
+        try {
+            String url = "https://api.telegram.org/bot" + botToken + "/getUpdates?offset=" + (lastUpdateId + 1);
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode root = objectMapper.readTree(response);
+            JsonNode updates = root.path("result");
+
+            for (JsonNode update : updates) {
+                lastUpdateId = update.path("update_id").asLong();
+                JsonNode message = update.path("message");
+                String senderId = message.path("chat").path("id").asText();
+                String text = message.path("text").asText();
+
+                // Bảo mật: Chỉ xử lý nếu gửi từ đúng Admin ChatId
+                if (chatId.equals(senderId)) {
+                    handleCommand(text);
+                } else if (text != null && text.startsWith("/")) {
+                    log.warn(">>> UNAUTHORIZED access attempt from chatId: {}", senderId);
+                }
+            }
+        } catch (Exception e) {
+            log.trace(">>> Telegram polling error: {}", e.getMessage());
+        }
+    }
+
+    private void handleCommand(String command) {
+        if (command == null) return;
+        
+        String responseText = "";
+        String cmd = command.toLowerCase().trim();
+
+        if (cmd.startsWith("/stats")) {
+            responseText = dashboardService.getQuickStatsForTelegram();
+        } else if (cmd.startsWith("/top")) {
+            responseText = dashboardService.getTopProductsForTelegram();
+        } else if (cmd.startsWith("/start") || cmd.startsWith("/help")) {
+            responseText = "<b>🌟 CHÀO MỪNG QUẢN LÝ BÔNG COSMETIC!</b>\n\n" +
+                          "Tôi là trợ lý ảo hỗ trợ bạn điều hành shop.\n\n" +
+                          "<b>Các lệnh có sẵn:</b>\n" +
+                          "📊 <code>/stats</code> - Xem doanh thu nhanh hôm nay\n" +
+                          "🏆 <code>/top</code> - Top 5 sản phẩm bán chạy (7 ngày qua)\n" +
+                          "❔ <code>/help</code> - Xem lại danh sách lệnh";
+        }
+
+        if (!responseText.isEmpty()) {
+            sendGeneralMessage(responseText);
+        }
+    }
+
+    private void sendGeneralMessage(String text) {
+        try {
+            String url = "https://api.telegram.org/bot" + botToken + "/sendMessage";
+            Map<String, Object> body = new HashMap<>();
+            body.put("chat_id", chatId);
+            body.put("text", text);
+            body.put("parse_mode", "HTML");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            restTemplate.postForEntity(url, entity, String.class);
+        } catch (Exception e) {
+            log.error(">>> FAILED to send command response: {}", e.getMessage());
         }
     }
 }

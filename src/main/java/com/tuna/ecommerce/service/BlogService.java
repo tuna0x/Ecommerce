@@ -60,4 +60,16 @@ public class BlogService {
     public Page<Blog> fetchAllBlogs(Specification<Blog> spec, Pageable pageable) {
         return this.blogRepository.findAll(spec, pageable);
     }
+
+    public String getBlogsSummaryForChatbot() {
+        Page<Blog> blogs = this.blogRepository.findAll((org.springframework.data.jpa.domain.Specification<Blog>) null, org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("id").descending()));
+        StringBuilder sb = new StringBuilder();
+        if (blogs.hasContent()) {
+            sb.append("\n--- CÁC BÀI VIẾT TƯ VẤN (BLOG) MỚI NHẤT ---\n");
+            for (Blog b : blogs.getContent()) {
+                sb.append("- ").append(b.getTitle()).append(": ").append(b.getExcerpt()).append("\n");
+            }
+        }
+        return sb.toString();
+    }
 }

@@ -22,6 +22,7 @@ public class ResDashboardDTO {
     private double revenueGrowthRate;
     private long newUsersCount;
     private long returningUsersCount;
+    private double aovGrowthRate; // Added for AOV trend
 
     // Distributions & Charts
     private Map<String, Long> orderStatusDistribution;
@@ -60,6 +61,7 @@ public class ResDashboardDTO {
         private String category;
         private long count;
         private BigDecimal value;
+        private BigDecimal aov; // Average Order Value per category
     }
 
     @Getter

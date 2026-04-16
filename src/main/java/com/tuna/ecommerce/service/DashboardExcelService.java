@@ -15,7 +15,7 @@ public class DashboardExcelService {
 
     public byte[] exportStatisticsToExcel(ResDashboardDTO data) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            
+
             // Define styles
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
@@ -40,7 +40,7 @@ public class DashboardExcelService {
 
             // 1. Overview Section
             Row h1Row = salesSheet.createRow(s1Row++);
-            String[] h1 = {"Chỉ số", "Giá trị"};
+            String[] h1 = { "Chỉ số", "Giá trị" };
             for (int i = 0; i < h1.length; i++) {
                 Cell cell = h1Row.createCell(i);
                 cell.setCellValue(h1[i]);
@@ -60,7 +60,7 @@ public class DashboardExcelService {
             // 2. Order Status Distribution
             salesSheet.createRow(s1Row++).createCell(0).setCellValue("PHÂN BỔ TRẠNG THÁI ĐƠN HÀNG");
             Row hsRow = salesSheet.createRow(s1Row++);
-            String[] hs = {"Trạng thái", "Số lượng"};
+            String[] hs = { "Trạng thái", "Số lượng" };
             for (int i = 0; i < hs.length; i++) {
                 Cell cell = hsRow.createCell(i);
                 cell.setCellValue(hs[i]);
@@ -79,7 +79,7 @@ public class DashboardExcelService {
             // 3. Top Selling Products
             salesSheet.createRow(s1Row++).createCell(0).setCellValue("TOP SẢN PHẨM BÁN CHẠY");
             Row hpRow = salesSheet.createRow(s1Row++);
-            String[] hp = {"Tên sản phẩm", "Số lượng bán"};
+            String[] hp = { "Tên sản phẩm", "Số lượng bán" };
             for (int i = 0; i < hp.length; i++) {
                 Cell cell = hpRow.createCell(i);
                 cell.setCellValue(hp[i]);
@@ -98,7 +98,7 @@ public class DashboardExcelService {
             // 4. Category Distribution
             salesSheet.createRow(s1Row++).createCell(0).setCellValue("PHÂN BỔ ĐƠN HÀNG THEO DANH MỤC");
             Row hcRow = salesSheet.createRow(s1Row++);
-            String[] hc = {"Danh mục", "Số lượng đơn"};
+            String[] hc = { "Danh mục", "Số lượng đơn" };
             for (int i = 0; i < hc.length; i++) {
                 Cell cell = hcRow.createCell(i);
                 cell.setCellValue(hc[i]);
@@ -126,7 +126,7 @@ public class DashboardExcelService {
             t2Row.createCell(0).setCellValue("TỔNG HỢP TÌNH TRẠNG KHO");
 
             Row h2Row = invSheet.createRow(s2Row++);
-            String[] h2 = {"Hạng mục", "Giá trị"};
+            String[] h2 = { "Hạng mục", "Giá trị" };
             for (int i = 0; i < h2.length; i++) {
                 Cell cell = h2Row.createCell(i);
                 cell.setCellValue(h2[i]);
@@ -135,8 +135,10 @@ public class DashboardExcelService {
 
             if (data.getInventorySummary() != null) {
                 addRow(invSheet, s2Row++, "Tổng mặt hàng", (double) data.getInventorySummary().getTotalItems(), null);
-                addRow(invSheet, s2Row++, "Sản phẩm sắp hết", (double) data.getInventorySummary().getLowStockCount(), null);
-                addRow(invSheet, s2Row++, "Sản phẩm hết hàng", (double) data.getInventorySummary().getOutOfStockCount(), null);
+                addRow(invSheet, s2Row++, "Sản phẩm sắp hết", (double) data.getInventorySummary().getLowStockCount(),
+                        null);
+                addRow(invSheet, s2Row++, "Sản phẩm hết hàng", (double) data.getInventorySummary().getOutOfStockCount(),
+                        null);
             }
 
             s2Row += 2; // Spacing
@@ -144,7 +146,7 @@ public class DashboardExcelService {
             // Detailed Low Stock List
             invSheet.createRow(s2Row++).createCell(0).setCellValue("DANH SÁCH SẢN PHẨM CẦN NHẬP HÀNG");
             Row hDetRow = invSheet.createRow(s2Row++);
-            String[] hDet = {"ID", "Tên sản phẩm", "Tồn kho hiện tại"};
+            String[] hDet = { "ID", "Tên sản phẩm", "Tồn kho hiện tại" };
             for (int i = 0; i < hDet.length; i++) {
                 Cell cell = hDetRow.createCell(i);
                 cell.setCellValue(hDet[i]);
