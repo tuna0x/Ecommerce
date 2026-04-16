@@ -67,6 +67,7 @@ public class OrderService {
     private final UserCouponRepository userCouponRepository;
     private final EmailService emailService;
     private final CouponService couponService;
+    private final TelegramService telegramService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -82,7 +83,8 @@ public class OrderService {
             PaymentRepository paymentRepository,
             UserCouponRepository userCouponRepository,
             EmailService emailService,
-            CouponService couponService) {
+            CouponService couponService,
+            TelegramService telegramService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -97,6 +99,7 @@ public class OrderService {
         this.userCouponRepository = userCouponRepository;
         this.emailService = emailService;
         this.couponService = couponService;
+        this.telegramService = telegramService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -325,6 +328,9 @@ public class OrderService {
                 "Đặt hàng thành công",
                 "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
                 "ORDER_SUCCESS");
+
+        // Send Telegram Notification to Admin
+        this.telegramService.sendOrderNotification(savedOrder);
 
         // Convert to DTO at the very end to ensure all fields (Payment, TransactionID)
         // are populated
