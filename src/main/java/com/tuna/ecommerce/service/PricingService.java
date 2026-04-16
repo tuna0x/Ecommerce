@@ -12,6 +12,8 @@ import com.tuna.ecommerce.domain.ProductPromotion;
 import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
+import com.tuna.ecommerce.domain.FlashSaleItem;
+import java.util.Optional;
 
 import lombok.AllArgsConstructor;
 
@@ -20,6 +22,7 @@ import lombok.AllArgsConstructor;
 public class PricingService {
     private final ProductPromotionRepository productPromotionRepository;
     private final com.tuna.ecommerce.repository.PromotionRepository promotionRepository;
+    private final FlashSaleService flashSaleService;
 
     /**
      * Calculates the best discount (highest value) among all applicable promotions.
@@ -101,6 +104,18 @@ public class PricingService {
         }
 
         BigDecimal originalPrice = product.getOriginalPrice();
+
+        // 1. Check Flash Sale First (Highest Priority)
+        Optional<FlashSaleItem> flashSaleOpt = flashSaleService.findActiveFlashSaleForItem(product.getId());
+        if (flashSaleOpt.isPresent()) {
+            FlashSaleItem fsItem = flashSaleOpt.get();
+            if (fsItem.getSoldQuantity() < fsItem.getLimitQuantity()) {
+                BigDecimal discount = originalPrice.subtract(fsItem.getFlashSalePrice());
+                return new ResPriceResultDTO(originalPrice, discount, fsItem.getFlashSalePrice());
+            }
+        }
+
+        // 2. Regular Promotions
         List<Promotion> promotions = this.getApplicablePromotions(product);
 
         return this.calculatePriceWithPromotions(originalPrice, promotions);
@@ -123,5 +138,46 @@ public class PricingService {
         }
 
         return new ResPriceResultDTO(originalPrice, discount, finalPrice);
+    }
+
+    /**
+     * Calculates pricing for a product variant, considering flash sale of the
+     * parent product.
+     */
+    public ResPriceResultDTO calculatePriceForVariant(com.tuna.ecommerce.domain.ProductVariant variant,
+            List<Promotion> promotions) {
+        if (variant == null || variant.getPrice() == null) {
+            return new ResPriceResultDTO(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+
+        BigDecimal originalPrice = variant.getPrice();
+        Product product = variant.getProduct();
+
+        // 1. Check Flash Sale First (Highest Priority: Variant specific)
+        Optional<FlashSaleItem> flashSaleOpt = flashSaleService.findActiveFlashSaleItemByVariant(variant.getId());
+        if (flashSaleOpt.isPresent()) {
+            FlashSaleItem fsItem = flashSaleOpt.get();
+            if (fsItem.getSoldQuantity() < fsItem.getLimitQuantity()) {
+                BigDecimal discount = originalPrice.subtract(fsItem.getFlashSalePrice());
+                return new ResPriceResultDTO(originalPrice, discount, fsItem.getFlashSalePrice());
+            }
+        }
+
+        // 2. Fallback to Product-level Flash Sale (Optional, but good for backward compatibility)
+        if (product != null) {
+            Optional<FlashSaleItem> productFsOpt = flashSaleService.findActiveFlashSaleForItem(product.getId());
+            if (productFsOpt.isPresent()) {
+                FlashSaleItem fsItem = productFsOpt.get();
+                // ONLY apply product-level sale to variants if the sale item HAS NO specific variant set 
+                // (meaning it's a global sale for all variants of this product)
+                if (fsItem.getVariant() == null && fsItem.getSoldQuantity() < fsItem.getLimitQuantity()) {
+                    BigDecimal discount = originalPrice.subtract(fsItem.getFlashSalePrice());
+                    return new ResPriceResultDTO(originalPrice, discount, fsItem.getFlashSalePrice());
+                }
+            }
+        }
+
+        // 3. Regular Promotions
+        return this.calculatePriceWithPromotions(originalPrice, promotions);
     }
 }

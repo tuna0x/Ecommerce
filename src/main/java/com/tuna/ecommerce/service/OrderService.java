@@ -68,6 +68,7 @@ public class OrderService {
     private final EmailService emailService;
     private final CouponService couponService;
     private final TelegramService telegramService;
+    private final FlashSaleService flashSaleService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -84,7 +85,8 @@ public class OrderService {
             UserCouponRepository userCouponRepository,
             EmailService emailService,
             CouponService couponService,
-            TelegramService telegramService) {
+            TelegramService telegramService,
+            FlashSaleService flashSaleService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -100,6 +102,7 @@ public class OrderService {
         this.emailService = emailService;
         this.couponService = couponService;
         this.telegramService = telegramService;
+        this.flashSaleService = flashSaleService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -225,6 +228,11 @@ public class OrderService {
             orderItem.setPrice(i.getUnitPrice());
             orderItem.setSubTotal(i.getUnitPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
             subTotal = subTotal.add(orderItem.getSubTotal());
+
+            // Update Flash Sale Sold Quantity if applicable
+            for (int q = 0; q < i.getQuantity(); q++) {
+                this.flashSaleService.incrementSoldQuantity(product.getId());
+            }
 
             order.addOrderItem(orderItem);
         }

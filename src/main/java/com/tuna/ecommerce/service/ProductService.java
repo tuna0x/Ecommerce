@@ -49,6 +49,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
 import com.tuna.ecommerce.repository.InventoryRepository;
+import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
+import com.tuna.ecommerce.repository.FlashSaleItemRepository;
+import com.tuna.ecommerce.domain.FlashSaleCampaign;
+import com.tuna.ecommerce.domain.FlashSaleItem;
 
 @Service
 @Transactional
@@ -67,6 +71,9 @@ public class ProductService {
     private final PromotionRepository promotionRepository;
     private final InventoryService inventoryService;
     private final InventoryRepository inventoryRepository;
+    private final FlashSaleCampaignRepository flashSaleCampaignRepository;
+    private final FlashSaleItemRepository flashSaleItemRepository;
+    private final FlashSaleService flashSaleService;
 
     public ProductService(
             ProductRepository productRepository,
@@ -79,10 +86,13 @@ public class ProductService {
             BrandService brandService,
             PricingService pricingService,
             ProductVariantRepository productVariantRepository,
-            ProductVariantRepository productVariantRepository1, ProductPromotionRepository productPromotionRepository,
+            ProductPromotionRepository productPromotionRepository,
             PromotionRepository promotionRepository,
             @Lazy InventoryService inventoryService,
-            InventoryRepository inventoryRepository) {
+            InventoryRepository inventoryRepository,
+            FlashSaleCampaignRepository flashSaleCampaignRepository,
+            FlashSaleItemRepository flashSaleItemRepository,
+            FlashSaleService flashSaleService) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.attributeValueRepository = attributeValueRepository;
@@ -97,6 +107,9 @@ public class ProductService {
         this.promotionRepository = promotionRepository;
         this.inventoryService = inventoryService;
         this.inventoryRepository = inventoryRepository;
+        this.flashSaleCampaignRepository = flashSaleCampaignRepository;
+        this.flashSaleItemRepository = flashSaleItemRepository;
+        this.flashSaleService = flashSaleService;
     }
 
     @jakarta.annotation.PostConstruct
@@ -455,9 +468,24 @@ public class ProductService {
         return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
-    @Cacheable(value = "flash_sale", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        // 0. Check for Active Flash Sale Campaigns (Highest Priority)
+        List<FlashSaleCampaign> activeCampaigns = this.flashSaleCampaignRepository.findActiveCampaigns(now);
+        if (!activeCampaigns.isEmpty()) {
+            List<Long> campaignProductIds = activeCampaigns.stream()
+                    .flatMap(c -> c.getItems().stream())
+                    .map(item -> item.getProduct().getId())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            if (!campaignProductIds.isEmpty()) {
+                Page<Product> flashSaleProducts = this.productRepository.findByCategoryIdInOrIdIn(
+                        List.of(-1L), campaignProductIds, pageable);
+                return this.convertToResultPaginationDTO(flashSaleProducts);
+            }
+        }
 
         // 1. Check for Global Promotions
         List<Promotion> globalPromos = this.promotionRepository.findActiveGlobal(now);
@@ -610,7 +638,12 @@ public class ProductService {
                         ResProductDTO.ProductVariantInner vi = new ResProductDTO.ProductVariantInner();
                         vi.setId(v.getId());
                         vi.setSku(v.getSku());
-                        vi.setPrice(v.getPrice());
+                        // Fallback to product price if variant price is 0 or null
+                        if (v.getPrice() == null || v.getPrice().compareTo(BigDecimal.ZERO) == 0) {
+                            vi.setPrice(product.getOriginalPrice());
+                        } else {
+                            vi.setPrice(v.getPrice());
+                        }
                         vi.setWeight(v.getWeight());
 
                         // Map Variant Inventory
@@ -630,6 +663,17 @@ public class ProductService {
                                 })
                                 .collect(Collectors.toList());
                         vi.setVariantAttributes(vaInners);
+
+                        // Map Flash Sale Info for this specific variant
+                        this.flashSaleService.findActiveFlashSaleItemByVariant(v.getId()).ifPresent(fs -> {
+                            ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
+                            fsInner.setPrice(fs.getFlashSalePrice());
+                            fsInner.setLimitQuantity(fs.getLimitQuantity());
+                            fsInner.setSoldQuantity(fs.getSoldQuantity());
+                            fsInner.setEndAt(fs.getCampaign().getEndAt());
+                            vi.setFlashSale(fsInner);
+                        });
+
                         return vi;
                     })
                     .collect(Collectors.toList());
@@ -642,19 +686,23 @@ public class ProductService {
             List<Promotion> promotions = this.pricingService.getApplicablePromotions(product);
 
             // Main Product Price
-            ResPriceResultDTO mainPriceResult = this.pricingService
-                    .calculatePriceWithPromotions(product.getOriginalPrice(), promotions);
+            ResPriceResultDTO mainPriceResult = this.pricingService.calculatePrice(product);
             res.setDiscountPrice(mainPriceResult.getDiscountPrice());
             res.setFinalPrice(mainPriceResult.getFinalPrice());
 
             // Individual Variant Prices Calculation
             if (res.getVariants() != null) {
                 for (ResProductDTO.ProductVariantInner vi : res.getVariants()) {
-                    // Calculate discount for this variant individual price
-                    ResPriceResultDTO vPriceRes = this.pricingService.calculatePriceWithPromotions(vi.getPrice(),
-                            promotions);
-                    vi.setDiscountPrice(vPriceRes.getDiscountPrice());
-                    vi.setFinalPrice(vPriceRes.getFinalPrice());
+                    // Find actual variant entity for calculation
+                    ProductVariant actualVariant = product.getVariants().stream()
+                            .filter(v -> v.getId().equals(vi.getId())).findFirst().orElse(null);
+
+                    if (actualVariant != null) {
+                        ResPriceResultDTO vPriceRes = this.pricingService.calculatePriceForVariant(actualVariant,
+                                promotions);
+                        vi.setDiscountPrice(vPriceRes.getDiscountPrice());
+                        vi.setFinalPrice(vPriceRes.getFinalPrice());
+                    }
                 }
             }
         } else {
@@ -674,6 +722,16 @@ public class ProductService {
         res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
         res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
         res.setSoldCount(product.getSoldCount());
+
+        // Fill Flash Sale Info
+        this.flashSaleService.findActiveFlashSaleForItem(product.getId()).ifPresent(fs -> {
+            ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
+            fsInner.setPrice(fs.getFlashSalePrice());
+            fsInner.setLimitQuantity(fs.getLimitQuantity());
+            fsInner.setSoldQuantity(fs.getSoldQuantity());
+            fsInner.setEndAt(fs.getCampaign().getEndAt());
+            res.setFlashSale(fsInner);
+        });
 
         return res;
     }

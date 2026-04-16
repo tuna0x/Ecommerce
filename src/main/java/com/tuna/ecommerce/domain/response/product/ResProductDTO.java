@@ -39,6 +39,19 @@ public class ResProductDTO implements Serializable {
     private Long reviewCount;
     private int soldCount;
     private List<ProductVariantInner> variants;
+    private FlashSaleInner flashSale;
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FlashSaleInner {
+        private BigDecimal price;
+        private int limitQuantity;
+        private int soldQuantity;
+        @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private java.time.LocalDateTime endAt;
+    }
 
     @Getter
     @Setter
@@ -55,6 +68,7 @@ public class ResProductDTO implements Serializable {
         private int maxStock;
         private double weight;
         private List<VariantAttributeInner> variantAttributes;
+        private FlashSaleInner flashSale;
     }
 
     @Getter
