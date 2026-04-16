@@ -178,10 +178,25 @@ public class GeminiService {
                 String couponContext = "";
                 String cartContext = "";
                 
-                String policyContext = "- Đổi trả miễn phí 100% trong 7 ngày đầu nếu lỗi nhà sản xuất.\n" +
-                                       "- Miễn phí vận chuyển (Freeship) cho toàn bộ đơn hàng từ 500,000 VNĐ.\n" +
-                                       "- Giao hàng tiêu chuẩn 2-4 ngày trên toàn quốc.\n" +
-                                       "- Bông Cosmetic bán mỹ phẩm chính hãng 100%.";
+                String expertKnowledgeContext = 
+                    "--- KIẾN THỨC CHUYÊN GIA DA LIỄU ---\n" +
+                    "1. LOẠI DA & CÁCH CHĂM SÓC:\n" +
+                    "- DA DẦU (OILY): Lỗ chân lông to, bóng nhờn. Cần: SRM dạng gel, thành phần BHA (Salicylic Acid), Niacinamide, dưỡng ẩm mỏng nhẹ.\n" +
+                    "- DA KHÔ (DRY): Bong tróc, căng rát. Cần: SRM dạng cream, thành phần Hyaluronic Acid (HA), Ceramides, Vitamin E, khóa ẩm kỹ.\n" +
+                    "- DA NHẠY CẢM (SENSITIVE): Dễ đỏ, châm chích. Cần: Thành phần dịu nhẹ như Rau má (Centella), B5 (Panthenol), tránh hương liệu/cồn.\n" +
+                    "- DA HỖN HỢP (COMBINATION): Dầu vùng chữ T, khô vùng má. Cần: Chăm sóc vùng T như da dầu và vùng má như da khô.\n" +
+                    "2. QUY TRÌNH (ROUTINE) CHUẨN:\n" +
+                    "- SÁNG: SRM -> Toner -> Serum -> Dưỡng ẩm -> CHỐNG NẮNG (Bắt buộc).\n" +
+                    "- TỐI: Tẩy trang -> SRM -> Tẩy da chết (2-3 lần/tuần) -> Toner -> Serum -> Dưỡng ẩm (Khóa ẩm).\n" +
+                    "3. THÔNG TIN GIAO HÀNG & THANH TOÁN:\n" +
+                    "- PHƯƠNG THỨC THANH TOÁN: Hỗ trợ [1] Thanh toán khi nhận hàng (COD) và [2] Thanh toán trực tuyến qua VNPAY (Thẻ ngân hàng, Ví điện tử, QR Code).\n" +
+                    "- PHÍ VẬN CHUYỂN: Miễn phí toàn quốc cho đơn từ 500k. Đơn dưới 500k phí ship đồng giá 30k.\n" +
+                    "- THỜI GIAN GIAO HÀNG: Nội thành Hà Nội/TP.HCM (1-2 ngày), các tỉnh thành khác (2-4 ngày).\n" +
+                    "4. CHÍNH SÁCH BÔNG COSMETIC:\n" +
+                    "- BAO CHECK: Cam kết chính hãng 100%, phát hiện giả đền 200%.\n" +
+                    "- ĐỔI TRẢ: 7 ngày đầu nếu có lỗi sản phẩm hoặc dị ứng/kích ứng có xác nhận.\n" +
+                    "5. CÂU CHUYỆN THƯƠNG HIỆU:\n" +
+                    "- Bông Cosmetic ra đời từ 2020 với sứ mệnh mang lại vẻ đẹp tự nhiên, an toàn cho phụ nữ Việt qua các dòng mỹ phẩm chính hãng hàng đầu thế giới.";
 
                 // Routing variables based on sophisticated 15 Intention Enum
                 switch (intent) {
@@ -237,7 +252,7 @@ public class GeminiService {
                     } else {
                         cartContext = "Giỏ hàng trống.";
                     }
-
+ 
                     // Lấy 10 hành động gần nhất
                     List<UserBehavior> recentBehaviors = userBehaviorRepository.findTop10ByUserEmailOrderByCreatedAtDesc(currentUserEmail);
                     if (recentBehaviors != null && !recentBehaviors.isEmpty()) {
@@ -262,21 +277,23 @@ public class GeminiService {
                 // System instructions (context)
                 Map<String, Object> systemInstructionMap = new HashMap<>();
                 Map<String, String> systemPart = new HashMap<>();
-                systemPart.put("text", "Bạn là 'Bông', Trợ lý AI dẻo miệng của thương hiệu Bông Cosmetic. " +
+                systemPart.put("text", "Bạn là 'Bông', Chuyên gia tư vấn da liễu dẻo miệng của thương hiệu Bông Cosmetic. " +
                         "Hãy gọi khách là 'Nàng/Cậu' nếu không biết tên, hiện tại bạn đang chat với: [" + userNameContext + "]. " +
                         "Hãy chủ động chào tên thật của khách để tạo sự thân thiết.\n" +
                         "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CHƯA TÌM THẤY. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!" +
-                        (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM ---\n" + productContext) +
+                        (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM HIỆN CÓ TRONG CỬA HÀNG ---\n" + productContext) +
                         (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
                         (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
                         "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
                         (userActivityContext.isEmpty() ? "" : "\n\n--- LỊCH SỬ HÀNH ĐỘNG GẦN NHẤT CỦA KHÁCH ---\n" + userActivityContext) +
                         "\n\n--- THÔNG TIN PHIÊN HIỆN TẠI ---\n" + currentEnvironment +
-                        "\n\n--- CHÍNH SÁCH ---\n" + policyContext +
-                        "\n\nNhiệm vụ khi tư vấn: " +
-                        "1. Soi GIỎ HÀNG và LỊCH SỬ HÀNH ĐỘNG: Gợi ý các món bổ trợ để Up-sale dựa vào sản phẩm họ vừa xem/tương tác (Tuyệt đối định dạng Markdown [Tên sản phẩm](/product/ID)).\n" +
-                        "2. Đơn hàng: Nếu khách muốn mua tiếp thì khuyên, nếu hủy thì báo khách bấm vào mục Tài khoản -> Đơn hàng (bạn ko có quyền hủy).\n" +
-                        "3. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món đồ/đơn hàng khách cần."
+                        "\n\n" + expertKnowledgeContext +
+                        "\n\nNHIỆM VỤ CỦA CHUYÊN GIA BÔNG:\n" +
+                        "1. Tư vấn chuyên sâu: Khi khách hỏi về vấn đề da hoặc skincare, hãy dựa vào kiến thức chuyên gia bên trên để phân tích và ĐỀ XUẤT SẢN PHẨM CÓ TRONG CỬA HÀNG (Sử dụng Markdown [Tên sản phẩm](/product/ID)).\n" +
+                        "2. Chủ động hỏi: Nếu khách chưa nói rõ loại da, hãy khéo léo hỏi 'Da nàng là da gì nhỉ?' để tư vấn Routine chuẩn xác.\n" +
+                        "3. Soi GIỎ HÀNG và LỊCH SỬ: Gợi ý các món bổ trợ để hoàn thiện Routine dựa vào sản phẩm họ vừa xem/tương tác.\n" +
+                        "4. Đơn hàng: Nếu khách muốn mua tiếp thì khuyên, nếu hủy thì báo khách bấm vào mục Tài khoản -> Đơn hàng (bạn ko có quyền hủy).\n" +
+                        "5. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món độ/đơn hàng khách cần."
                 );
                 systemInstructionMap.put("parts", List.of(systemPart));
                 requestBody.put("system_instruction", systemInstructionMap);

@@ -269,8 +269,15 @@ public class ProductService {
                 updatedVariants.add(variant);
             }
 
-            cur.getVariants().clear();
-            cur.getVariants().addAll(updatedVariants);
+            // Synchronize variants instead of clear all (which causes FK Error with InventoryLog)
+            cur.getVariants().removeIf(v -> !product.getVariants().stream()
+                    .anyMatch(vDto -> vDto.getSku().equals(v.getSku())));
+            
+            for (ProductVariant updated : updatedVariants) {
+                if (!cur.getVariants().contains(updated)) {
+                    cur.getVariants().add(updated);
+                }
+            }
         } else {
             // Simple product: Ensure only default variant exists
             cur.getVariants().removeIf(v -> !v.getSku().startsWith("DEFAULT-"));
