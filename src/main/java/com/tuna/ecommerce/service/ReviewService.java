@@ -34,7 +34,7 @@ public class ReviewService {
     private final CloudinaryService cloudinaryService;
 
     @Caching(evict = {
-            @CacheEvict(value = "reviews", key = "#req.productId"),
+            @CacheEvict(value = "reviews", allEntries = true),
             @CacheEvict(value = { "product", "products", "related_products", "flash_sale" }, allEntries = true)
     })
     public Review createReview(ReqCreateReviewDTO req,
@@ -116,7 +116,7 @@ public class ReviewService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "reviews", key = "#result.product.id", condition = "#result != null"),
+            @CacheEvict(value = "reviews", allEntries = true),
             @CacheEvict(value = { "product", "products", "related_products", "flash_sale" }, allEntries = true)
     })
     public void deleteReview(Long id) throws IdInvalidException {
