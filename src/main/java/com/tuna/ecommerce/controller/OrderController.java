@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.controller;
 
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -79,5 +80,17 @@ public class OrderController {
     public ResponseEntity<Order> updateOrderStatus(@PathVariable("id") Long id,
             @RequestParam("status") OrderStatusEnum status) throws IdInvalidException {
         return ResponseEntity.ok().body(this.orderService.handleUpdateStatus(id, status));
+    }
+
+    @PostMapping("/order/{id}/ghn")
+    @APIMessage("create ghn shipping order")
+    public ResponseEntity<ResGetOrderDTO> createGhnOrder(@PathVariable("id") Long id) throws IdInvalidException {
+        return ResponseEntity.ok().body(this.orderService.createGhnOrder(id));
+    }
+
+    @PostMapping("/order/bulk-ghn")
+    @APIMessage("bulk create ghn shipping orders")
+    public ResponseEntity<List<ResGetOrderDTO>> bulkCreateGhnOrder(@RequestBody List<Long> ids) {
+        return ResponseEntity.ok().body(this.orderService.handleBulkCreateGhnOrders(ids));
     }
 }
