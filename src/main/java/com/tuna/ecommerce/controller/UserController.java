@@ -68,14 +68,14 @@ public class UserController {
     }
 
     @DeleteMapping("/users/{id}")
-    @APIMessage("Delete user successfully")
-    public ResponseEntity<Void> deleteUser(@PathVariable ("id") Long id) throws IdInvalidException{
+    @APIMessage("Xử lý xóa người dùng")
+    public ResponseEntity<String> deleteUser(@PathVariable ("id") Long id) throws IdInvalidException{
         User user=this.userService.getUserById(id);
         if (user == null) {
             throw new IdInvalidException("Id invalid");
         }
-        this.userService.handleDelete(id);
-        return ResponseEntity.ok().body(null);
+        String result = this.userService.handleDelete(id);
+        return ResponseEntity.ok().body(result);
     }
 
     @GetMapping("/users/{id}")

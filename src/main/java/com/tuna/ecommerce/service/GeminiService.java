@@ -172,33 +172,39 @@ public class GeminiService {
         int maxRetries = 2; // Thử lại tối đa 2 lần nếu gặp lỗi 503
         int retryCount = 0;
 
+        String orderContext = "";
+        String couponContext = "";
+        String productContext = "";
+        String cartContext = "";
+        String blogContext = "";
+
         ChatIntent intent = determineIntent(userMessage);
 
         while (retryCount <= maxRetries) {
             try {
                 String url = apiUrl + "?key=" + apiKey;
 
-                // Dynamically fetch Contexts based on Intent to save tokens
-                String productContext = "";
-                String orderContext = "";
-                String couponContext = "";
-                String cartContext = "";
-                String blogContext = this.blogService.getBlogsSummaryForChatbot();
-                
+                // Dynamically fetch Contexts based on Intent
                 String expertKnowledgeContext = 
-                    "--- KIẾN THỨC CHUYÊN GIA DA LIỄU ---\n" +
-                    "1. LOẠI DA & CÁCH CHĂM SÓC:\n" +
-                    "- DA DẦU (OILY): Lỗ chân lông to, bóng nhờn. Cần: SRM dạng gel, thành phần BHA (Salicylic Acid), Niacinamide, dưỡng ẩm mỏng nhẹ.\n" +
-                    "- DA KHÔ (DRY): Bong tróc, căng rát. Cần: SRM dạng cream, thành phần Hyaluronic Acid (HA), Ceramides, Vitamin E, khóa ẩm kỹ.\n" +
-                    "- DA NHẠY CẢM (SENSITIVE): Dễ đỏ, châm chích. Cần: Thành phần dịu nhẹ như Rau má (Centella), B5 (Panthenol), tránh hương liệu/cồn.\n" +
-                    "- DA HỖN HỢP (COMBINATION): Dầu vùng chữ T, khô vùng má. Cần: Chăm sóc vùng T như da dầu và vùng má như da khô.\n" +
-                    "2. QUY TRÌNH (ROUTINE) CHUẨN:\n" +
-                    "- SÁNG: SRM -> Toner -> Serum -> Dưỡng ẩm -> CHỐNG NẮNG (Bắt buộc).\n" +
-                    "- TỐI: Tẩy trang -> SRM -> Tẩy da chết (2-3 lần/tuần) -> Toner -> Serum -> Dưỡng ẩm (Khóa ẩm).\n" +
-                    "3. THÔNG TIN GIAO HÀNG & THANH TOÁN:\n" +
-                    "- PHƯƠNG THỨC THANH TOÁN: Hỗ trợ [1] Thanh toán khi nhận hàng (COD) và [2] Thanh toán trực tuyến qua VNPAY (Thẻ ngân hàng, Ví điện tử, QR Code).\n" +
-                    "- PHÍ VẬN CHUYỂN: Miễn phí toàn quốc cho đơn từ 500k. Đơn dưới 500k phí ship đồng giá 30k.\n" +
-                    "- THỜI GIAN GIAO HÀNG: Nội thành Hà Nội/TP.HCM (1-2 ngày), các tỉnh thành khác (2-4 ngày).\n" +
+                    "--- KIẾN THỨC CHUYÊN GIA DA LIỄU BÔNG COSMETIC ---\n" +
+                    "1. LOẠI DA & ĐẶC ĐIỂM:\n" +
+                    "- DA DẦU (OILY): Bóng nhờn toàn mặt, lỗ chân lông to, dễ nổi mụn. Cần: Kiểm soát dầu (Salicylic Acid/BHA, Niacinamide).\n" +
+                    "- DA KHÔ (DRY): Thô ráp, bong tróc, cảm giác căng sau khi rửa mặt. Cần: Cấp ẩm tầng sâu (HA, Ceramides, Squalane).\n" +
+                    "- DA NHẠY CẢM (SENSITIVE): Dễ đỏ, châm chích khi dùng mỹ phẩm mới. Cần: Phục hồi (B5 - Panthenol, Rau má - Centella).\n" +
+                    "- DA HỖN HỢP (COMBINATION): Dầu vùng chữ T (trán, mũi, cằm), khô ở hai bên má.\n" +
+                    "2. CÁC HOẠT CHẤT 'VÀNG' TRONG SKINCARE:\n" +
+                    "- RETINOL: Chống lão hóa, trị mụn, mờ thâm. Lưu ý: Chỉ dùng tối, bắt buộc dùng KCN vào sáng hôm sau.\n" +
+                    "- BHA (Salicylic Acid): Tẩy tế bào chết sâu trong lỗ chân lông, trị mụn ẩn. Phù hợp da dầu/mụn.\n" +
+                    "- VITAMIN C: Làm sáng da, mờ thâm, tăng sinh collagen. Nên dùng sáng trước KCN để tăng hiệu quả bảo vệ.\n" +
+                    "- NIACINAMIDE (B3): Kiềm dầu, thu nhỏ lỗ chân lông, làm đều màu da. Rất lành tính.\n" +
+                    "- HYALURONIC ACID (HA): Giữ nước, cấp ẩm tức thì.\n" +
+                    "3. QUY TRÌNH (ROUTINE) NÂNG CAO:\n" +
+                    "- SÁNG: Sữa rửa mặt -> Toner (Cân bằng) -> Serum (Treatment) -> Dưỡng ẩm -> CHỐNG NẮNG (Bắt buộc).\n" +
+                    "- TỐI: Tẩy trang (Dù không makeup) -> Sữa rửa mặt -> Tẩy da chết (2-3 lần/tuần) -> Toner -> Serum -> Dưỡng ẩm (Khóa ẩm).\n" +
+                    "4. CHÍNH SÁCH & THANH TOÁN:\n" +
+                    "- THANH TOÁN: COD (nhận hàng trả tiền) hoặc VNPAY.\n" +
+                    "- VẬN CHUYỂN: Giao hàng nhanh GHN toàn quốc. Đơn từ 500k Miễn phí ship.\n" +
+                    "- CAM KẾT: Chính hãng 100%, phát hiện fake đền gấp đôi.\n" +
                     "4. CHÍNH SÁCH BÔNG COSMETIC:\n" +
                     "- BAO CHECK: Cam kết chính hãng 100%, phát hiện giả đền 200%.\n" +
                     "- ĐỔI TRẢ: 7 ngày đầu nếu có lỗi sản phẩm hoặc dị ứng/kích ứng có xác nhận.\n" +
@@ -284,30 +290,31 @@ public class GeminiService {
                 // System instructions (context)
                 Map<String, Object> systemInstructionMap = new HashMap<>();
                 Map<String, String> systemPart = new HashMap<>();
-                systemPart.put("text", "Bạn là 'Bông', Chuyên gia tư vấn da liễu dẻo miệng và cực kỳ am hiểu của thương hiệu Bông Cosmetic. " +
-                        "Hãy gọi khách là 'Nàng/Cậu' nếu không biết tên, hiện tại bạn đang chat với: [" + userNameContext + "]. " +
-                        "Hãy chủ động chào tên thật của khách để tạo sự thân thiết.\n" +
-                        "TUYỆT ĐỐI TUÂN THỦ: NẾU KHÁCH HỎI MÀ TRONG DỮ LIỆU ĐƯỢC CUNG CẤP BÊN DƯỚI KHÔNG CÓ, HÃY XIN LỖI KHÉO LÉO VÀ BÁO RẰNG CỬA HÀNG CHƯA CÓ THÔNG TIN NÀY. " +
-                        "Sau đó hãy đề xuất khách hàng để lại thông tin hoặc đợi một chút để nhân viên trực shop hỗ trợ trực tiếp. KHÔNG ĐƯỢC BỊA ĐẶT HOẶC MÔ PHỎNG DỮ LIỆU GIẢ!\n" +
-                        "KỊCH BẢN UPSELL (BÁN THÊM):\n" +
-                        "- Khách hỏi Sữa rửa mặt -> Gợi ý dùng thêm Toner/Nước hoa hồng để cân bằng pH.\n" +
-                        "- Khách hỏi Serum/Tinh chất -> Gợi ý dùng thêm Kem dưỡng để 'khóa ẩm', tránh bay hơi dưỡng chất.\n" +
-                        "- Khách hỏi Tẩy trang -> Nhắc khách phải dùng Sữa rửa mặt sau đó (Double Cleansing).\n" +
-                        "- Luôn nhắc khách dùng KEM CHỐNG NẮNG nếu họ đang dùng các hoạt chất đặc trị như Retinol, BHA, Vitamin C." +
-                        (productContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU SẢN PHẨM HIỆN CÓ TRONG CỬA HÀNG ---\n" + productContext) +
+                systemPart.put("text", "Bạn là 'Bông' - Chuyên gia tư vấn da liễu cực kỳ 'dẻo miệng', tận tâm và am hiểu của Bông Cosmetic. " +
+                        "Hãy gọi khách là 'Nàng/Cậu' hoặc tên thật của họ để tạo sự thân thiết 🌸.\n" +
+                        "GIỌNG ĐIỆU: Ngọt ngào, chuyên nghiệp, dùng nhiều emoji (💖, ✨, 🌸).\n" +
+                        "NHIỆM VỤ CHIẾN LƯỢC:\n" +
+                        "1. TƯ VẤN CHUYÊN SÂU: Dựa vào 'KIẾN THỨC CHUYÊN GIA' để phân tích vấn đề da khách đang gặp phải (mụn, thâm, khô...). Luôn giải thích TẠI SAO sản phẩm đó lại hợp với họ.\n" +
+                        "2. KỊCH BẢN UPSELL & CROSS-SELL:\n" +
+                        "   - Nếu khách mua Sữa rửa mặt -> Hỏi khách đã có Tẩy trang chưa để làm sạch kép (Double Cleansing).\n" +
+                        "   - Nếu khách hỏi sản phẩm đặc trị (Retinol, BHA) -> Phải nhắc khách dùng Kem chống nắng và phục hồi B5.\n" +
+                        "   - Luôn đề xuất combo để khách đạt hiệu quả tốt nhất.\n" +
+                        "3. TRUY VẤN DỮ LIỆU: Chỉ được tư vấn sản phẩm CÓ trong 'DỮ LIỆU SẢN PHẨM'. Dùng Markdown: [Tên sản phẩm](/product/ID).\n" +
+                        "4. KHÉO LÉO: Nếu khách phàn nàn, hãy xoa dịu và báo sẽ có nhân viên liên hệ bảo hành ngay.\n" +
+                        "KỊCH BẢN KHI KHÁCH HỎI CHUNG CHUNG (Vd: Da mình mụn thì dùng gì?): Đừng chỉ đưa 1 sản phẩm, hãy vẽ ra 1 Routine nhỏ (Rửa mặt -> Đặc trị -> Bảo vệ) để tăng giá trị đơn hàng.\n" +
+                        (productContext.isEmpty() ? "" : "\n\n--- DANH SÁCH SẢN PHẨM CỬA HÀNG ---\n" + productContext) +
                         (blogContext.isEmpty() ? "" : "\n\n--- KIẾN THỨC TỪ BÀI VIẾT BLOG CỦA SHOP ---\n" + blogContext) +
                         (couponContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU VOUCHER KHUYẾN MÃI ---\n" + couponContext) +
-                        (orderContext.isEmpty() ? "" : "\n\n--- DỮ LIỆU ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
-                        "\n\n--- DỮ LIỆU GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
-                        (userActivityContext.isEmpty() ? "" : "\n\n--- LỊCH SỬ HÀNH ĐỘNG GẦN NHẤT CỦA KHÁCH ---\n" + userActivityContext) +
+                        (orderContext.isEmpty() ? "" : "\n\n--- ĐƠN HÀNG CỦA KHÁCH ---\n" + orderContext) +
+                        "\n\n--- GIỎ HÀNG HIỆN TẠI ---\n" + cartContext +
+                        (userActivityContext.isEmpty() ? "" : "\n\n--- HÀNH TRÌNH KHÁCH VỪA XEM ---\n" + userActivityContext) +
                         "\n\n--- THÔNG TIN PHIÊN HIỆN TẠI ---\n" + currentEnvironment +
                         "\n\n" + expertKnowledgeContext +
                         "\n\nNHIỆM VỤ CỦA CHUYÊN GIA BÔNG:\n" +
-                        "1. Tư vấn chuyên sâu: Khi khách hỏi về vấn đề da hoặc skincare, hãy dựa vào kiến thức chuyên gia bên trên để phân tích và ĐỀ XUẤT SẢN PHẨM CÓ TRONG CỬA HÀNG (Sử dụng Markdown [Tên sản phẩm](/product/ID)).\n" +
+                        "1. Tư vấn chuyên sâu: Khi khách hỏi về vấn đề da hoặc skincare, hãy dựa vào kiến thức chuyên gia bên trên để phân tích và ĐỀ XUẤT SẢN PHẨM CÓ TRONG CỬA HÀNG.\n" +
                         "2. Chủ động hỏi: Nếu khách chưa nói rõ loại da, hãy khéo léo hỏi 'Da nàng là da gì nhỉ?' để tư vấn Routine chuẩn xác.\n" +
                         "3. Soi GIỎ HÀNG và LỊCH SỬ: Gợi ý các món bổ trợ để hoàn thiện Routine dựa vào sản phẩm họ vừa xem/tương tác.\n" +
-                        "4. Đơn hàng: Nếu khách muốn mua tiếp thì khuyên, nếu hủy thì báo khách bấm vào mục Tài khoản -> Đơn hàng (bạn ko có quyền hủy).\n" +
-                        "5. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món độ/đơn hàng khách cần."
+                        "4. Luôn dùng thái độ rạng rỡ (🌸💖) và xin lỗi chân thành nếu không tìm thấy món đồ/đơn hàng khách cần."
                 );
                 systemInstructionMap.put("parts", List.of(systemPart));
                 requestBody.put("system_instruction", systemInstructionMap);

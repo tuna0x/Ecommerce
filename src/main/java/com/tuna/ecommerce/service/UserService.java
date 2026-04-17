@@ -163,8 +163,24 @@ public class UserService {
         return rs;
     }
 
-    public void handleDelete(Long id) {
-        this.userRepository.deleteById(id);
+    public String handleDelete(Long id) {
+        User user = this.userRepository.findById(id).orElse(null);
+        if (user != null) {
+            long orderCount = this.orderRepository.countByUserId(id);
+            if (orderCount > 0) {
+                // Soft delete to preserve order history
+                user.setActive(false);
+                user.setRefreshToken(null);
+                this.userRepository.save(user);
+                return "LOCKED";
+            } else {
+                // Hard delete if no orders exist
+                this.userBehaviorRepository.nullifyUserInBehaviors(id);
+                this.userRepository.deleteById(id);
+                return "DELETED";
+            }
+        }
+        return "NOT_FOUND";
     }
 
     public List<User> handleGetAllUsers() {

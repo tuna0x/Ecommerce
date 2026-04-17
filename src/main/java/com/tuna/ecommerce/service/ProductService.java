@@ -461,10 +461,42 @@ public class ProductService {
         if (product == null || product.getCategory() == null) {
             return new ArrayList<>();
         }
-        List<Product> related = this.productRepository
-                .findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(product.getCategory().getId(), id);
-        return related.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
+
+        Long categoryId = product.getCategory().getId();
+        Long brandId = product.getBrand() != null ? product.getBrand().getId() : null;
+
+        java.util.LinkedHashSet<Product> relatedSet = new java.util.LinkedHashSet<>();
+
+        // 1. Same Brand + Same Category (Top 4)
+        if (brandId != null) {
+            List<Product> brandRelated = this.productRepository
+                    .findTop4ByCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(categoryId, brandId, id);
+            relatedSet.addAll(brandRelated);
+        }
+
+        // 2. Best Sellers in Category (Fill up to 8)
+        if (relatedSet.size() < 8) {
+            List<Product> popularRelated = this.productRepository
+                    .findTop8ByCategoryIdAndIdNotOrderBySoldCountDesc(categoryId, id);
+            for (Product p : popularRelated) {
+                if (relatedSet.size() >= 8) break;
+                relatedSet.add(p);
+            }
+        }
+
+        // 3. Fallback: Latest in Category (If still not enough)
+        if (relatedSet.size() < 8) {
+            List<Product> latestRelated = this.productRepository
+                    .findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(categoryId, id);
+            for (Product p : latestRelated) {
+                if (relatedSet.size() >= 8) break;
+                relatedSet.add(p);
+            }
+        }
+
+        return relatedSet.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
+
 
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
