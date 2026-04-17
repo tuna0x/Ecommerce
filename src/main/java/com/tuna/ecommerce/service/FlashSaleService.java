@@ -3,26 +3,26 @@ package com.tuna.ecommerce.service;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.math.BigDecimal;
+import java.util.stream.Collectors;
+import java.util.List;
+import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.util.StringUtils;
 
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import com.tuna.ecommerce.domain.FlashSaleItem;
 import com.tuna.ecommerce.domain.Product;
+import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.domain.request.flashsale.ReqFlashSaleCampaignDTO;
+import com.tuna.ecommerce.domain.response.flashsale.ResFlashSaleCampaignDTO;
 import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
 import com.tuna.ecommerce.repository.FlashSaleItemRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.util.StringUtils;
-import org.springframework.http.HttpStatus;
-import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
-import java.util.stream.Collectors;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
 
@@ -86,7 +86,7 @@ public class FlashSaleService {
         if (variant != null) {
             inventoryRepository.findByProductVariant(variant).ifPresent(inv -> {
                 if (limitQuantity > inv.getStock()) {
-                    String name = (variantId != null) ? "biến thể " + variant.getSku() : "sản phẩm " + product.getName();
+                    String name = (variantId != null) ? "bién thể " + variant.getSku() : "sản phẩm " + product.getName();
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
                         "Số lượng Flash Sale cho " + name + " (" + limitQuantity + ") vượt quá tồn kho (" + inv.getStock() + ")");
                 }
@@ -95,7 +95,7 @@ public class FlashSaleService {
     }
 
     @Transactional
-    public FlashSaleCampaign createCampaign(ReqFlashSaleCampaignDTO req) {
+    public ResFlashSaleCampaignDTO createCampaign(ReqFlashSaleCampaignDTO req) {
         if (!StringUtils.hasText(req.getName())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên chiến dịch không được để trống");
         }
@@ -155,11 +155,14 @@ public class FlashSaleService {
             }
         }
         campaign.setItems(items);
-        return flashSaleCampaignRepository.save(campaign);
+        FlashSaleCampaign saved = flashSaleCampaignRepository.save(campaign);
+        return convertToResDTO(saved);
     }
 
-    public List<FlashSaleCampaign> getAllCampaigns() {
-        return flashSaleCampaignRepository.findAll();
+    public List<ResFlashSaleCampaignDTO> getAllCampaigns() {
+        return flashSaleCampaignRepository.findAll().stream()
+                .map(this::convertToResDTO)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -168,7 +171,7 @@ public class FlashSaleService {
     }
 
     @Transactional
-    public FlashSaleCampaign updateCampaign(Long id, ReqFlashSaleCampaignDTO req) {
+    public ResFlashSaleCampaignDTO updateCampaign(Long id, ReqFlashSaleCampaignDTO req) {
         if (!StringUtils.hasText(req.getName())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên chiến dịch không được để trống");
         }
@@ -230,6 +233,52 @@ public class FlashSaleService {
                 }
             }
         }
-        return flashSaleCampaignRepository.save(campaign);
+        FlashSaleCampaign saved = flashSaleCampaignRepository.save(campaign);
+        return convertToResDTO(saved);
+    }
+
+    public ResFlashSaleCampaignDTO getActiveCampaign() {
+        LocalDateTime now = LocalDateTime.now();
+        List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
+        if (activeCampaigns.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không có chiến dịch Flash Sale nào đang diễn ra");
+        }
+        return convertToResDTO(activeCampaigns.get(0));
+    }
+
+    public ResFlashSaleCampaignDTO convertToResDTO(FlashSaleCampaign campaign) {
+        ResFlashSaleCampaignDTO dto = new ResFlashSaleCampaignDTO();
+        dto.setId(campaign.getId());
+        dto.setName(campaign.getName());
+        dto.setDescription(campaign.getDescription());
+        dto.setStartAt(campaign.getStartAt());
+        dto.setEndAt(campaign.getEndAt());
+        dto.setActive(campaign.getActive());
+
+        if (campaign.getItems() != null) {
+            List<ResFlashSaleCampaignDTO.ResFlashSaleItemDTO> itemDTOs = campaign.getItems().stream()
+                    .map(item -> {
+                        ResFlashSaleCampaignDTO.ResFlashSaleItemDTO itemDTO = new ResFlashSaleCampaignDTO.ResFlashSaleItemDTO();
+                        itemDTO.setId(item.getId());
+                        if (item.getProduct() != null) {
+                            itemDTO.setProductId(item.getProduct().getId());
+                            itemDTO.setProductName(item.getProduct().getName());
+                            // Handle images safely
+                            if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+                                itemDTO.setProductImage(item.getProduct().getImages().get(0).getImageUrl());
+                            }
+                        }
+                        if (item.getVariant() != null) {
+                            itemDTO.setVariantId(item.getVariant().getId());
+                            itemDTO.setVariantSku(item.getVariant().getSku());
+                        }
+                        itemDTO.setFlashSalePrice(item.getFlashSalePrice());
+                        itemDTO.setLimitQuantity(item.getLimitQuantity());
+                        itemDTO.setSoldQuantity(item.getSoldQuantity());
+                        return itemDTO;
+                    }).collect(Collectors.toList());
+            dto.setItems(itemDTOs);
+        }
+        return dto;
     }
 }

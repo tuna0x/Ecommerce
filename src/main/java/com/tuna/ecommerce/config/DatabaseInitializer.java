@@ -459,6 +459,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Update a flash sale", "/api/v1/flash-sales/{id}", "PUT", "FLASH SALE", false));
         perms.add(new PermDef("Delete a flash sale", "/api/v1/flash-sales/{id}", "DELETE", "FLASH SALE", false));
         perms.add(new PermDef("Get flash sales", "/api/v1/flash-sales", "GET", "FLASH SALE", true));
+        perms.add(new PermDef("Get active flash sale", "/api/v1/flash-sales/active", "GET", "FLASH SALE", true));
 
         boolean updated = false;
         for (PermDef def : perms) {
