@@ -34,7 +34,7 @@ public class DashboardController {
             @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
 
         if (startDate == null) {
-            startDate = Instant.now().minus(30, ChronoUnit.DAYS); // Mặc định 30 ngày
+            startDate = Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS);
         }
         if (endDate == null) {
             endDate = Instant.now();
@@ -51,7 +51,7 @@ public class DashboardController {
             @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) Instant endDate) throws IOException {
 
         if (startDate == null) {
-            startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+            startDate = Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS);
         }
         if (endDate == null) {
             endDate = Instant.now();

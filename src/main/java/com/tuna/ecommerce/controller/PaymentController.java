@@ -21,6 +21,7 @@ import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.repository.OrderRepository;
 import com.tuna.ecommerce.repository.PaymentRepository;
 import com.tuna.ecommerce.service.PaymentService;
+import com.tuna.ecommerce.service.TransactionService;
 import com.tuna.ecommerce.ultil.VNPayUtil;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
@@ -44,13 +45,16 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final PaymentRepository paymentRepository;
     private final com.tuna.ecommerce.service.OrderService orderService;
+    private final TransactionService transactionService;
 
     public PaymentController(OrderRepository orderRepository, PaymentService paymentService,
-            PaymentRepository paymentRepository, com.tuna.ecommerce.service.OrderService orderService) {
+            PaymentRepository paymentRepository, com.tuna.ecommerce.service.OrderService orderService,
+            TransactionService transactionService) {
         this.orderRepository = orderRepository;
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
+        this.transactionService = transactionService;
     }
 
     @PostMapping("/payment/confirm")
@@ -115,6 +119,8 @@ public class PaymentController {
         }
 
         payment.setTransactionId(vnp_TransactionNo);
+        String rawData = fields.toString();
+
         if ("00".equals(vnp_ResponseCode)) {
             payment.setStatus(OrderStatusEnum.CONFIRMED);
             Order order = payment.getOrder();
@@ -123,16 +129,36 @@ public class PaymentController {
             this.orderRepository.save(order);
             this.paymentService.save(payment);
             this.orderService.handleClearCart(order);
-            
-            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId=" + vnp_TransactionNo;
+
+            // Log successful transaction
+            this.transactionService.handleLogTransaction(
+                    order,
+                    payment.getAmount(),
+                    payment.getMethod(),
+                    com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.SUCCESS,
+                    vnp_TransactionNo,
+                    rawData);
+
+            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId="
+                    + vnp_TransactionNo;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
             // Thanh toán thất bại hoặc bị hủy bởi khách hàng
             payment.setStatus(OrderStatusEnum.CANCELLED);
             this.paymentService.save(payment);
-            
+
             // Hủy đơn hàng + giải phóng stock + gửi thông báo
             Order order = payment.getOrder();
+
+            // Log failed transaction
+            this.transactionService.handleLogTransaction(
+                    order,
+                    payment.getAmount(),
+                    payment.getMethod(),
+                    com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.FAIL,
+                    vnp_TransactionNo,
+                    rawData);
+
             if (order.getStatus() == OrderStatusEnum.PENDING) {
                 order.setPaymentStatus(PaymentStatusEnum.UNPAID);
                 this.orderRepository.save(order);
@@ -140,7 +166,8 @@ public class PaymentController {
                 this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
             }
 
-            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId() + "&transactionId=" + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
+            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId() + "&transactionId="
+                    + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         }
     }
