@@ -18,4 +18,11 @@ public interface FlashSaleCampaignRepository extends JpaRepository<FlashSaleCamp
 
     @Query("SELECT c FROM FlashSaleCampaign c WHERE c.active = true AND c.startAt > :now ORDER BY c.startAt ASC")
     List<FlashSaleCampaign> findUpcomingCampaigns(@Param("now") LocalDateTime now);
+
+    @Query("SELECT c FROM FlashSaleCampaign c WHERE c.active = true AND (:id IS NULL OR c.id <> :id) AND " +
+           "((c.startAt < :endAt AND c.endAt > :startAt))")
+    List<FlashSaleCampaign> findOverlappingCampaigns(
+            @Param("startAt") LocalDateTime startAt, 
+            @Param("endAt") LocalDateTime endAt,
+            @Param("id") Long id);
 }
