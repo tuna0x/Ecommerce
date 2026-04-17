@@ -471,7 +471,7 @@ public class ProductService {
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
-        // 0. Check for Active Flash Sale Campaigns (Highest Priority)
+        // Check for Active Flash Sale Campaigns (Strict Mode)
         List<FlashSaleCampaign> activeCampaigns = this.flashSaleCampaignRepository.findActiveCampaigns(now);
         if (!activeCampaigns.isEmpty()) {
             List<Long> campaignProductIds = activeCampaigns.stream()
@@ -487,48 +487,8 @@ public class ProductService {
             }
         }
 
-        // 1. Check for Global Promotions
-        List<Promotion> globalPromos = this.promotionRepository.findActiveGlobal(now);
-        if (globalPromos != null && !globalPromos.isEmpty()) {
-            // If any global promotion is active, all products are in "Flash Sale"
-            Page<Product> allProducts = this.productRepository.findAll(pageable);
-            return this.convertToResultPaginationDTO(allProducts);
-        }
-
-        // 2. Collect Category IDs with active promotions
-        List<ResCategoryDTO> allCategories = this.categoryService.handleGetAll();
-        List<Long> categoryIds = new ArrayList<>();
-        if (allCategories != null) {
-            for (ResCategoryDTO cat : allCategories) {
-                List<Promotion> catPromos = this.promotionRepository.findActiveByCategoryId(cat.getId(), now);
-                if (catPromos != null && !catPromos.isEmpty()) {
-                    categoryIds.add(cat.getId());
-                }
-            }
-        }
-
-        // 3. Collect Product IDs with active specific promotions
-        List<ProductPromotion> productPromos = this.productPromotionRepository.findAllActive(now);
-        List<Long> productIds = productPromos.stream()
-                .filter(pp -> pp.getProduct() != null)
-                .map(pp -> pp.getProduct().getId())
-                .distinct()
-                .collect(Collectors.toList());
-
-        // 4. Query products by Category OR Product ID
-        if (categoryIds.isEmpty() && productIds.isEmpty()) {
-            return new ResultPaginationDTO(); // Empty result
-        }
-
-        // Ensure lists are not empty for IN clause if one is empty
-        if (categoryIds.isEmpty())
-            categoryIds.add(-1L);
-        if (productIds.isEmpty())
-            productIds.add(-1L);
-
-        Page<Product> flashSaleProducts = this.productRepository.findByCategoryIdInOrIdIn(categoryIds, productIds,
-                pageable);
-        return this.convertToResultPaginationDTO(flashSaleProducts);
+        // If no active campaign, return empty result (Do not fallback to promotions)
+        return new ResultPaginationDTO();
     }
 
     private ResultPaginationDTO convertToResultPaginationDTO(Page<Product> page) {
