@@ -427,7 +427,7 @@ public class ProductService {
         if (search != null && !search.trim().isEmpty()) {
             String unsignedSearch = Product.removeVietnameseAccents(search.trim());
             Specification<Product> unsignedSpec = (root, query, cb) ->
-                    cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch + "%");
+                    cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch.toLowerCase() + "%");
             // AND with the original spec from springfilter (which searches `name`)
             if (spec != null) {
                 spec = spec.and(unsignedSpec);
