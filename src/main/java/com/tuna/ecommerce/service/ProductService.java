@@ -35,12 +35,10 @@ import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductImageRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.ReviewRepository;
-import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
 import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.tuna.ecommerce.domain.ProductPromotion;
-import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.repository.ProductPromotionRepository;
 import com.tuna.ecommerce.repository.PromotionRepository;
 
@@ -487,8 +485,14 @@ public class ProductService {
             }
         }
 
-        // If no active campaign, return empty result (Do not fallback to promotions)
-        return new ResultPaginationDTO();
+        // If no active campaign, return empty result with valid Meta
+        ResultPaginationDTO emptyRs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        emptyRs.setMeta(mt);
+        emptyRs.setResult(new ArrayList<>());
+        return emptyRs;
     }
 
     private ResultPaginationDTO convertToResultPaginationDTO(Page<Product> page) {
@@ -626,12 +630,14 @@ public class ProductService {
 
                         // Map Flash Sale Info for this specific variant
                         this.flashSaleService.findActiveFlashSaleItemByVariant(v.getId()).ifPresent(fs -> {
-                            ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
-                            fsInner.setPrice(fs.getFlashSalePrice());
-                            fsInner.setLimitQuantity(fs.getLimitQuantity());
-                            fsInner.setSoldQuantity(fs.getSoldQuantity());
-                            fsInner.setEndAt(fs.getCampaign().getEndAt());
-                            vi.setFlashSale(fsInner);
+                            if (fs.getCampaign() != null) {
+                                ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
+                                fsInner.setPrice(fs.getFlashSalePrice());
+                                fsInner.setLimitQuantity(fs.getLimitQuantity());
+                                fsInner.setSoldQuantity(fs.getSoldQuantity());
+                                fsInner.setEndAt(fs.getCampaign().getEndAt());
+                                vi.setFlashSale(fsInner);
+                            }
                         });
 
                         return vi;

@@ -28,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FlashSaleService {
     private final FlashSaleCampaignRepository flashSaleCampaignRepository;
     private final FlashSaleItemRepository flashSaleItemRepository;
@@ -241,7 +242,7 @@ public class FlashSaleService {
         LocalDateTime now = LocalDateTime.now();
         List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
         if (activeCampaigns.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không có chiến dịch Flash Sale nào đang diễn ra");
+            return null; // Return null instead of throwing 404
         }
         return convertToResDTO(activeCampaigns.get(0));
     }
