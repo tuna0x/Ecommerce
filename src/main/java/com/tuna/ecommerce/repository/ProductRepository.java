@@ -22,6 +22,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     List<Product> findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(Long categoryId, Long id);
 
+    // Smart Recommendations: Same Brand + Same Category (Top 4)
+    List<Product> findTop4ByCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long brandId, Long id);
+
+    // Fallback: Best Sellers in Category (Top 8)
+    List<Product> findTop8ByCategoryIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long id);
+
+
     @EntityGraph(attributePaths = { "category", "brand" })
     Page<Product> findByCategoryIdInOrIdIn(List<Long> categoryIds, List<Long> productIds, Pageable pageable);
 
