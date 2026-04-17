@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import com.tuna.ecommerce.domain.request.flashsale.ReqFlashSaleCampaignDTO;
+import com.tuna.ecommerce.domain.response.flashsale.ResFlashSaleCampaignDTO;
 import com.tuna.ecommerce.service.FlashSaleService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 
@@ -27,13 +28,13 @@ public class FlashSaleController {
 
     @PostMapping
     @APIMessage("Tạo chiến dịch Flash Sale thành công")
-    public ResponseEntity<FlashSaleCampaign> createCampaign(@RequestBody ReqFlashSaleCampaignDTO req) {
+    public ResponseEntity<ResFlashSaleCampaignDTO> createCampaign(@RequestBody ReqFlashSaleCampaignDTO req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.flashSaleService.createCampaign(req));
     }
 
     @GetMapping
     @APIMessage("Lấy danh sách chiến dịch Flash Sale thành công")
-    public ResponseEntity<List<FlashSaleCampaign>> getAllCampaigns() {
+    public ResponseEntity<List<ResFlashSaleCampaignDTO>> getAllCampaigns() {
         return ResponseEntity.ok(this.flashSaleService.getAllCampaigns());
     }
 
@@ -46,7 +47,13 @@ public class FlashSaleController {
 
     @org.springframework.web.bind.annotation.PutMapping("/{id}")
     @APIMessage("Cập nhật chiến dịch Flash Sale thành công")
-    public ResponseEntity<FlashSaleCampaign> updateCampaign(@PathVariable Long id, @RequestBody ReqFlashSaleCampaignDTO req) {
+    public ResponseEntity<ResFlashSaleCampaignDTO> updateCampaign(@PathVariable Long id, @RequestBody ReqFlashSaleCampaignDTO req) {
         return ResponseEntity.ok(this.flashSaleService.updateCampaign(id, req));
+    }
+
+    @GetMapping("/active")
+    @APIMessage("Lấy chiến dịch Flash Sale đang diễn ra thành công")
+    public ResponseEntity<ResFlashSaleCampaignDTO> getActiveCampaign() {
+        return ResponseEntity.ok(this.flashSaleService.getActiveCampaign());
     }
 }

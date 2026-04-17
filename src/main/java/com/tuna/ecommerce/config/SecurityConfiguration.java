@@ -79,6 +79,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.GET, "/api/v1/payment/vn-pay").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/flash-sales/active").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/attribute/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/attributes-values/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/brands/**").permitAll()

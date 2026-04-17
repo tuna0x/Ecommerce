@@ -22,12 +22,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "flash_sale_campaigns")
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class FlashSaleCampaign {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
