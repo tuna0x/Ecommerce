@@ -4,6 +4,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import com.tuna.ecommerce.domain.Order;
+import com.tuna.ecommerce.domain.OrderItem;
+import com.tuna.ecommerce.ultil.constant.PaymentMethodEnum;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -34,12 +39,18 @@ public class GHNService {
 
     @Value("${ghn.pick-ward-code}")
     private String pickWardCode;
+    
+    @Value("${ghn.test-mode:false}")
+    private boolean testMode;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     //@Cacheable(value = "ghn_fee", key = "{#provinceName, #districtName, #wardName, #weight}")
     public Integer calculateFee(String provinceName, String districtName, String wardName, int weight) {
-        log.info("--- GHN FEE CALCULATION DEBUG ---");
+        log.info("--- GHN FEE CALCULATION DEBUG (TestMode={}) ---", testMode);
+        if (testMode) {
+            return 30000; // Fixed test fee
+        }
         try {
             // 1. Get Province ID
             Integer provinceId = getProvinceIdByName(provinceName);
@@ -113,6 +124,97 @@ public class GHNService {
         return null;
     }
 
+    public String createOrder(Order order, int weight) {
+        log.info("--- GHN CREATE ORDER DEBUG (TestMode={}) for Order #{} ---", testMode, order.getId());
+        if (testMode) {
+            try {
+                // Simulate network delay
+                Thread.sleep(500); 
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            String mockCode = "MOCK_GHN_" + order.getId() + "_" + System.currentTimeMillis() % 1000;
+            log.info("GHN Mock Mode: Created Order #{} with Shipping Code: {}", order.getId(), mockCode);
+            return mockCode;
+        }
+        try {
+            // 1. Map locations to GHN IDs
+            Integer toProvinceId = getProvinceIdByName(order.getProvince());
+            if (toProvinceId == null) throw new RuntimeException("Province not found in GHN: " + order.getProvince());
+            
+            Integer toDistrictId = getDistrictIdByName(toProvinceId, order.getDistrict());
+            if (toDistrictId == null) throw new RuntimeException("District not found in GHN: " + order.getDistrict());
+            
+            String toWardCode = getWardCodeByName(toDistrictId, order.getWard());
+            if (toWardCode == null) throw new RuntimeException("Ward not found in GHN: " + order.getWard());
+
+            // 2. Prepare items
+            List<Map<String, Object>> items = order.getItems().stream().map(item -> {
+                Map<String, Object> itemMap = new java.util.HashMap<>();
+                itemMap.put("name", item.getProduct().getName());
+                itemMap.put("code", item.getProduct().getId().toString());
+                itemMap.put("quantity", item.getQuantity());
+                itemMap.put("price", item.getPrice().intValue());
+                return itemMap;
+            }).collect(Collectors.toList());
+
+            // 3. Prepare request body
+            String url = baseUrl + "/shipping-order/create";
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Token", token);
+            headers.set("ShopId", shopId);
+            headers.set("Content-Type", "application/json");
+
+            // COD handling
+            int codAmount = 0;
+            if (order.getPayment() != null && order.getPayment().getMethod() == PaymentMethodEnum.COD) {
+                codAmount = order.getFinalPrice().intValue();
+            }
+
+            Map<String, Object> requestBody = new java.util.HashMap<>();
+            requestBody.put("payment_type_id", 2);
+            requestBody.put("note", "Giao hàng nhanh - Bông Cosmetic");
+            requestBody.put("required_note", "CHOXEMHANGKHONGTHU");
+            requestBody.put("return_phone", "0949098987");
+            requestBody.put("return_address", "180 Triêu Khúc, Thanh Trì, Hà Nội");
+            requestBody.put("to_name", order.getReceiverName());
+            requestBody.put("to_phone", order.getPhone());
+            requestBody.put("to_address", order.getShippingAddress());
+            requestBody.put("to_ward_code", toWardCode);
+            requestBody.put("to_district_id", toDistrictId);
+            requestBody.put("cod_amount", codAmount);
+            requestBody.put("content", "Đơn hàng #" + order.getId());
+            requestBody.put("client_order_code", order.getId().toString());
+
+            requestBody.put("weight", weight <= 0 ? 500 : weight);
+            requestBody.put("length", 10);
+            requestBody.put("width", 10);
+            requestBody.put("height", 10);
+            requestBody.put("service_type_id", 2); // Chuyên phát tiêu chuẩn
+            requestBody.put("items", items);
+
+            log.info("GHN Create Order Request: {}", requestBody);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+            Map body = response.getBody();
+            log.info("GHN Create Order Response Body: {}", body);
+
+            if (body != null && String.valueOf(body.get("code")).equals("200")) {
+                Map data = (Map) body.get("data");
+                if (data != null && data.get("order_code") != null) {
+                    return (String) data.get("order_code");
+                }
+            }
+            log.error("GHN Create Order API Error: {}", body);
+            throw new RuntimeException("Failed to create GHN order: " + (body != null ? body.get("message") : "Unknown error"));
+
+        } catch (Exception e) {
+            log.error("GHN Create Order Exception: {}", e.getMessage());
+            throw new RuntimeException("GHN Order Creation Exception: " + e.getMessage());
+        }
+    }
+
     private Integer callGhnFeeApi(int toDistrictId, String toWardCode, int weight) {
         String url = baseUrl + "/shipping-order/fee";
         
@@ -142,10 +244,10 @@ public class GHNService {
         try {
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
             Map body = response.getBody();
-            if (body != null && (Integer) body.get("code") == 200) {
+            if (body != null && String.valueOf(body.get("code")).equals("200")) {
                 Map data = (Map) body.get("data");
                 if (data != null && data.get("total") != null) {
-                    return (Integer) data.get("total");
+                    return Integer.parseInt(String.valueOf(data.get("total")));
                 }
             }
             log.error("GHN Fee API error: {}", body);
@@ -164,7 +266,9 @@ public class GHNService {
     @Cacheable(value = "ghn_districts", key = "#provinceId")
     public List<Map<String, Object>> getDistricts(int provinceId) {
         String url = baseUrl.replace("/v2", "") + "/master-data/district";
-        return fetchMasterData(url, Map.of("province_id", provinceId));
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("province_id", provinceId);
+        return fetchMasterData(url, body);
     }
 
     @Cacheable(value = "ghn_wards", key = "#districtId")
@@ -173,18 +277,21 @@ public class GHNService {
         return fetchMasterData(url, null);
     }
 
-    private List<Map<String, Object>> fetchMasterData(String url, Map<String, Object> body) {
+    private List<Map<String, Object>> fetchMasterData(String url, Map<String, ?> body) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Token", token);
         headers.set("Content-Type", "application/json");
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        HttpEntity<Map<String, ?>> entity = new HttpEntity<>(body, headers);
 
         try {
             ResponseEntity<Map> response = restTemplate.exchange(url, body != null ? HttpMethod.POST : HttpMethod.GET, entity, Map.class);
             Map responseBody = response.getBody();
-            if (responseBody != null && (Integer) responseBody.get("code") == 200) {
-                return (List<Map<String, Object>>) responseBody.get("data");
+            if (responseBody != null && String.valueOf(responseBody.get("code")).equals("200")) {
+                Object data = responseBody.get("data");
+                if (data instanceof List) {
+                    return (List<Map<String, Object>>) data;
+                }
             }
         } catch (Exception e) {
             log.error("Failed to fetch GHN master data from {}: {}", url, e.getMessage());

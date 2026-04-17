@@ -1,4 +1,5 @@
 package com.tuna.ecommerce.service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class FlashSaleService {
     private final FlashSaleCampaignRepository flashSaleCampaignRepository;
     private final FlashSaleItemRepository flashSaleItemRepository;
@@ -37,8 +39,14 @@ public class FlashSaleService {
     private final com.tuna.ecommerce.repository.InventoryRepository inventoryRepository;
 
     public Optional<FlashSaleItem> findActiveFlashSaleForItem(Long productId) {
-        List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItem(productId, LocalDateTime.now());
-        return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
+        LocalDateTime now = LocalDateTime.now();
+        List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItem(productId, now);
+        if (items.isEmpty()) {
+            log.info(">>> No active FlashSale found for product {}. Current system time: {}", productId, now);
+            return Optional.empty();
+        }
+        log.info(">>> Found active FlashSale for product {}. Time: {}", productId, now);
+        return Optional.of(items.get(0));
     }
 
     public Optional<FlashSaleItem> findActiveFlashSaleItemByVariant(Long variantId) {
@@ -240,10 +248,13 @@ public class FlashSaleService {
 
     public ResFlashSaleCampaignDTO getActiveCampaign() {
         LocalDateTime now = LocalDateTime.now();
+        log.info(">>> Checking for active FlashSale campaign at: {}", now);
         List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
         if (activeCampaigns.isEmpty()) {
+            log.info(">>> No active campaign found.");
             return null; // Return null instead of throwing 404
         }
+        log.info(">>> Active campaign found: {}", activeCampaigns.get(0).getName());
         return convertToResDTO(activeCampaigns.get(0));
     }
 

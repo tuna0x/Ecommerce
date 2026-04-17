@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.service;
 
+import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.time.Instant;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
@@ -52,6 +54,7 @@ import java.time.ZoneId;
 
 @Service
 @Transactional
+@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final CartService cartService;
@@ -69,6 +72,7 @@ public class OrderService {
     private final CouponService couponService;
     private final TelegramService telegramService;
     private final FlashSaleService flashSaleService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -86,7 +90,8 @@ public class OrderService {
             EmailService emailService,
             CouponService couponService,
             TelegramService telegramService,
-            FlashSaleService flashSaleService) {
+            FlashSaleService flashSaleService,
+            SimpMessagingTemplate messagingTemplate) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -103,6 +108,7 @@ public class OrderService {
         this.couponService = couponService;
         this.telegramService = telegramService;
         this.flashSaleService = flashSaleService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -458,6 +464,9 @@ public class OrderService {
         order.setStatus(status);
         order = this.orderRepository.save(order);
 
+        // Broadcast real-time update to Admin dashboard
+        this.messagingTemplate.convertAndSend("/topic/order-updates", this.convertToResGetOrderDTO(order));
+
         // Gửi thông báo tự động dựa trên trạng thái mới
         String title = "";
         String message = "";
@@ -477,6 +486,7 @@ public class OrderService {
                     // Chỉ tính "đã bán" khi đơn hàng được xác nhận
                     item.getProduct().setSoldCount(item.getProduct().getSoldCount() + item.getQuantity());
                 }
+
                 // Send Telegram Notification to Admin
                 this.telegramService.sendOrderConfirmedNotification(order);
                 break;
@@ -629,5 +639,32 @@ public class OrderService {
         if (paymentId != null) {
             this.paymentRepository.deleteById(paymentId);
         }
+    }
+    public ResGetOrderDTO createGhnOrder(Long id) throws IdInvalidException {
+        Order order = this.getOrder(id);
+        if (order == null) {
+            throw new IdInvalidException("Order not found");
+        }
+        if (order.getShippingCode() != null && !order.getShippingCode().isEmpty()) {
+            throw new IdInvalidException("Order already has a shipping code: " + order.getShippingCode());
+        }
+
+        String shippingCode = this.shippingService.createShippingOrder(order);
+        order.setShippingCode(shippingCode);
+        this.orderRepository.save(order); Order updatedOrder = this.handleUpdateStatus(order.getId(), OrderStatusEnum.DELIVERING);
+        return this.convertToResGetOrderDTO(updatedOrder);
+    }
+
+    public List<ResGetOrderDTO> handleBulkCreateGhnOrders(List<Long> ids) {
+        List<ResGetOrderDTO> results = new ArrayList<>();
+        for (Long id : ids) {
+            try {
+                results.add(this.createGhnOrder(id));
+            } catch (Exception e) {
+                // Log error but continue with other orders
+                log.error("Failed to create GHN order for ID {}: {}", id, e.getMessage());
+            }
+        }
+        return results;
     }
 }

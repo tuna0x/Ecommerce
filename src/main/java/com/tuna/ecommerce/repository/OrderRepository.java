@@ -71,4 +71,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("SELECT o FROM Order o JOIN o.payment p WHERE o.status = 'PENDING' AND p.method = 'COD' AND o.createdAt < :cutoffTime")
     List<Order> findStaleCodPendingOrders(@Param("cutoffTime") java.time.Instant cutoffTime);
+
+    Order findByShippingCode(String shippingCode);
 }

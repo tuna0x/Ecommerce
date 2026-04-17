@@ -14,4 +14,10 @@ public class EcommerceApplication {
 		SpringApplication.run(EcommerceApplication.class, args);
 	}
 
+	@jakarta.annotation.PostConstruct
+	public void init() {
+		java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+		System.out.println(">>> App TimeZone set to Asia/Ho_Chi_Minh. Current time: " + java.time.LocalDateTime.now());
+	}
+
 }
