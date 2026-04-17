@@ -50,6 +50,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "GROUP BY c.id, c.name")
     List<Object[]> findCategoryDistribution();
 
-    @Query(value = "SELECT * FROM products WHERE name LIKE :query OR name_unsigned LIKE :query LIMIT 15", nativeQuery = true)
+    @Query(value = "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(:query) OR LOWER(name_unsigned) LIKE LOWER(:query) LIMIT 15", nativeQuery = true)
     List<Product> searchByNameNative(@Param("query") String query);
 }
