@@ -405,6 +405,10 @@ public class DatabaseInitializer implements CommandLineRunner {
         // PAYMENT
         perms.add(new PermDef("Confirm payment", "/api/v1/payment/confirm", "POST", "PAYMENT", true));
 
+        // TRANSACTIONS
+        perms.add(new PermDef("Get all transactions with pagination", "/api/v1/transactions", "GET", "TRANSACTIONS",
+                false));
+
         // PRICING
         perms.add(new PermDef("Get Product price", "/api/v1/price/{id}", "GET", "PRICING PRODUCT", true));
 

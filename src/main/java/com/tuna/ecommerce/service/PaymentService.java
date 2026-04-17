@@ -53,13 +53,16 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderService orderService;
     private final NotificationService notificationService;
+    private final TransactionService transactionService;
 
     public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository,
-            @Lazy OrderService orderService, NotificationService notificationService) {
+            @Lazy OrderService orderService, NotificationService notificationService,
+            TransactionService transactionService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
         this.notificationService = notificationService;
+        this.transactionService = transactionService;
     }
 
     public Payment createCODPayment(Long orderId) {
@@ -71,7 +74,18 @@ public class PaymentService {
         payment.setAmount(order.getFinalPrice());
         order.setPayment(payment);
 
-        return this.paymentRepository.save(payment);
+        Payment savedPayment = this.paymentRepository.save(payment);
+
+        // Log COD transaction as PENDING
+        this.transactionService.handleLogTransaction(
+                order,
+                payment.getAmount(),
+                PaymentMethodEnum.COD,
+                com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.PENDING,
+                savedPayment.getTransactionId(),
+                "Initial COD Payment Created");
+
+        return savedPayment;
     }
 
     public Payment createPendingVNPayPayment(Long orderId) {
@@ -83,7 +97,18 @@ public class PaymentService {
         payment.setAmount(order.getFinalPrice());
         payment.setTransactionId(null);
         order.setPayment(payment);
-        return this.paymentRepository.save(payment);
+        Payment savedPayment = this.paymentRepository.save(payment);
+
+        // Log VNPay initial attempt as PENDING
+        this.transactionService.handleLogTransaction(
+                order,
+                payment.getAmount(),
+                PaymentMethodEnum.VNPAY,
+                com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.PENDING,
+                null,
+                "Initial VNPay Payment Intent Created");
+
+        return savedPayment;
     }
 
     public ResPaymentVNPAYDTO createVnPayPayment(HttpServletRequest req, Long paymentId) {
@@ -116,6 +141,16 @@ public class PaymentService {
         order.setStatus(OrderStatusEnum.CONFIRMED);
         this.orderRepository.save(order);
         payment = this.paymentRepository.save(payment);
+
+        // Log manual confirmation as SUCCESS
+        this.transactionService.handleLogTransaction(
+                order,
+                payment.getAmount(),
+                payment.getMethod(),
+                com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.SUCCESS,
+                req.getTransactionId(),
+                "Manual Payment Confirmation");
+
         this.orderService.handleClearCart(order);
 
         // Gửi thông báo thanh toán thành công
