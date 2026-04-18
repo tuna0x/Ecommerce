@@ -239,10 +239,13 @@ public class InventoryService {
                 .build();
     }
 
-    public List<InventoryLog> getHistory(Long inventoryId) throws IdInvalidException {
+    public List<ResInventoryLogDTO> getHistory(Long inventoryId) throws IdInvalidException {
         Inventory inventory = inventoryRepository.findById(inventoryId)
                 .orElseThrow(() -> new IdInvalidException("Inventory not found"));
-        return inventoryLogRepository.findByInventoryOrderByCreatedAtDesc(inventory);
+        return inventoryLogRepository.findByInventoryOrderByCreatedAtDesc(inventory)
+                .stream()
+                .map(this::convertToResInventoryLogDTO)
+                .collect(Collectors.toList());
     }
 
     public ResultPaginationDTO getGlobalHistory(Specification<InventoryLog> spec, Pageable pageable) {
