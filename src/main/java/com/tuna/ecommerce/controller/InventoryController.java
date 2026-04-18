@@ -16,6 +16,7 @@ import com.tuna.ecommerce.domain.response.inventory.ResInventoryDTO;
 import com.tuna.ecommerce.service.InventoryService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import com.tuna.ecommerce.domain.response.inventory.ResInventoryLogDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.turkraft.springfilter.boot.Filter;
 import org.springframework.data.domain.Pageable;
@@ -62,7 +63,7 @@ public class InventoryController {
 
     @GetMapping("/{id}/logs")
     @APIMessage("Get inventory logs successfully")
-    public ResponseEntity<List<InventoryLog>> getLogs(@PathVariable("id") Long id) throws IdInvalidException {
+    public ResponseEntity<List<ResInventoryLogDTO>> getLogs(@PathVariable("id") Long id) throws IdInvalidException {
         return ResponseEntity.ok(inventoryService.getHistory(id));
     }
 
