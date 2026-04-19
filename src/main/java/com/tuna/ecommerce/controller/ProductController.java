@@ -75,8 +75,9 @@ public class ProductController {
             @Filter Specification<Product> spec,
             @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
             @org.springframework.web.bind.annotation.RequestParam(value = "search", required = false) String search,
+            @org.springframework.web.bind.annotation.RequestParam(value = "isPublic", defaultValue = "false") boolean isPublic,
             Pageable pageable) {
-        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, categoryId, search, pageable));
+        return ResponseEntity.ok().body(this.productService.handleGetAll(spec, categoryId, search, pageable, isPublic));
     }
 
     @GetMapping("/products/flash-sale")

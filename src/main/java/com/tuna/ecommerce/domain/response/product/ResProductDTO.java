@@ -41,6 +41,7 @@ public class ResProductDTO implements Serializable {
     private int soldCount;
     private List<ProductVariantInner> variants;
     private FlashSaleInner flashSale;
+    private boolean active;
 
     @Getter
     @Setter

@@ -20,14 +20,17 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     boolean existsByName(String name);
 
-    List<Product> findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(Long categoryId, Long id);
+    List<Product> findTop8ByDeletedFalseAndActiveTrueAndCategoryIdAndIdNotOrderByCreatedAtDesc(Long categoryId, Long id);
 
     // Smart Recommendations: Same Brand + Same Category (Top 4)
-    List<Product> findTop4ByCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long brandId, Long id);
+    List<Product> findTop4ByDeletedFalseAndActiveTrueAndCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long brandId, Long id);
 
     // Fallback: Best Sellers in Category (Top 8)
-    List<Product> findTop8ByCategoryIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long id);
+    List<Product> findTop8ByDeletedFalseAndActiveTrueAndCategoryIdAndIdNotOrderBySoldCountDesc(Long categoryId, Long id);
 
+
+    @EntityGraph(attributePaths = { "category", "brand" })
+    Page<Product> findByDeletedFalseAndActiveTrueAndIdIn(List<Long> productIds, Pageable pageable);
 
     @EntityGraph(attributePaths = { "category", "brand" })
     Page<Product> findByCategoryIdInOrIdIn(List<Long> categoryIds, List<Long> productIds, Pageable pageable);
@@ -50,6 +53,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
            "GROUP BY c.id, c.name")
     List<Object[]> findCategoryDistribution();
 
-    @Query(value = "SELECT * FROM products WHERE LOWER(name) LIKE LOWER(:query) OR LOWER(name_unsigned) LIKE LOWER(:query) LIMIT 15", nativeQuery = true)
+    @Query(value = "SELECT * FROM products WHERE (LOWER(name) LIKE LOWER(:query) OR LOWER(name_unsigned) LIKE LOWER(:query)) AND active = true AND deleted = false LIMIT 15", nativeQuery = true)
     List<Product> searchByNameNative(@Param("query") String query);
 }

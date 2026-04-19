@@ -64,17 +64,11 @@ public class DatabaseInitializer implements CommandLineRunner {
         System.out.println(">>> START INIT DATABASE");
 
         // Schema Cleanup (Safe/Idempotent)
-        String[] tablesToCleanActive = { "categories", "attributes", "brands", "promotions", "banners" };
-        for (String table : tablesToCleanActive) {
-            try {
-                jdbcTemplate.execute("ALTER TABLE " + table + " DROP COLUMN active");
-            } catch (Exception e) {
-            }
-        }
 
         try {
             jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
             jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
+            jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN active");
         } catch (Exception e) {
         }
 
