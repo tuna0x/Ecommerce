@@ -45,6 +45,10 @@ public class ProductVariant {
     private String sku;
     private BigDecimal price; // Price override for this variant
     private double weight;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_image_id")
+    private ProductImage productImage;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

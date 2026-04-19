@@ -32,6 +32,7 @@ public class ResProductDTO implements Serializable {
     private int weight;
     private String thumbnail;
     private List<String> image;
+    private List<ProductImageInner> productImages;
     private CategoryInner category;
     private BrandInner brand;
     private List<ValueInner> attributeValue;
@@ -67,6 +68,8 @@ public class ResProductDTO implements Serializable {
         private int reservedStock;
         private int maxStock;
         private double weight;
+        private String image;
+        private Long productImageId;
         private List<VariantAttributeInner> variantAttributes;
         private FlashSaleInner flashSale;
     }
@@ -109,4 +112,12 @@ public class ResProductDTO implements Serializable {
         private String attributeName;
     }
 
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProductImageInner {
+        private Long id;
+        private String imageUrl;
+    }
 }

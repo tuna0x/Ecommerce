@@ -113,7 +113,8 @@ public class Product {
     private static final Pattern DIACRITICS_PATTERN = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
 
     public static String removeVietnameseAccents(String str) {
-        if (str == null) return null;
+        if (str == null)
+            return null;
         String normalized = Normalizer.normalize(str, Normalizer.Form.NFD);
         normalized = DIACRITICS_PATTERN.matcher(normalized).replaceAll("");
         normalized = normalized.replace('đ', 'd').replace('Đ', 'D');
