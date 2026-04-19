@@ -7,14 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.tuna.ecommerce.domain.Inventory;
-import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.response.promotion.ResPriceResultDTO;
-import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,10 +22,11 @@ import com.tuna.ecommerce.domain.Category;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.ProductAttributeValue;
 import com.tuna.ecommerce.domain.ProductImage;
+import com.tuna.ecommerce.domain.Inventory;
+import com.tuna.ecommerce.domain.Promotion;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
-import com.tuna.ecommerce.domain.response.category.ResCategoryDTO;
 import com.tuna.ecommerce.domain.response.product.ResProductDTO;
 import com.tuna.ecommerce.repository.AttributeValueRepository;
 import com.tuna.ecommerce.repository.ProductAttributeValueRepository;
@@ -50,7 +48,6 @@ import com.tuna.ecommerce.repository.InventoryRepository;
 import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
 import com.tuna.ecommerce.repository.FlashSaleItemRepository;
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
-import com.tuna.ecommerce.domain.FlashSaleItem;
 
 @Service
 @Transactional
@@ -214,7 +211,11 @@ public class ProductService {
     }
 
     public Product handleGetById(long id) {
-        return this.productRepository.findById(id).orElse(null);
+        Product product = this.productRepository.findById(id).orElse(null);
+        if (product != null && product.isDeleted()) {
+            return null;
+        }
+        return product;
     }
 
     public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
@@ -236,6 +237,10 @@ public class ProductService {
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         cur.setBrand(brand);
 
+        if (product.getActive() != null) {
+            cur.setActive(product.getActive());
+        }
+
         // Update Attributes
         if (product.getAttributeValue() != null) {
             // Remove old ones
@@ -251,14 +256,6 @@ public class ProductService {
                     cur.getProductAttributeValues().add(pav);
                 }
             }
-        } else {
-            // If attributeValue is null in the DTO, it means we might want to clear them.
-            // However, to be safe and compatible with old behavior where null means "don't
-            // change",
-            // we could check if we want to clear them.
-            // Let's assume for now that if the user sends null, we clear it TO FIX THE BUG
-            // "choosing no attributes fails or doesn't update".
-            cur.getProductAttributeValues().clear();
         }
 
         List<ProductImage> newlyUploadedImages = new ArrayList<>();
@@ -276,7 +273,7 @@ public class ProductService {
         }
 
         // Update Variants
-        if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+        if (product.getVariants() != null) {
             Map<String, ProductVariant> existingVariants = cur.getVariants().stream()
                     .collect(Collectors.toMap(ProductVariant::getSku, v -> v));
 
@@ -297,7 +294,7 @@ public class ProductService {
                     this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
                 } else if (vDto.getProductImageIndex() != null
                         && vDto.getProductImageIndex() < newlyUploadedImages.size()) {
-                    variant.setProductImage(newlyUploadedImages.get(vDto.getProductImageIndex()));
+                    variant.setProductImage(newlyUploadedImages.get(newlyUploadedImages.size() - 1));
                 }
 
                 if (vDto.getAttributeValues() != null) {
@@ -310,26 +307,21 @@ public class ProductService {
                 updatedVariants.add(variant);
             }
 
-            // Synchronize variants instead of clear all (which causes FK Error with
-            // InventoryLog)
-            cur.getVariants().removeIf(v -> !product.getVariants().stream()
-                    .anyMatch(vDto -> vDto.getSku().equals(v.getSku())));
+            // Soft delete removed variants instead of physically removing them (Avoiding FK Error)
+            for (ProductVariant v : cur.getVariants()) {
+                boolean stillExists = product.getVariants().stream()
+                        .anyMatch(vDto -> vDto.getSku().equals(v.getSku()));
+                if (!stillExists) {
+                    v.setDeleted(true);
+                } else {
+                    v.setDeleted(false); // Restore if it was deleted before
+                }
+            }
 
             for (ProductVariant updated : updatedVariants) {
                 if (!cur.getVariants().contains(updated)) {
                     cur.getVariants().add(updated);
                 }
-            }
-        } else {
-            // Simple product: Ensure only default variant exists
-            cur.getVariants().removeIf(v -> !v.getSku().startsWith("DEFAULT-"));
-            if (cur.getVariants().isEmpty()) {
-                ProductVariant defaultVariant = new ProductVariant();
-                defaultVariant.setProduct(cur);
-                defaultVariant.setSku("DEFAULT-" + cur.getId());
-                defaultVariant.setPrice(cur.getOriginalPrice());
-                this.productVariantRepository.save(defaultVariant);
-                cur.getVariants().add(defaultVariant);
             }
         }
 
@@ -436,17 +428,23 @@ public class ProductService {
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
         if (product != null) {
-            for (ProductImage img : product.getImages()) {
-                this.cloudinaryService.deleteFile(img.getPublicId());
-            }
-            // Cascade.ALL + orphanRemoval handles ProductImage and ProductAttributeValue
-            // deletion
-            this.productRepository.delete(product);
+            product.setDeleted(true);
+            this.productRepository.save(product);
         }
     }
 
     public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search,
-            Pageable page) {
+            Pageable page, boolean isPublic) {
+        // Default filter: never show deleted products
+        Specification<Product> softDeleteSpec = (root, query, cb) -> cb.equal(root.get("deleted"), false);
+        spec = (spec == null) ? softDeleteSpec : spec.and(softDeleteSpec);
+
+        // Public filter: only show active products
+        if (isPublic) {
+            Specification<Product> activeSpec = (root, query, cb) -> cb.equal(root.get("active"), true);
+            spec = spec.and(activeSpec);
+        }
+
         if (categoryId != null) {
             List<Long> categoryIds = this.categoryService.getAllIdsInHierarchy(categoryId);
             Specification<Product> categorySpec = (root, query, cb) -> root.get("category").get("id")
@@ -501,14 +499,14 @@ public class ProductService {
         // 1. Same Brand + Same Category (Top 4)
         if (brandId != null) {
             List<Product> brandRelated = this.productRepository
-                    .findTop4ByCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(categoryId, brandId, id);
+                    .findTop4ByDeletedFalseAndActiveTrueAndCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(categoryId, brandId, id);
             relatedSet.addAll(brandRelated);
         }
 
         // 2. Best Sellers in Category (Fill up to 8)
         if (relatedSet.size() < 8) {
             List<Product> popularRelated = this.productRepository
-                    .findTop8ByCategoryIdAndIdNotOrderBySoldCountDesc(categoryId, id);
+                    .findTop8ByDeletedFalseAndActiveTrueAndCategoryIdAndIdNotOrderBySoldCountDesc(categoryId, id);
             for (Product p : popularRelated) {
                 if (relatedSet.size() >= 8)
                     break;
@@ -519,7 +517,7 @@ public class ProductService {
         // 3. Fallback: Latest in Category (If still not enough)
         if (relatedSet.size() < 8) {
             List<Product> latestRelated = this.productRepository
-                    .findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(categoryId, id);
+                    .findTop8ByDeletedFalseAndActiveTrueAndCategoryIdAndIdNotOrderByCreatedAtDesc(categoryId, id);
             for (Product p : latestRelated) {
                 if (relatedSet.size() >= 8)
                     break;
@@ -543,8 +541,8 @@ public class ProductService {
                     .collect(Collectors.toList());
 
             if (!campaignProductIds.isEmpty()) {
-                Page<Product> flashSaleProducts = this.productRepository.findByCategoryIdInOrIdIn(
-                        List.of(-1L), campaignProductIds, pageable);
+                Page<Product> flashSaleProducts = this.productRepository.findByDeletedFalseAndActiveTrueAndIdIn(
+                        campaignProductIds, pageable);
                 return this.convertToResultPaginationDTO(flashSaleProducts);
             }
         }
@@ -587,6 +585,7 @@ public class ProductService {
         res.setId(product.getId());
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
+        res.setActive(product.isActive());
 
         // Map Inventory Details for main product (from its variants or default variant)
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {

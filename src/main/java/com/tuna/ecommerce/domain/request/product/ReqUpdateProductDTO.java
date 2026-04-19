@@ -27,6 +27,7 @@ public class ReqUpdateProductDTO {
     private Long brandId;
     private List<String> image; // List of existing image URLs to keep
     private List<VariantDTO> variants;
+    private Boolean active;
 
     @Getter
     @Setter

@@ -28,6 +28,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "product_variants")
+@org.hibernate.annotations.SQLRestriction("deleted = false")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -45,6 +46,8 @@ public class ProductVariant {
     private String sku;
     private BigDecimal price; // Price override for this variant
     private double weight;
+    
+    private boolean deleted = false;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_image_id")

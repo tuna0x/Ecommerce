@@ -50,6 +50,9 @@ public class Product {
     private String createdBy;
     private String updatedBy;
 
+    private boolean active = true;
+    private boolean deleted = false;
+
     @OneToOne(mappedBy = "product")
     @JsonIgnore
     private ProductDetail productDetail;
