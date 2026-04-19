@@ -136,6 +136,7 @@ public class ProductService {
         // Save first to get ID for images and attributes
         newProduct = this.productRepository.save(newProduct);
 
+        List<ProductImage> uploadedImages = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
@@ -145,6 +146,7 @@ public class ProductService {
                 image.setProduct(newProduct);
                 this.productImageRepository.save(image);
                 newProduct.addImage(image);
+                uploadedImages.add(image);
             }
         }
 
@@ -168,6 +170,12 @@ public class ProductService {
                 variant.setSku(vDto.getSku());
                 variant.setPrice(vDto.getPrice());
                 variant.setWeight(vDto.getWeight());
+
+                if (vDto.getProductImageId() != null) {
+                    this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
+                } else if (vDto.getProductImageIndex() != null && vDto.getProductImageIndex() < uploadedImages.size()) {
+                    variant.setProductImage(uploadedImages.get(vDto.getProductImageIndex()));
+                }
 
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
@@ -245,11 +253,26 @@ public class ProductService {
             }
         } else {
             // If attributeValue is null in the DTO, it means we might want to clear them.
-            // However, to be safe and compatible with old behavior where null means "don't change",
+            // However, to be safe and compatible with old behavior where null means "don't
+            // change",
             // we could check if we want to clear them.
             // Let's assume for now that if the user sends null, we clear it TO FIX THE BUG
             // "choosing no attributes fails or doesn't update".
             cur.getProductAttributeValues().clear();
+        }
+
+        List<ProductImage> newlyUploadedImages = new ArrayList<>();
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+                ProductImage image = new ProductImage();
+                image.setImageUrl(uploadResult.get("secure_url").toString());
+                image.setPublicId(uploadResult.get("public_id").toString());
+                image.setProduct(cur);
+                this.productImageRepository.save(image);
+                cur.addImage(image);
+                newlyUploadedImages.add(image);
+            }
         }
 
         // Update Variants
@@ -270,6 +293,13 @@ public class ProductService {
                 variant.setPrice(vDto.getPrice());
                 variant.setWeight(vDto.getWeight());
 
+                if (vDto.getProductImageId() != null) {
+                    this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
+                } else if (vDto.getProductImageIndex() != null
+                        && vDto.getProductImageIndex() < newlyUploadedImages.size()) {
+                    variant.setProductImage(newlyUploadedImages.get(vDto.getProductImageIndex()));
+                }
+
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
                             .map(id -> this.attributeValueRepository.findById(id).orElse(null))
@@ -280,10 +310,11 @@ public class ProductService {
                 updatedVariants.add(variant);
             }
 
-            // Synchronize variants instead of clear all (which causes FK Error with InventoryLog)
+            // Synchronize variants instead of clear all (which causes FK Error with
+            // InventoryLog)
             cur.getVariants().removeIf(v -> !product.getVariants().stream()
                     .anyMatch(vDto -> vDto.getSku().equals(v.getSku())));
-            
+
             for (ProductVariant updated : updatedVariants) {
                 if (!cur.getVariants().contains(updated)) {
                     cur.getVariants().add(updated);
@@ -392,7 +423,7 @@ public class ProductService {
             product.setPrice(product.getOriginalPrice());
         }
     }
-    
+
     @Transactional
     public void syncAllProductsPrice() {
         List<Product> products = this.productRepository.findAll();
@@ -401,7 +432,6 @@ public class ProductService {
             this.productRepository.save(p);
         }
     }
-
 
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
@@ -415,7 +445,8 @@ public class ProductService {
         }
     }
 
-    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search, Pageable page) {
+    public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search,
+            Pageable page) {
         if (categoryId != null) {
             List<Long> categoryIds = this.categoryService.getAllIdsInHierarchy(categoryId);
             Specification<Product> categorySpec = (root, query, cb) -> root.get("category").get("id")
@@ -426,8 +457,8 @@ public class ProductService {
         // Unaccented search: if search param exists, add OR condition for nameUnsigned
         if (search != null && !search.trim().isEmpty()) {
             String unsignedSearch = Product.removeVietnameseAccents(search.trim());
-            Specification<Product> unsignedSpec = (root, query, cb) ->
-                    cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch.toLowerCase() + "%");
+            Specification<Product> unsignedSpec = (root, query, cb) -> cb.like(cb.lower(root.get("nameUnsigned")),
+                    "%" + unsignedSearch.toLowerCase() + "%");
             // AND with the original spec from springfilter (which searches `name`)
             if (spec != null) {
                 spec = spec.and(unsignedSpec);
@@ -479,7 +510,8 @@ public class ProductService {
             List<Product> popularRelated = this.productRepository
                     .findTop8ByCategoryIdAndIdNotOrderBySoldCountDesc(categoryId, id);
             for (Product p : popularRelated) {
-                if (relatedSet.size() >= 8) break;
+                if (relatedSet.size() >= 8)
+                    break;
                 relatedSet.add(p);
             }
         }
@@ -489,14 +521,14 @@ public class ProductService {
             List<Product> latestRelated = this.productRepository
                     .findTop8ByCategoryIdAndIdNotOrderByCreatedAtDesc(categoryId, id);
             for (Product p : latestRelated) {
-                if (relatedSet.size() >= 8) break;
+                if (relatedSet.size() >= 8)
+                    break;
                 relatedSet.add(p);
             }
         }
 
         return relatedSet.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
-
 
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -584,10 +616,14 @@ public class ProductService {
         // Map Thumbnail and Images
         if (product.getImages() != null && !product.getImages().isEmpty()) {
             res.setThumbnail(product.getImages().get(0).getImageUrl());
-            List<String> imageUrls = product.getImages().stream()
-                    .map(ProductImage::getImageUrl)
-                    .collect(Collectors.toList());
+            List<String> imageUrls = new ArrayList<>();
+            List<ResProductDTO.ProductImageInner> productImages = new ArrayList<>();
+            for (ProductImage img : product.getImages()) {
+                imageUrls.add(img.getImageUrl());
+                productImages.add(new ResProductDTO.ProductImageInner(img.getId(), img.getImageUrl()));
+            }
             res.setImage(imageUrls);
+            res.setProductImages(productImages);
         }
 
         // Map Description from ProductDetail
@@ -641,6 +677,8 @@ public class ProductService {
                             vi.setPrice(v.getPrice());
                         }
                         vi.setWeight(v.getWeight());
+                        vi.setImage(v.getProductImage() != null ? v.getProductImage().getImageUrl() : null);
+                        vi.setProductImageId(v.getProductImage() != null ? v.getProductImage().getId() : null);
 
                         // Map Variant Inventory
                         this.inventoryRepository.findByProductVariant(v).ifPresent(inv -> {
@@ -757,8 +795,11 @@ public class ProductService {
 
         // 1. Fetch Top 5 Bán chạy nhất
         List<Product> topSellers = this.productRepository.findAll(
-                org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "soldCount"))
-        ).getContent();
+                org.springframework.data.domain.PageRequest
+                        .of(0, 5,
+                                org.springframework.data.domain.Sort
+                                        .by(org.springframework.data.domain.Sort.Direction.DESC, "soldCount")))
+                .getContent();
 
         if (!topSellers.isEmpty()) {
             sb.append("--- TOÀN TRANG: 5 SẢN PHẨM BÁN CHẠY NHẤT HIỆN GẦN ĐÂY ---\n");
@@ -778,7 +819,7 @@ public class ProductService {
                 }
             }
         }
-        
+
         if (sb.length() == 0) {
             return "Hiện tại tôi không tìm thấy sản phẩm nào trong cửa hàng.";
         }
@@ -789,15 +830,18 @@ public class ProductService {
     private void appendChatbotProductInfo(StringBuilder sb, Product p) {
         sb.append("- Tên: ").append(p.getName())
                 .append(" (ID: ").append(p.getId()).append(")");
-                
+
         if (this.pricingService != null) {
             List<Promotion> promotions = this.pricingService.getApplicablePromotions(p);
-            ResPriceResultDTO priceResult = this.pricingService.calculatePriceWithPromotions(p.getOriginalPrice(), promotions);
-            if (priceResult.getDiscountPrice() != null && priceResult.getDiscountPrice().compareTo(BigDecimal.ZERO) > 0) {
-                 sb.append(", Giá gốc: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
-                   .append(", [ĐANG CÓ FLASHSALE/GIẢM GIÁ] Giá chỉ còn: ").append(String.format("%,.0f VNĐ", priceResult.getFinalPrice().doubleValue()));
+            ResPriceResultDTO priceResult = this.pricingService.calculatePriceWithPromotions(p.getOriginalPrice(),
+                    promotions);
+            if (priceResult.getDiscountPrice() != null
+                    && priceResult.getDiscountPrice().compareTo(BigDecimal.ZERO) > 0) {
+                sb.append(", Giá gốc: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
+                        .append(", [ĐANG CÓ FLASHSALE/GIẢM GIÁ] Giá chỉ còn: ")
+                        .append(String.format("%,.0f VNĐ", priceResult.getFinalPrice().doubleValue()));
             } else {
-                 sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
+                sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
             }
         } else {
             sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
@@ -805,7 +849,7 @@ public class ProductService {
 
         sb.append(", Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
                 .append(", Đã bán: ").append(p.getSoldCount());
-        
+
         if (p.getProductDetail() != null && p.getProductDetail().getDescription() != null) {
             // Loại bỏ HTML tags để đưa vào AI
             String desc = p.getProductDetail().getDescription().replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim();

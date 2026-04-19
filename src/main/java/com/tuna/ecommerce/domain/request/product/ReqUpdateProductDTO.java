@@ -35,6 +35,8 @@ public class ReqUpdateProductDTO {
         private BigDecimal price;
         private int stock;
         private double weight;
+        private Long productImageId;
+        private Integer productImageIndex;
         private List<Long> attributeValues;
     }
 }

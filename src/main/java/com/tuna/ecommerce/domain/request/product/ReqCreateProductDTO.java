@@ -28,6 +28,8 @@ public class ReqCreateProductDTO {
         private BigDecimal price;
         private int stock;
         private double weight;
+        private Long productImageId;
+        private Integer productImageIndex;
         private List<Long> attributeValues;
     }
 }
