@@ -199,14 +199,17 @@ public class ProductService {
         newProduct = this.productRepository.save(newProduct);
 
         Map<String, Integer> variantStocks = new HashMap<>();
+        Map<String, Double> variantCostPrices = new HashMap<>();
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
-            variantStocks = product.getVariants().stream()
-                    .collect(Collectors.toMap(ReqCreateProductDTO.VariantDTO::getSku,
-                            ReqCreateProductDTO.VariantDTO::getStock));
+            for (ReqCreateProductDTO.VariantDTO vDto : product.getVariants()) {
+                variantStocks.put(vDto.getSku(), vDto.getStock());
+                variantCostPrices.put(vDto.getSku(), vDto.getCostPrice());
+            }
         } else {
             variantStocks.put("DEFAULT-" + newProduct.getId(), product.getStock());
+            variantCostPrices.put("DEFAULT-" + newProduct.getId(), product.getCostPrice());
         }
-        this.inventoryService.syncInitialInventory(newProduct, variantStocks);
+        this.inventoryService.syncInitialInventory(newProduct, variantStocks, variantCostPrices);
         return newProduct;
     }
 
@@ -370,14 +373,17 @@ public class ProductService {
         cur = this.productRepository.save(cur);
 
         Map<String, Integer> variantStocks = new HashMap<>();
+        Map<String, Double> variantCostPrices = new HashMap<>();
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
-            variantStocks = product.getVariants().stream()
-                    .collect(Collectors.toMap(ReqUpdateProductDTO.VariantDTO::getSku,
-                            ReqUpdateProductDTO.VariantDTO::getStock));
+            for (ReqUpdateProductDTO.VariantDTO vDto : product.getVariants()) {
+                variantStocks.put(vDto.getSku(), vDto.getStock());
+                variantCostPrices.put(vDto.getSku(), vDto.getCostPrice());
+            }
         } else {
             variantStocks.put("DEFAULT-" + cur.getId(), product.getStock());
+            variantCostPrices.put("DEFAULT-" + cur.getId(), product.getCostPrice());
         }
-        this.inventoryService.syncInitialInventory(cur, variantStocks);
+        this.inventoryService.syncInitialInventory(cur, variantStocks, variantCostPrices);
         return cur;
     }
 

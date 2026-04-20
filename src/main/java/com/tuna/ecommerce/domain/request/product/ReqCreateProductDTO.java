@@ -15,6 +15,7 @@ import lombok.Setter;
 public class ReqCreateProductDTO {
     private String name;
     private BigDecimal originalPrice;
+    private double costPrice;
     private int stock;
     private List<Long> attributeValue;
     private Long categoryId;
@@ -26,6 +27,7 @@ public class ReqCreateProductDTO {
     public static class VariantDTO {
         private String sku;
         private BigDecimal price;
+        private double costPrice;
         private int stock;
         private double weight;
         private Long productImageId;

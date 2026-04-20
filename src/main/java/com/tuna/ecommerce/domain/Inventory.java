@@ -38,6 +38,7 @@ public class Inventory {
 
     private int stock;
     private int reservedStock = 0; // Hàng đang được giữ
+    private double costPrice = 0; // Giá vốn
     private int minStockThreshold = 10; // Ngưỡng báo hết hàng
     private int maxStock = 100; // Ngưỡng báo tồn kho quá nhiều (Overstock)
 

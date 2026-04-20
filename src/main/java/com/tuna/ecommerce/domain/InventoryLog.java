@@ -41,6 +41,8 @@ public class InventoryLog {
     private InventoryLogType type;
 
     private String note;
+    private Double oldCostPrice;
+    private Double newCostPrice;
 
     private Instant createdAt;
     private String createdBy;
