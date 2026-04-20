@@ -14,6 +14,8 @@ import com.tuna.ecommerce.domain.ProductVariant;
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByProductVariant(ProductVariant productVariant);
+    
+    List<Inventory> findByProductVariantProduct(com.tuna.ecommerce.domain.Product product);
 
     @Query("SELECT SUM(i.stock * pv.price) FROM Inventory i JOIN i.productVariant pv")
     BigDecimal calculateTotalCapitalValue();
