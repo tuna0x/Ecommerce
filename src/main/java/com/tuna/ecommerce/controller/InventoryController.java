@@ -51,7 +51,8 @@ public class InventoryController {
                 req.getType(),
                 req.getNote(),
                 req.getMinStockThreshold(),
-                req.getMaxStock()));
+                req.getMaxStock(),
+                req.getCostPrice()));
     }
 
     @PostMapping("/bulk-adjust")

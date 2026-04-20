@@ -31,6 +31,7 @@ import com.tuna.ecommerce.domain.OrderItem;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
+import com.tuna.ecommerce.domain.request.order.ReqUpdateOrderAddressDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
 import com.tuna.ecommerce.repository.CartItemRepository;
@@ -666,5 +667,26 @@ public class OrderService {
             }
         }
         return results;
+    }
+
+    public Order handleUpdateOrderAddress(Long id, ReqUpdateOrderAddressDTO req) throws IdInvalidException {
+        Order order = this.getOrder(id);
+        if (order == null) {
+            throw new IdInvalidException("Đơn hàng không tồn tại.");
+        }
+
+        order.setReceiverName(req.getReceiverName());
+        order.setPhone(req.getPhone());
+        order.setProvince(req.getProvince());
+        order.setDistrict(req.getDistrict());
+        order.setWard(req.getWard());
+        order.setShippingAddress(req.getShippingAddress());
+
+        order = this.orderRepository.save(order);
+
+        // Broadcast real-time update to Admin dashboard
+        this.messagingTemplate.convertAndSend("/topic/order-updates", this.convertToResGetOrderDTO(order));
+
+        return order;
     }
 }

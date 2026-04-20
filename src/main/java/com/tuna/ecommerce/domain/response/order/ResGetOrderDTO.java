@@ -33,7 +33,7 @@ public class ResGetOrderDTO {
 
     @Enumerated(EnumType.STRING)
     private PaymentStatusEnum paymentStatus;
-    private String ShippingAddress;
+    private String shippingAddress;
     private String paymentMethod;
     private String transactionID;
     private String paymentUrl;

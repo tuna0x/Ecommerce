@@ -131,14 +131,19 @@ public class InventoryService {
 
     @Transactional
     public ResInventoryDTO updateStock(Long productId, Long variantId, int quantityChange, InventoryLogType type,
-            String note, Integer minStockThreshold, Integer maxStock) throws IdInvalidException {
+            String note, Integer minStockThreshold, Integer maxStock, Double costPrice) throws IdInvalidException {
         Inventory inventory = getOrCreateInventory(productId, variantId);
+
+        Double oldCostPrice = inventory.getCostPrice();
 
         if (minStockThreshold != null) {
             inventory.setMinStockThreshold(minStockThreshold);
         }
         if (maxStock != null) {
             inventory.setMaxStock(maxStock);
+        }
+        if (costPrice != null) {
+            inventory.setCostPrice(costPrice);
         }
 
         int newStock = inventory.getStock() + quantityChange;
@@ -154,6 +159,8 @@ public class InventoryService {
         log.setQuantityChange(quantityChange);
         log.setType(type);
         log.setNote(note);
+        log.setOldCostPrice(oldCostPrice);
+        log.setNewCostPrice(inventory.getCostPrice());
         inventoryLogRepository.save(log);
 
         checkLowStockAndNotify(inventory);
@@ -187,7 +194,8 @@ public class InventoryService {
                                 req.getType(),
                                 req.getNote(),
                                 req.getMinStockThreshold(),
-                                req.getMaxStock());
+                                req.getMaxStock(),
+                                req.getCostPrice());
                     } catch (IdInvalidException e) {
                         throw new RuntimeException(e.getMessage());
                     }
@@ -219,6 +227,7 @@ public class InventoryService {
                     .id(product != null ? product.getId() : null)
                     .name(product != null ? product.getName() : "Sản phẩm đã bị xóa")
                     .thumbnail(thumbnail)
+                    .categoryName(product != null && product.getCategory() != null ? product.getCategory().getName() : "N/A")
                     .build();
 
             variantDTO = ResInventoryDTO.ProductVariantDTO.builder()
@@ -232,6 +241,7 @@ public class InventoryService {
                 .id(inventory.getId())
                 .stock(inventory.getStock())
                 .reservedStock(inventory.getReservedStock())
+                .costPrice(inventory.getCostPrice())
                 .minStockThreshold(inventory.getMinStockThreshold())
                 .maxStock(inventory.getMaxStock())
                 .updatedAt(inventory.getUpdatedAt() != null ? inventory.getUpdatedAt() : inventory.getCreatedAt())
@@ -369,6 +379,8 @@ public class InventoryService {
                 .quantityChange(log.getQuantityChange())
                 .type(log.getType())
                 .note(log.getNote())
+                .oldCostPrice(log.getOldCostPrice())
+                .newCostPrice(log.getNewCostPrice())
                 .createdAt(log.getCreatedAt())
                 .createdBy(log.getCreatedBy())
                 .inventory(invDTO)
@@ -376,20 +388,24 @@ public class InventoryService {
     }
 
     @Transactional
-    public void syncInitialInventory(Product product, Map<String, Integer> variantStocks) {
+    public void syncInitialInventory(Product product, Map<String, Integer> variantStocks, Map<String, Double> variantCostPrices) {
         // Ensure every variant has an inventory record
         for (ProductVariant variant : product.getVariants()) {
             Inventory inv = inventoryRepository.findByProductVariant(variant).orElse(null);
             Integer initialStock = (variantStocks != null) ? variantStocks.get(variant.getSku()) : null;
+            Double initialCost = (variantCostPrices != null) ? variantCostPrices.get(variant.getSku()) : null;
 
             if (inv == null) {
                 inv = new Inventory();
                 inv.setProductVariant(variant);
                 inv.setStock(initialStock != null ? initialStock : 0);
+                if (initialCost != null) inv.setCostPrice(initialCost);
                 inventoryRepository.save(inv);
-            } else if (initialStock != null && inv.getStock() != initialStock) {
-                int diff = initialStock - inv.getStock();
-                inv.setStock(initialStock);
+            } else if ((initialStock != null && inv.getStock() != initialStock) || (initialCost != null && inv.getCostPrice() != initialCost)) {
+                Double oldCost = inv.getCostPrice();
+                int diff = (initialStock != null) ? initialStock - inv.getStock() : 0;
+                if (initialStock != null) inv.setStock(initialStock);
+                if (initialCost != null) inv.setCostPrice(initialCost);
                 inventoryRepository.save(inv);
 
                 InventoryLog log = new InventoryLog();
@@ -397,6 +413,8 @@ public class InventoryService {
                 log.setQuantityChange(diff);
                 log.setType(InventoryLogType.ADJUSTMENT);
                 log.setNote("Đồng bộ tồn kho từ trang quản lý sản phẩm");
+                log.setOldCostPrice(oldCost);
+                log.setNewCostPrice(inv.getCostPrice());
                 inventoryLogRepository.save(log);
             }
         }

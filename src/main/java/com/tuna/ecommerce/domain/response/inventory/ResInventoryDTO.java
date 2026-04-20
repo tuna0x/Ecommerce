@@ -14,6 +14,7 @@ public class ResInventoryDTO {
     private Long id;
     private int stock;
     private int reservedStock;
+    private double costPrice;
     private int minStockThreshold;
     private int maxStock;
     private Instant updatedAt;
@@ -38,5 +39,6 @@ public class ResInventoryDTO {
         private Long id;
         private String name;
         private String thumbnail;
+        private String categoryName;
     }
 }

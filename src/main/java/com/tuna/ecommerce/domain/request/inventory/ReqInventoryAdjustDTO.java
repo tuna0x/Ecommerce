@@ -14,6 +14,7 @@ public class ReqInventoryAdjustDTO {
     private Long productId;
     private Long variantId;
     private int quantity;
+    private Double costPrice;
     private Integer minStockThreshold;
     private Integer maxStock;
     private InventoryLogType type;

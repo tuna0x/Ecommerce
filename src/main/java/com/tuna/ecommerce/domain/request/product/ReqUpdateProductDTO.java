@@ -21,6 +21,7 @@ public class ReqUpdateProductDTO {
     private String name;
     private String description;
     private BigDecimal originalPrice;
+    private double costPrice;
     private int stock;
     private List<Long> attributeValue;
     private Long categoryId;
@@ -34,6 +35,7 @@ public class ReqUpdateProductDTO {
     public static class VariantDTO {
         private String sku;
         private BigDecimal price;
+        private double costPrice;
         private int stock;
         private double weight;
         private Long productImageId;
