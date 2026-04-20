@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.request.order.ReqBulkUpdateStatusDTO;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
+import com.tuna.ecommerce.domain.request.order.ReqUpdateOrderAddressDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import java.time.Instant;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
@@ -80,6 +81,13 @@ public class OrderController {
     public ResponseEntity<Order> updateOrderStatus(@PathVariable("id") Long id,
             @RequestParam("status") OrderStatusEnum status) throws IdInvalidException {
         return ResponseEntity.ok().body(this.orderService.handleUpdateStatus(id, status));
+    }
+
+    @PutMapping("/order/{id}/address")
+    @APIMessage("update order shipping address")
+    public ResponseEntity<Order> updateOrderAddress(@PathVariable("id") Long id,
+            @RequestBody ReqUpdateOrderAddressDTO req) throws IdInvalidException {
+        return ResponseEntity.ok().body(this.orderService.handleUpdateOrderAddress(id, req));
     }
 
     @PostMapping("/order/{id}/ghn")

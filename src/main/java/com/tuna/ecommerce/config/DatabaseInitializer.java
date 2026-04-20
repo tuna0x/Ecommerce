@@ -392,6 +392,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get my orders with pagination", "/api/v1/order/me", "GET", "ORDER", true));
         perms.add(new PermDef("Admin get all orders", "/api/v1/order/admin/all", "GET", "ORDER", false));
         perms.add(new PermDef("Update order status", "/api/v1/order/{id}/status", "PUT", "ORDER", false));
+        perms.add(new PermDef("Update order address", "/api/v1/order/{id}/address", "PUT", "ORDER", false));
         perms.add(new PermDef("Bulk update order status", "/api/v1/order/bulk-status", "POST", "ORDER", false));
         perms.add(new PermDef("Bulk create ghn shipping orders", "/api/v1/order/bulk-ghn", "POST", "ORDER", false));
         perms.add(new PermDef("Cancel order", "/api/v1/order/{id}/cancel", "PUT", "ORDER", true));
