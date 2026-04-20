@@ -205,6 +205,7 @@ public class InventoryService {
 
     public List<ResInventoryDTO> getAllInventory() {
         return inventoryRepository.findAll().stream()
+                .filter(inv -> inv.getProductVariant() != null && !inv.getProductVariant().isDeleted())
                 .map(this::convertToResInventoryDTO)
                 .collect(Collectors.toList());
     }
@@ -419,14 +420,15 @@ public class InventoryService {
             }
         }
 
-        // Cleanup: Remove inventory for variants no longer linked to this product
-        // We find all inventory records where variant.product == this product, but
-        // variant is not in product.getVariants()
-        List<Inventory> variantsToRemove = inventoryRepository.findAll().stream()
-                .filter(inv -> inv.getProductVariant() != null &&
-                        inv.getProductVariant().getProduct() != null &&
-                        inv.getProductVariant().getProduct().getId().equals(product.getId()) &&
-                        !product.getVariants().contains(inv.getProductVariant()))
+        // Cleanup: Remove inventory for variants no longer linked or marked as deleted
+        List<Inventory> existingInventories = inventoryRepository.findByProductVariantProduct(product);
+        List<Inventory> variantsToRemove = existingInventories.stream()
+                .filter(inv -> {
+                    ProductVariant variant = inv.getProductVariant();
+                    // Remove if variant is null, variant is marked as deleted, or variant is not in the current product's list
+                    return variant == null || variant.isDeleted() || 
+                           product.getVariants().stream().noneMatch(v -> v.getId() != null && v.getId().equals(variant.getId()));
+                })
                 .collect(Collectors.toList());
 
         if (!variantsToRemove.isEmpty()) {
