@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông báo hủy đơn hàng - Bông Cosmetic</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff5f7;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(255, 105, 180, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 30px 0; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px; text-transform: uppercase;">Bông Cosmetic</h1>
+                            <p style="color: #ffe4e1; margin-top: 5px; font-size: 13px;">Thông báo hủy đơn hàng #<span th:text="${order.id}">123</span></p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="color: #333333; font-size: 20px; margin-top: 0; text-align: center;">Đơn hàng của bạn đã bị hủy</h2>
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">Chào <b th:text="${order.receiverName}">Khách hàng</b>,</p>
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">
+                                Chúng tôi rất tiếc phải thông báo rằng đơn hàng <b>#<span th:text="${order.id}">123</span></b> của bạn đã bị hủy trên hệ thống của Bông Cosmetic.
+                            </p>
+                            
+                            <!-- Cancellation Reason -->
+                            <div th:if="${order.cancelReason != null && !order.cancelReason.isEmpty()}" style="margin: 25px 0; padding: 15px; background-color: #fff1f0; border-radius: 8px; border-left: 4px solid #ff4d4f;">
+                                <p style="margin: 0; font-size: 14px; color: #555555;"><b>Lý do hủy đơn:</b></p>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; color: #777777;" th:text="${order.cancelReason}">Lý do chi tiết...</p>
+                            </div>
+
+                            <!-- Refund Info if applicable -->
+                            <div th:if="${order.paymentStatus != null && order.paymentStatus.toString() == 'REFUNDED'}" style="margin: 25px 0; padding: 15px; background-color: #e6f7ff; border-radius: 8px; border-left: 4px solid #1890ff;">
+                                <p style="margin: 0; font-size: 14px; color: #003a8c;"><b>Thông tin hoàn tiền:</b></p>
+                                <p style="margin: 5px 0 0 0; font-size: 14px; color: #0050b3;">
+                                    Vì đơn hàng này đã được thanh toán online thành công, hệ thống đã tự động thực hiện lệnh hoàn tiền về tài khoản của bạn. Vui lòng kiểm tra email thông báo hoàn tiền riêng biệt để biết thêm chi tiết.
+                                </p>
+                            </div>
+
+                            <p style="margin-top: 30px; color: #666666; font-size: 14px; line-height: 1.6;">
+                                Hy vọng bạn sẽ tìm được sản phẩm ưng ý khác trong lần mua sắm tới. Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi qua hotline hoặc trò chuyện trực tiếp trên website.
+                            </p>
+
+                            <div style="text-align: center; margin-top: 35px;">
+                                <a href="#" style="display: inline-block; background-color: #ff416c; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 14px;">TIẾP TỤC MUA SẮM</a>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 25px; background-color: #fcfcfc; border-top: 1px solid #eeeeee; text-align: center;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                &copy; 2024 Bông Cosmetic. All rights reserved.<br>
+                                Hotline: 0987 654 321 | <a href="#" style="color: #ff416c; text-decoration: none;">Website</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

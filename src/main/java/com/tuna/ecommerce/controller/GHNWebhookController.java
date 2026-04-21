@@ -49,7 +49,7 @@ public class GHNWebhookController {
             if (nextStatus != null && order.getStatus() != nextStatus) {
                 log.info(">>> GHN Webhook: Updating Order #{} from {} to {} (GHN Status: {})", 
                         order.getId(), order.getStatus(), nextStatus, status);
-                this.orderService.handleUpdateStatus(order.getId(), nextStatus);
+                this.orderService.handleUpdateStatus(order.getId(), nextStatus, "Cập nhật tự động từ GHN (Trạng thái: " + status + ")");
             }
 
         } catch (Exception e) {

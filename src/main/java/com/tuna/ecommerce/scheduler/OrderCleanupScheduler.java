@@ -74,7 +74,7 @@ public class OrderCleanupScheduler {
         try {
             order.setCancelReason(reason);
             orderRepository.save(order);
-            orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
+            orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED, reason);
             log.info(">>> Auto-cancelled order #{}: {}", order.getId(), reason);
         } catch (Exception e) {
             log.error(">>> Failed to auto-cancel order #{}. Error: {}", order.getId(), e.getMessage());

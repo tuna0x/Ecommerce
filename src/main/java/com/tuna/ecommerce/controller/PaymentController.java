@@ -167,7 +167,7 @@ public class PaymentController {
                 order.setPaymentStatus(PaymentStatusEnum.UNPAID);
                 this.orderRepository.save(order);
                 // handleUpdateStatus sẽ: đổi trạng thái, releaseStock, gửi notification
-                this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
+                this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED, "Giao dịch thất bại / Bị hủy bởi khách hàng");
             }
 
             String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId() + "&transactionId="

@@ -28,10 +28,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import com.tuna.ecommerce.ultil.constant.InventoryLogType;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+import lombok.extern.slf4j.Slf4j;
 import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final InventoryLogRepository inventoryLogRepository;
@@ -77,7 +79,14 @@ public class InventoryService {
 
     @Transactional
     public Inventory reserveStock(Long productId, Long variantId, int quantity) throws IdInvalidException {
-        Inventory inventory = getOrCreateInventory(productId, variantId);
+        Inventory inventory;
+        try {
+            inventory = getOrCreateInventory(productId, variantId);
+        } catch (IdInvalidException e) {
+            log.warn("Skipping stock reservation: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
+            return null;
+        }
+
         if (inventory.getStock() < quantity) {
             throw new IdInvalidException("Chỉ còn " + inventory.getStock() + " sản phẩm trong kho.");
         }
@@ -100,7 +109,14 @@ public class InventoryService {
 
     @Transactional
     public void commitStock(Long productId, Long variantId, int quantity, String note) throws IdInvalidException {
-        Inventory inventory = getOrCreateInventory(productId, variantId);
+        Inventory inventory;
+        try {
+            inventory = getOrCreateInventory(productId, variantId);
+        } catch (IdInvalidException e) {
+            log.warn("Skipping stock commit: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
+            return;
+        }
+
         if (inventory.getReservedStock() < quantity) {
             if (inventory.getStock() < quantity) {
                 throw new IdInvalidException("Hết hàng trong kho để xác nhận đơn.");
@@ -124,7 +140,14 @@ public class InventoryService {
 
     @Transactional
     public void releaseStock(Long productId, Long variantId, int quantity, String note) throws IdInvalidException {
-        Inventory inventory = getOrCreateInventory(productId, variantId);
+        Inventory inventory;
+        try {
+            inventory = getOrCreateInventory(productId, variantId);
+        } catch (IdInvalidException e) {
+            log.warn("Skipping stock release: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
+            return;
+        }
+
         inventory.setReservedStock(Math.max(0, inventory.getReservedStock() - quantity));
         inventory.setStock(inventory.getStock() + quantity);
         inventoryRepository.save(inventory);

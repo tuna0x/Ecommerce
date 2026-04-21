@@ -133,4 +133,16 @@ public class EmailService {
         
         this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
     }
+
+    @Async
+    public void sendOrderCancellationEmail(com.tuna.ecommerce.domain.Order order) {
+        String subject = "Thông báo hủy đơn hàng #" + order.getId() + " - Bông Cosmetic";
+        
+        Context context = new Context();
+        context.setVariable("order", order);
+        
+        String content = templateEngine.process("email/order-cancelled", context);
+        
+        this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
+    }
 }

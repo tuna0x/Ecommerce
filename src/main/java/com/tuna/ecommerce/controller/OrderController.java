@@ -72,15 +72,16 @@ public class OrderController {
     @APIMessage("bulk update order status")
     public ResponseEntity<Void> bulkUpdateOrderStatus(@RequestBody ReqBulkUpdateStatusDTO req)
             throws IdInvalidException {
-        this.orderService.handleBulkUpdateStatus(req.getIds(), req.getStatus());
+        this.orderService.handleBulkUpdateStatus(req.getIds(), req.getStatus(), req.getReason());
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/order/{id}/status")
     @APIMessage("update order status")
     public ResponseEntity<Order> updateOrderStatus(@PathVariable("id") Long id,
-            @RequestParam("status") OrderStatusEnum status) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.orderService.handleUpdateStatus(id, status));
+            @RequestParam("status") OrderStatusEnum status,
+            @RequestParam(value = "reason", required = false) String reason) throws IdInvalidException {
+        return ResponseEntity.ok().body(this.orderService.handleUpdateStatus(id, status, reason));
     }
 
     @PutMapping("/order/{id}/address")

@@ -10,4 +10,5 @@ import lombok.Setter;
 public class ReqBulkUpdateStatusDTO {
     private List<Long> ids;
     private OrderStatusEnum status;
+    private String reason;
 }

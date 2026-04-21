@@ -59,6 +59,7 @@ public class ResAddToCart {
             private String thumbnail;
             private String brand;
             private BigDecimal originalPrice;
+            private int stock;
         }
     }
 }
