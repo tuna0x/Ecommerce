@@ -76,6 +76,10 @@ public class UserService {
                 curUser.setPassword(user.getPassword());
             }
 
+            if (user.getPhoneNumber() != null) {
+                curUser.setPhoneNumber(user.getPhoneNumber());
+            }
+
             if (user.getUserProfile() != null) {
                 UserProfile curProfile = curUser.getUserProfile();
                 if (user.getUserProfile().getName() != null)
@@ -140,6 +144,10 @@ public class UserService {
                 curProfile.setImage(req.getImage());
             }
 
+            if (req.getPhoneNumber() != null) {
+                curUser.setPhoneNumber(req.getPhoneNumber());
+            }
+
             curUser = this.userRepository.save(curUser);
         }
         return curUser;
@@ -191,6 +199,7 @@ public class UserService {
         ResCreateUser res = new ResCreateUser();
         res.setId(user.getId());
         res.setEmail(user.getEmail());
+        res.setPhoneNumber(user.getPhoneNumber());
 
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
@@ -220,6 +229,7 @@ public class UserService {
         ResUpdateUser res = new ResUpdateUser();
         res.setId(user.getId());
         res.setEmail(user.getEmail());
+        res.setPhoneNumber(user.getPhoneNumber());
 
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
@@ -249,6 +259,7 @@ public class UserService {
         ResFetchUser res = new ResFetchUser();
         res.setId(user.getId());
         res.setEmail(user.getEmail());
+        res.setPhoneNumber(user.getPhoneNumber());
 
         UserProfile profile = user.getUserProfile();
         if (profile != null) {
@@ -433,6 +444,7 @@ public class UserService {
         User user = new User();
         user.setEmail(req.getEmail());
         user.setPassword(req.getPassword());
+        user.setPhoneNumber(req.getPhoneNumber());
 
         UserProfile profile = new UserProfile();
         profile.setName(req.getName());

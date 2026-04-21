@@ -24,6 +24,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.BatchSize;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -58,10 +59,12 @@ public class Product {
     private ProductDetail productDetail;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     @JsonIgnore
     private List<ProductImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     @JsonIgnore
     private List<ProductVariant> variants = new ArrayList<>();
 
@@ -80,6 +83,7 @@ public class Product {
     List<OrderItem> orderItems;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 20)
     @JsonIgnore
     List<ProductAttributeValue> productAttributeValues = new ArrayList<>();
 

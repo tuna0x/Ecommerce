@@ -24,8 +24,11 @@ import com.tuna.ecommerce.repository.RoleRepository;
 import com.tuna.ecommerce.repository.UserRepository;
 import com.tuna.ecommerce.ultil.constant.GenderEnum;
 import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
+ 
+ import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class DatabaseInitializer implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
@@ -61,7 +64,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        System.out.println(">>> START INIT DATABASE");
+        log.info("\u003e\u003e\u003e START INIT DATABASE");
 
         // Schema Cleanup (Safe/Idempotent)
 
@@ -124,7 +127,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             normalUser.setUserProfile(userProfile);
             normalUser.setRole(userRole);
             this.userRepository.save(normalUser);
-            System.out.println(">>> CREATED DEFAULT USERS");
+            log.info("\u003e\u003e\u003e CREATED DEFAULT USERS");
         }
 
         // 4. Create a Global Promotion if none exists
@@ -139,7 +142,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             globalPromo.setStartAt(LocalDateTime.now().minusDays(1));
             globalPromo.setEndAt(LocalDateTime.now().plusDays(30));
             this.promotionRepository.save(globalPromo);
-            System.out.println(">>> CREATED DEFAULT GLOBAL PROMOTION");
+            log.info("\u003e\u003e\u003e CREATED DEFAULT GLOBAL PROMOTION");
         }
 
         // 5. Create Default Coupons if none exist
@@ -190,7 +193,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             c3.setUsageLimit(10000);
             c3.setUsedCount(0);
             this.couponRepository.save(c3);
-            System.out.println(">>> CREATED DEFAULT COUPONS");
+            log.info("\u003e\u003e\u003e CREATED DEFAULT COUPONS");
         }
 
         // 5.1 Cleanup existing Coupons with null usedCount
@@ -198,7 +201,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             jdbcTemplate.execute("UPDATE coupons SET used_count = 0 WHERE used_count IS NULL");
             jdbcTemplate.execute("UPDATE coupons SET usage_limit = 1000 WHERE usage_limit IS NULL");
         } catch (Exception e) {
-            System.err.println(">>> FAILED TO CLEANUP COUPONS: " + e.getMessage());
+            log.error("\u003e\u003e\u003e FAILED TO CLEANUP COUPONS: {}", e.getMessage());
         }
 
         // 6. Sync Product nameUnsigned
@@ -209,7 +212,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                 this.productRepository.save(p);
             }
         }
-        System.out.println(">>> SYNCED NAME_UNSIGNED FOR PRODUCTS");
+        log.info("\u003e\u003e\u003e SYNCED NAME_UNSIGNED FOR PRODUCTS");
 
         // 7. Seed Blogs
         if (this.blogRepository.count() == 0) {
@@ -233,10 +236,10 @@ public class DatabaseInitializer implements CommandLineRunner {
             b2.setReadTime("10 phút");
             this.blogRepository.save(b2);
 
-            System.out.println(">>> CREATED DEFAULT BLOGS");
+            log.info("\u003e\u003e\u003e CREATED DEFAULT BLOGS");
         }
 
-        System.out.println(">>> FINISH INIT DATABASE");
+        log.info("\u003e\u003e\u003e FINISH INIT DATABASE");
     }
 
     private void syncAllPermissions(Role adminRole, Role userRole) {
