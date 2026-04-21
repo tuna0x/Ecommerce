@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.extern.slf4j.Slf4j;
 
 import com.tuna.ecommerce.domain.AttributeValue;
 import com.tuna.ecommerce.domain.Brand;
@@ -48,9 +49,13 @@ import com.tuna.ecommerce.repository.InventoryRepository;
 import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
 import com.tuna.ecommerce.repository.FlashSaleItemRepository;
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 @Transactional
+@Slf4j
 public class ProductService {
     private final ProductRepository productRepository;
     private final ReviewRepository reviewRepository;
@@ -107,10 +112,13 @@ public class ProductService {
         this.flashSaleService = flashSaleService;
     }
 
-    @jakarta.annotation.PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
+    @Async
     public void initPrices() {
         // Full sync on startup to ensure all filtered prices are accurate
+        log.info(">>> ProductService: Starting asynchronous price sync...");
         this.syncAllProductsPrice();
+        log.info(">>> ProductService: Product price sync completed.");
     }
 
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
@@ -597,17 +605,18 @@ public class ProductService {
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
             if (product.getVariants().size() == 1 && product.getVariants().get(0).getSku().startsWith("DEFAULT-")) {
                 // If it's a simple product with a default variant, pull its stock directly
-                this.inventoryRepository.findByProductVariant(product.getVariants().get(0)).ifPresent(inv -> {
+                Inventory inv = product.getVariants().get(0).getInventory();
+                if (inv != null) {
                     res.setStock(inv.getStock());
                     res.setReservedStock(inv.getReservedStock());
                     res.setMaxStock(inv.getMaxStock());
-                });
+                }
             } else {
                 // For products with multiple variants, sum the stock for the dashboard overview
                 int totalStock = 0;
                 int totalReserved = 0;
                 for (ProductVariant v : product.getVariants()) {
-                    Inventory inv = this.inventoryRepository.findByProductVariant(v).orElse(null);
+                    Inventory inv = v.getInventory();
                     if (inv != null) {
                         totalStock += inv.getStock();
                         totalReserved += inv.getReservedStock();
@@ -685,12 +694,13 @@ public class ProductService {
                         vi.setImage(v.getProductImage() != null ? v.getProductImage().getImageUrl() : null);
                         vi.setProductImageId(v.getProductImage() != null ? v.getProductImage().getId() : null);
 
-                        // Map Variant Inventory
-                        this.inventoryRepository.findByProductVariant(v).ifPresent(inv -> {
+                        // Map Variant Inventory - Optimized: use direct association
+                        Inventory inv = v.getInventory();
+                        if (inv != null) {
                             vi.setStock(inv.getStock());
                             vi.setReservedStock(inv.getReservedStock());
                             vi.setMaxStock(inv.getMaxStock());
-                        });
+                        }
 
                         List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
                                 .filter(av -> av != null && av.getAttribute() != null)

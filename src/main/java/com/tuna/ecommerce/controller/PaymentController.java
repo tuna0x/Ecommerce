@@ -28,12 +28,15 @@ import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.constant.PaymentStatusEnum;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
+ 
+ import lombok.extern.slf4j.Slf4j;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1")
+@Slf4j
 public class PaymentController {
 
     @Value("${secretKey}")
@@ -188,7 +191,7 @@ public class PaymentController {
             @RequestParam(required = false) Long orderCode) throws IdInvalidException {
 
         // Log the incoming callback for debugging
-        System.out.println(">>> PayOS Callback: orderCode=" + orderCode + ", code=" + code + ", status=" + status + ", cancel=" + cancel + ", id=" + id);
+        log.info("\u003e\u003e\u003e PayOS Callback: orderCode={}, code={}, status={}, cancel={}, id={}", orderCode, code, status, cancel, id);
 
         String frontendRedirectUrl = frontendUrl + "/payment-result";
 
