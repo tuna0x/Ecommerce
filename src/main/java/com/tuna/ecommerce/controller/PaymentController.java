@@ -187,6 +187,9 @@ public class PaymentController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long orderCode) throws IdInvalidException {
 
+        // Log the incoming callback for debugging
+        System.out.println(">>> PayOS Callback: orderCode=" + orderCode + ", code=" + code + ", status=" + status + ", cancel=" + cancel + ", id=" + id);
+
         String frontendRedirectUrl = frontendUrl + "/payment-result";
 
         if (orderCode == null) {
@@ -209,7 +212,7 @@ public class PaymentController {
                 .build();
         }
 
-        // Check if cancel or fail
+        // PayOS logic: cancel can be "true" string, status can be "CANCELLED"
         boolean isCancelled = "true".equals(cancel) || "CANCELLED".equals(status);
         boolean isSuccess = "00".equals(code) && "PAID".equals(status);
 
@@ -224,6 +227,7 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
             // Thanh toán thất bại hoặc bị hủy
+            // Cập nhật trạng thái payment trước
             payment.setStatus(OrderStatusEnum.CANCELLED);
             this.paymentService.save(payment);
 
@@ -237,14 +241,20 @@ public class PaymentController {
                     id,
                     rawData);
 
+            // Xử lý hủy đơn hàng nếu đang PENDING
             if (order.getStatus() == OrderStatusEnum.PENDING) {
                 order.setPaymentStatus(PaymentStatusEnum.UNPAID);
-                this.orderRepository.save(order);
+                // logic handleUpdateStatus sẽ: đổi trạng thái order thành CANCELLED, releaseStock, gửi notification
                 this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED,
                         isCancelled ? "Khách hàng hủy thanh toán PayOS" : "Giao dịch PayOS thất bại");
             }
 
+            // Redirect về frontend kèm theo message cụ thể nếu là hủy
             String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId();
+            if (isCancelled) {
+                redirectUrl += "&message=cancelled";
+            }
+            
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         }
     }
