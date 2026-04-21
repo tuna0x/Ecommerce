@@ -47,13 +47,21 @@ public class InventoryService {
 
         if (targetVariantId == null) {
             if (productId == null) throw new IdInvalidException("Product ID must not be null");
-            // Fallback for simple products: look for the DEFAULT variant
-            ProductVariant defaultVariant = productVariantRepository.findAll().stream()
-                    .filter(v -> v.getProduct() != null && v.getProduct().getId().equals(productId) && v.getSku().contains("DEFAULT-"))
+            // Fallback: look for DEFAULT variant first, then any active variant
+            ProductVariant fallbackVariant = productVariantRepository.findAll().stream()
+                    .filter(v -> v.getProduct() != null && v.getProduct().getId().equals(productId) && !v.isDeleted())
+                    .sorted((a, b) -> {
+                        // Prioritize DEFAULT- variants, then by ID
+                        boolean aDefault = a.getSku() != null && a.getSku().contains("DEFAULT-");
+                        boolean bDefault = b.getSku() != null && b.getSku().contains("DEFAULT-");
+                        if (aDefault && !bDefault) return -1;
+                        if (!aDefault && bDefault) return 1;
+                        return Long.compare(a.getId(), b.getId());
+                    })
                     .findFirst()
                     .orElseThrow(() -> new IdInvalidException(
-                            "Hệ thống không tìm thấy kho hàng mặc định cho sản phẩm này."));
-            targetVariantId = defaultVariant.getId();
+                            "Hệ thống không tìm thấy kho hàng cho sản phẩm này."));
+            targetVariantId = fallbackVariant.getId();
         }
 
         ProductVariant variant = productVariantRepository.findById(targetVariantId)

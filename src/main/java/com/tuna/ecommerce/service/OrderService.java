@@ -456,6 +456,7 @@ public class OrderService {
         return discount;
     }
 
+    @Transactional
     public Order handleUpdateStatus(Long id, OrderStatusEnum status) throws IdInvalidException {
         Order order = this.getOrder(id);
         if (order == null) {
@@ -498,6 +499,13 @@ public class OrderService {
             case DELIVERED:
                 title = "Giao hàng thành công";
                 message = "Đơn hàng #" + order.getId() + " đã được giao thành công. Cảm ơn bạn!";
+                
+                // For COD, mark as PAID upon successful delivery
+                if (order.getPayment() != null && 
+                    order.getPayment().getMethod() == com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.COD) {
+                    order.setPaymentStatus(PaymentStatusEnum.PAID);
+                    order.getPayment().setStatus(OrderStatusEnum.DELIVERED);
+                }
                 break;
             case CANCELLED:
                 title = "Đơn hàng đã bị hủy";
@@ -513,6 +521,16 @@ public class OrderService {
                     int newSoldCount = Math.max(0, item.getProduct().getSoldCount() - item.getQuantity());
                     item.getProduct().setSoldCount(newSoldCount);
                 }
+                
+                // Hoàn tiền VNPay
+                if (order.getPaymentStatus() == PaymentStatusEnum.PAID && order.getPayment() != null 
+                        && order.getPayment().getMethod() == com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.VNPAY) {
+                    boolean refundSuccess = this.paymentService.refundVNPayPayment(order.getPayment(), "System/Admin");
+                    if (!refundSuccess) {
+                        log.error("Failed to automatically refund VNPay for order ID: {}", order.getId());
+                        // Có thể lưu note để nhân viên kiểm tra lại thủ công
+                    }
+                }
                 break;
             default:
                 break;
@@ -522,7 +540,7 @@ public class OrderService {
             this.notificationService.createNotification(order.getUser(), title, message, type);
         }
 
-        return order;
+        return this.orderRepository.save(order);
     }
 
     public Order cancelOrder(Long id, String reason) throws IdInvalidException {
@@ -540,8 +558,17 @@ public class OrderService {
         }
 
         // Verify status
-        if (order.getStatus() != OrderStatusEnum.PENDING) {
-            throw new IdInvalidException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xử lý (PENDING).");
+        boolean canCancel = false;
+        if (order.getStatus() == OrderStatusEnum.PENDING) {
+            canCancel = true;
+        } else if (order.getStatus() == OrderStatusEnum.CONFIRMED && 
+                   order.getPayment() != null && 
+                   order.getPayment().getMethod() == com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.VNPAY) {
+            canCancel = true;
+        }
+
+        if (!canCancel) {
+            throw new IdInvalidException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái Chờ xử lý hoặc Đã xác nhận (đối với thanh toán VNPay).");
         }
 
         order.setCancelReason(reason);

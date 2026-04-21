@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -61,6 +62,24 @@ public class PaymentController {
     @APIMessage("Confirm payment as paid")
     public ResponseEntity<Payment> confirmPayment(@RequestBody ReqTransactionIdDTO req) throws IdInvalidException {
         return ResponseEntity.ok().body(this.paymentService.markAsPaid(req));
+    }
+
+    @PostMapping("/payment/{orderId}/refund")
+    @APIMessage("Refund VNPay payment manually")
+    public ResponseEntity<Void> refundPayment(@PathVariable("orderId") Long orderId) throws IdInvalidException {
+        Order order = this.orderRepository.findById(orderId)
+            .orElseThrow(() -> new IdInvalidException("Order not found with id: " + orderId));
+        
+        if (order.getPayment() == null || order.getPayment().getMethod() != com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.VNPAY) {
+            throw new IdInvalidException("Manual refund is only available for VNPay payments.");
+        }
+        
+        boolean success = this.paymentService.refundVNPayPayment(order.getPayment(), "Admin");
+        if (!success) {
+            throw new IdInvalidException("Refund failed. Please check logs for more details.");
+        }
+        
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/payment/vn-pay")
@@ -122,24 +141,9 @@ public class PaymentController {
         String rawData = fields.toString();
 
         if ("00".equals(vnp_ResponseCode)) {
-            payment.setStatus(OrderStatusEnum.CONFIRMED);
-            Order order = payment.getOrder();
-            order.setPaymentStatus(PaymentStatusEnum.PAID);
-            order.setStatus(OrderStatusEnum.CONFIRMED);
-            this.orderRepository.save(order);
-            this.paymentService.save(payment);
-            this.orderService.handleClearCart(order);
+            this.paymentService.processPaymentSuccess(payment, vnp_TransactionNo, rawData);
 
-            // Log successful transaction
-            this.transactionService.handleLogTransaction(
-                    order,
-                    payment.getAmount(),
-                    payment.getMethod(),
-                    com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.SUCCESS,
-                    vnp_TransactionNo,
-                    rawData);
-
-            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId() + "&transactionId="
+            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + payment.getOrder().getId() + "&transactionId="
                     + vnp_TransactionNo;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
