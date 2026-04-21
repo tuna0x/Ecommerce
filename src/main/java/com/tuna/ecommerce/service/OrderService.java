@@ -457,7 +457,7 @@ public class OrderService {
     }
 
     @Transactional
-    public Order handleUpdateStatus(Long id, OrderStatusEnum status) throws IdInvalidException {
+    public Order handleUpdateStatus(Long id, OrderStatusEnum status, String reason) throws IdInvalidException {
         Order order = this.getOrder(id);
         if (order == null) {
             throw new IdInvalidException("Order not found with id: " + id);
@@ -473,6 +473,10 @@ public class OrderService {
         String title = "";
         String message = "";
         String type = "ORDER_STATUS_UPDATE";
+
+        if (status == OrderStatusEnum.CANCELLED && reason != null && !reason.isEmpty()) {
+            order.setCancelReason(reason);
+        }
 
         switch (status) {
             case CONFIRMED:
@@ -539,6 +543,10 @@ public class OrderService {
         if (!title.isEmpty()) {
             this.notificationService.createNotification(order.getUser(), title, message, type);
         }
+        
+        if (status == OrderStatusEnum.CANCELLED) {
+            this.emailService.sendOrderCancellationEmail(order);
+        }
 
         return this.orderRepository.save(order);
     }
@@ -573,12 +581,12 @@ public class OrderService {
 
         order.setCancelReason(reason);
         // Reuse handleUpdateStatus to handle stock release and notifications
-        return this.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED);
+        return this.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED, reason);
     }
 
-    public void handleBulkUpdateStatus(List<Long> ids, OrderStatusEnum status) throws IdInvalidException {
+    public void handleBulkUpdateStatus(List<Long> ids, OrderStatusEnum status, String reason) throws IdInvalidException {
         for (Long id : ids) {
-            this.handleUpdateStatus(id, status);
+            this.handleUpdateStatus(id, status, reason);
         }
     }
 
@@ -679,7 +687,7 @@ public class OrderService {
 
         String shippingCode = this.shippingService.createShippingOrder(order);
         order.setShippingCode(shippingCode);
-        this.orderRepository.save(order); Order updatedOrder = this.handleUpdateStatus(order.getId(), OrderStatusEnum.DELIVERING);
+        this.orderRepository.save(order); Order updatedOrder = this.handleUpdateStatus(order.getId(), OrderStatusEnum.DELIVERING, null);
         return this.convertToResGetOrderDTO(updatedOrder);
     }
 
