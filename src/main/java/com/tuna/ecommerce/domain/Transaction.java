@@ -43,6 +43,7 @@ public class Transaction {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 255, columnDefinition = "VARCHAR(255)")
     private PaymentMethodEnum paymentMethod;
 
     @Enumerated(EnumType.STRING)

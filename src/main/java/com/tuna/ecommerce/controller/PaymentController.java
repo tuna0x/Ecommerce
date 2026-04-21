@@ -47,15 +47,17 @@ public class PaymentController {
     private final PaymentRepository paymentRepository;
     private final com.tuna.ecommerce.service.OrderService orderService;
     private final TransactionService transactionService;
+    private final com.tuna.ecommerce.service.PayOSService payOSService;
 
     public PaymentController(OrderRepository orderRepository, PaymentService paymentService,
             PaymentRepository paymentRepository, com.tuna.ecommerce.service.OrderService orderService,
-            TransactionService transactionService) {
+            TransactionService transactionService, com.tuna.ecommerce.service.PayOSService payOSService) {
         this.orderRepository = orderRepository;
         this.paymentService = paymentService;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
         this.transactionService = transactionService;
+        this.payOSService = payOSService;
     }
 
     @PostMapping("/payment/confirm")
@@ -172,6 +174,77 @@ public class PaymentController {
 
             String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId() + "&transactionId="
                     + (vnp_TransactionNo != null ? vnp_TransactionNo : "");
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
+        }
+    }
+
+    @GetMapping("/payment/payos-callback")
+    @APIMessage("Handle PayOS callback")
+    public ResponseEntity<Void> payosCallbackHandler(
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false) String id,
+            @RequestParam(required = false) String cancel,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long orderCode) throws IdInvalidException {
+
+        String frontendRedirectUrl = frontendUrl + "/payment-result";
+
+        if (orderCode == null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Missing_orderCode"))
+                .build();
+        }
+
+        Order order = this.orderRepository.findById(orderCode).orElse(null);
+        if (order == null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Order_not_found"))
+                .build();
+        }
+
+        Payment payment = order.getPayment();
+        if (payment == null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Payment_not_found"))
+                .build();
+        }
+
+        // Check if cancel or fail
+        boolean isCancelled = "true".equals(cancel) || "CANCELLED".equals(status);
+        boolean isSuccess = "00".equals(code) && "PAID".equals(status);
+
+        if (isSuccess) {
+            // Thanh toán thành công
+            String transactionId = (id != null) ? id : "PAYOS-" + orderCode;
+            String rawData = "code=" + code + "&id=" + id + "&status=" + status + "&orderCode=" + orderCode;
+            this.paymentService.processPaymentSuccess(payment, transactionId, rawData);
+
+            String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId()
+                    + "&transactionId=" + transactionId;
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
+        } else {
+            // Thanh toán thất bại hoặc bị hủy
+            payment.setStatus(OrderStatusEnum.CANCELLED);
+            this.paymentService.save(payment);
+
+            // Log failed transaction
+            String rawData = "code=" + code + "&id=" + id + "&status=" + status + "&orderCode=" + orderCode + "&cancel=" + cancel;
+            this.transactionService.handleLogTransaction(
+                    order,
+                    payment.getAmount(),
+                    payment.getMethod(),
+                    com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.FAIL,
+                    id,
+                    rawData);
+
+            if (order.getStatus() == OrderStatusEnum.PENDING) {
+                order.setPaymentStatus(PaymentStatusEnum.UNPAID);
+                this.orderRepository.save(order);
+                this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED,
+                        isCancelled ? "Khách hàng hủy thanh toán PayOS" : "Giao dịch PayOS thất bại");
+            }
+
+            String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId();
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         }
     }
