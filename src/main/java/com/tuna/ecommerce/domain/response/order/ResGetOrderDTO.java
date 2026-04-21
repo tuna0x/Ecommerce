@@ -41,6 +41,7 @@ public class ResGetOrderDTO {
     private java.time.Instant deliveredAt;
     private java.time.Instant confirmedAt;
     private java.time.Instant createdAt;
+    private String refundStatus;
     private java.util.List<OrderItemInner> items;
 
     @Getter

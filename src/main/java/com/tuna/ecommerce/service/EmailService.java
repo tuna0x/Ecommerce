@@ -120,4 +120,17 @@ public class EmailService {
         
         this.sendEmailSync(to, subject, content, true);
     }
+
+    @Async
+    public void sendRefundNotificationEmail(com.tuna.ecommerce.domain.Order order, java.math.BigDecimal amount) {
+        String subject = "Thông báo hoàn tiền đơn hàng #" + order.getId() + " - Bông Cosmetic";
+        
+        Context context = new Context();
+        context.setVariable("order", order);
+        context.setVariable("amount", amount);
+        
+        String content = templateEngine.process("email/refund-notification", context);
+        
+        this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
+    }
 }

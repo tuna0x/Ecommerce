@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông báo hoàn tiền - Bông Cosmetic</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fff5f7;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(255, 105, 180, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 30px 0; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px; text-transform: uppercase;">Bông Cosmetic</h1>
+                            <p style="color: #e0f7fa; margin-top: 5px; font-size: 13px;">Thông báo hoàn tiền đơn hàng #<span th:text="${order.id}">123</span></p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="color: #333333; font-size: 20px; margin-top: 0; text-align: center;">Yêu cầu hoàn tiền đã được tiếp nhận</h2>
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">Chào <b th:text="${order.receiverName}">Khách hàng</b>,</p>
+                            <p style="color: #666666; font-size: 15px; line-height: 1.6;">
+                                Chúng tôi xác nhận rằng yêu cầu hoàn tiền cho đơn hàng <b>#<span th:text="${order.id}">123</span></b> đã được xử lý thành công thông qua cổng thanh toán VNPay.
+                            </p>
+                            
+                            <!-- Refund Details -->
+                            <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #00f2fe;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td style="padding: 5px 0; color: #888888; font-size: 14px;">Số tiền hoàn trả:</td>
+                                        <td align="right" style="padding: 5px 0; color: #333333; font-size: 16px; font-weight: bold;" th:text="${#numbers.formatDecimal(amount, 0, 'COMMA', 0, 'POINT') + 'đ'}">980.000đ</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 5px 0; color: #888888; font-size: 14px;">Phương thức:</td>
+                                        <td align="right" style="padding: 5px 0; color: #333333; font-size: 14px;">VNPay (Hoàn về thẻ/tài khoản gốc)</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Important Note -->
+                            <div style="padding: 20px; background-color: #fff9e6; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                                <p style="margin: 0; font-size: 14px; line-height: 1.5;">
+                                    <b>Lưu ý quan trọng:</b> Theo quy trình của các ngân hàng, số tiền này sẽ được chuyển vào tài khoản của bạn trong vòng <b>7 đến 14 ngày làm việc</b> (không tính thứ 7, Chủ nhật và ngày lễ). Đối với một số thẻ quốc tế, thời gian có thể kéo dài lên đến 30 ngày.
+                                </p>
+                            </div>
+
+                            <p style="margin-top: 30px; color: #666666; font-size: 14px; text-align: center;">
+                                Nếu sau thời gian trên bạn vẫn chưa nhận được tiền, vui lòng liên hệ với ngân hàng phát hành thẻ hoặc hotline của chúng tôi để được hỗ trợ.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 25px; background-color: #fcfcfc; border-top: 1px solid #eeeeee; text-align: center;">
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                &copy; 2024 Bông Cosmetic. All rights reserved.<br>
+                                Hotline: 0987 654 321 | <a href="#" style="color: #00f2fe; text-decoration: none;">Website</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
