@@ -74,6 +74,7 @@ public class OrderService {
     private final TelegramService telegramService;
     private final FlashSaleService flashSaleService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PayOSService payOSService;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -92,7 +93,8 @@ public class OrderService {
             CouponService couponService,
             TelegramService telegramService,
             FlashSaleService flashSaleService,
-            SimpMessagingTemplate messagingTemplate) {
+            SimpMessagingTemplate messagingTemplate,
+            PayOSService payOSService) {
         this.orderRepository = orderRepository;
         this.cartService = cartService;
         this.userService = userService;
@@ -110,6 +112,7 @@ public class OrderService {
         this.telegramService = telegramService;
         this.flashSaleService = flashSaleService;
         this.messagingTemplate = messagingTemplate;
+        this.payOSService = payOSService;
     }
 
     public ResultPaginationDTO fetchOrdersByUser(Pageable pageable) {
@@ -303,6 +306,16 @@ public class OrderService {
                     throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
                 }
                 paymentUrl = vnpayRes.getPaymentUrl();
+                break;
+            case PAYOS:
+                Payment payosPayment = this.paymentService.createPendingPayOSPayment(savedOrder.getId());
+                try {
+                    String payosUrl = this.payOSService.createPaymentLink(savedOrder);
+                    paymentUrl = payosUrl;
+                } catch (Exception e) {
+                    log.error(">>> PayOS payment link creation failed for order #{}", savedOrder.getId(), e);
+                    throw new IdInvalidException("Lỗi khởi tạo thanh toán PayOS: " + e.getMessage());
+                }
                 break;
             case COD:
             default:
@@ -533,6 +546,15 @@ public class OrderService {
                     if (!refundSuccess) {
                         log.error("Failed to automatically refund VNPay for order ID: {}", order.getId());
                         // Có thể lưu note để nhân viên kiểm tra lại thủ công
+                    }
+                }
+                
+                // Hủy link PayOS nếu chưa thanh toán (để khách không quét mã được nữa)
+                if (order.getPaymentStatus() != PaymentStatusEnum.PAID && order.getPayment() != null 
+                        && order.getPayment().getMethod() == com.tuna.ecommerce.ultil.constant.PaymentMethodEnum.PAYOS) {
+                    boolean cancelSuccess = this.payOSService.cancelPaymentLink(order.getId(), reason);
+                    if (!cancelSuccess) {
+                        log.warn("Failed to automatically cancel PayOS link for order ID: {}", order.getId());
                     }
                 }
                 break;

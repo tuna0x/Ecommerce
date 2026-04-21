@@ -116,6 +116,29 @@ public class PaymentService {
         return savedPayment;
     }
 
+    public Payment createPendingPayOSPayment(Long orderId) {
+        Order order = this.orderService.getOrder(orderId);
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setMethod(PaymentMethodEnum.PAYOS);
+        payment.setStatus(OrderStatusEnum.PENDING);
+        payment.setAmount(order.getFinalPrice());
+        payment.setTransactionId(null);
+        order.setPayment(payment);
+        Payment savedPayment = this.paymentRepository.save(payment);
+
+        // Log PayOS initial attempt as PENDING
+        this.transactionService.handleLogTransaction(
+                order,
+                payment.getAmount(),
+                PaymentMethodEnum.PAYOS,
+                com.tuna.ecommerce.ultil.constant.TransactionStatusEnum.PENDING,
+                null,
+                "Initial PayOS Payment Intent Created");
+
+        return savedPayment;
+    }
+
     public ResPaymentVNPAYDTO createVnPayPayment(HttpServletRequest req, Long paymentId) {
         Payment payment = this.paymentRepository.findById(paymentId).orElse(null);
         if (payment == null)
