@@ -8,6 +8,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.PromotionTypeEnum;
 
@@ -36,6 +37,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Table(name = "promotions")
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Promotion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,18 +67,18 @@ public class Promotion {
     private Instant createdAt;
     private Instant updatedAt;
 
-    @OneToMany(mappedBy = "promotion",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "promotion", fetch = FetchType.LAZY)
     @JsonIgnore
     List<ProductPromotion> productPromotions;
 
-            @PrePersist
-    public void handleBeforeCreate(){
+    @PrePersist
+    public void handleBeforeCreate() {
         this.createdAt = Instant.now();
 
     }
 
-        @PreUpdate
-    public void handleBeforeUpdate(){
+    @PreUpdate
+    public void handleBeforeUpdate() {
         this.updatedAt = Instant.now();
 
     }

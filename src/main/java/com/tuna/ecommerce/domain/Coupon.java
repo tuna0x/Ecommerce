@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tuna.ecommerce.ultil.constant.CouponStatus;
 import com.tuna.ecommerce.ultil.constant.CouponTypeEnum;
@@ -23,7 +24,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "coupons")
 @Getter
 @Setter
@@ -54,7 +57,7 @@ public class Coupon {
     private Instant createdAt;
     private Instant updatedAt;
 
-        @PrePersist
+    @PrePersist
     public void handleBeforeCreate() {
         this.createdAt = Instant.now();
         if (this.code == null || this.code.isBlank()) {
@@ -62,8 +65,8 @@ public class Coupon {
         }
     }
 
-        @PreUpdate
-    public void handleBeforeUpdate(){
+    @PreUpdate
+    public void handleBeforeUpdate() {
         this.updatedAt = Instant.now();
     }
 }

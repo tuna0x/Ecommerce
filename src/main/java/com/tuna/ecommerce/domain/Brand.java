@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import jakarta.persistence.Column;
@@ -30,6 +31,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Table(name = "brands")
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Brand {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -52,10 +54,9 @@ public class Brand {
     private String createdBy;
     private String updatedBy;
 
-    @OneToMany(mappedBy = "brand", fetch =FetchType.LAZY )
+    @OneToMany(mappedBy = "brand", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<Product> products;
-
 
     @PrePersist
     public void handleBeforeCreate() {
@@ -65,8 +66,6 @@ public class Brand {
         this.createdAt = Instant.now();
 
     }
-
-
 
     @PreUpdate
     public void handleBeforeUpdate() {

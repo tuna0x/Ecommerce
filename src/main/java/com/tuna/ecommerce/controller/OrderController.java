@@ -35,7 +35,8 @@ public class OrderController {
 
     @PostMapping("/order/checkout")
     @APIMessage("checkout")
-    public ResponseEntity<ResGetOrderDTO> checkout(@RequestBody ReqCheckoutDTO reqCheckoutDTO, HttpServletRequest request) throws IdInvalidException {
+    public ResponseEntity<ResGetOrderDTO> checkout(@RequestBody ReqCheckoutDTO reqCheckoutDTO,
+            HttpServletRequest request) throws IdInvalidException {
         return ResponseEntity.ok().body(this.orderService.createOrder(reqCheckoutDTO, request));
     }
 
@@ -48,8 +49,10 @@ public class OrderController {
 
     @PutMapping("/order/{id}/cancel")
     @APIMessage("customer cancel order")
-    public ResponseEntity<Order> cancelOrder(@PathVariable("id") Long id, @RequestParam("reason") String reason) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.orderService.cancelOrder(id, reason));
+    public ResponseEntity<ResGetOrderDTO> cancelOrder(@PathVariable("id") Long id,
+            @RequestParam("reason") String reason) throws IdInvalidException {
+        Order res = this.orderService.cancelOrder(id, reason);
+        return ResponseEntity.ok().body(this.orderService.convertToResGetOrderDTO(res));
     }
 
     @GetMapping("/order/me")
@@ -78,17 +81,19 @@ public class OrderController {
 
     @PutMapping("/order/{id}/status")
     @APIMessage("update order status")
-    public ResponseEntity<Order> updateOrderStatus(@PathVariable("id") Long id,
+    public ResponseEntity<ResGetOrderDTO> updateOrderStatus(@PathVariable("id") Long id,
             @RequestParam("status") OrderStatusEnum status,
             @RequestParam(value = "reason", required = false) String reason) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.orderService.handleUpdateStatus(id, status, reason));
+        Order res = this.orderService.handleUpdateStatus(id, status, reason);
+        return ResponseEntity.ok().body(this.orderService.convertToResGetOrderDTO(res));
     }
 
     @PutMapping("/order/{id}/address")
     @APIMessage("update order shipping address")
-    public ResponseEntity<Order> updateOrderAddress(@PathVariable("id") Long id,
+    public ResponseEntity<ResGetOrderDTO> updateOrderAddress(@PathVariable("id") Long id,
             @RequestBody ReqUpdateOrderAddressDTO req) throws IdInvalidException {
-        return ResponseEntity.ok().body(this.orderService.handleUpdateOrderAddress(id, req));
+        Order res = this.orderService.handleUpdateOrderAddress(id, req);
+        return ResponseEntity.ok().body(this.orderService.convertToResGetOrderDTO(res));
     }
 
     @PostMapping("/order/{id}/ghn")
