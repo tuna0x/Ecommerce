@@ -69,8 +69,8 @@ public class ReviewService {
         review.setComment(req.getComment());
 
         if (files != null && !files.isEmpty()) {
-            for (org.springframework.web.multipart.MultipartFile file : files) {
-                java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+            java.util.List<java.util.Map> uploadResults = cloudinaryService.uploadFiles(files);
+            for (java.util.Map uploadResult : uploadResults) {
                 ReviewImage image = new ReviewImage();
                 image.setImageUrl(uploadResult.get("secure_url").toString());
                 image.setPublicId(uploadResult.get("public_id").toString());

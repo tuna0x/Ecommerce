@@ -143,8 +143,8 @@ public class ProductService {
 
         List<ProductImage> uploadedImages = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
-            for (MultipartFile file : files) {
-                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+            List<Map> uploadResults = cloudinaryService.uploadFiles(files);
+            for (Map uploadResult : uploadResults) {
                 ProductImage image = new ProductImage();
                 image.setImageUrl(uploadResult.get("secure_url").toString());
                 image.setPublicId(uploadResult.get("public_id").toString());
@@ -271,8 +271,8 @@ public class ProductService {
 
         List<ProductImage> newlyUploadedImages = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
-            for (MultipartFile file : files) {
-                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+            List<Map> uploadResults = cloudinaryService.uploadFiles(files);
+            for (Map uploadResult : uploadResults) {
                 ProductImage image = new ProductImage();
                 image.setImageUrl(uploadResult.get("secure_url").toString());
                 image.setPublicId(uploadResult.get("public_id").toString());
@@ -305,7 +305,7 @@ public class ProductService {
                     this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
                 } else if (vDto.getProductImageIndex() != null
                         && vDto.getProductImageIndex() < newlyUploadedImages.size()) {
-                    variant.setProductImage(newlyUploadedImages.get(newlyUploadedImages.size() - 1));
+                    variant.setProductImage(newlyUploadedImages.get(vDto.getProductImageIndex()));
                 }
 
                 if (vDto.getAttributeValues() != null) {
@@ -364,17 +364,7 @@ public class ProductService {
             cur.getImages().clear();
         }
 
-        if (files != null && !files.isEmpty()) {
-            for (MultipartFile file : files) {
-                Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
-                ProductImage image = new ProductImage();
-                image.setImageUrl(uploadResult.get("secure_url").toString());
-                image.setPublicId(uploadResult.get("public_id").toString());
-                image.setProduct(cur);
-                this.productImageRepository.save(image);
-                cur.addImage(image);
-            }
-        }
+        // Redundant upload block removed as files are already uploaded at the start of handleUpdate
 
         this.syncProductWithVariants(cur);
         this.updateProductPrice(cur);
