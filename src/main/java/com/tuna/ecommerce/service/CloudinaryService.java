@@ -17,12 +17,28 @@ import lombok.Getter;
 public class CloudinaryService {
     private final Cloudinary cloudinary;
 
-    public Map uploadFile(MultipartFile file) throws IOException{
-        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-        return  uploadResult;
+    public Map uploadFile(MultipartFile file) throws IOException {
+        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
     }
 
-    public void deleteFile(String publicId) throws IOException{
-        cloudinary.uploader().destroy(publicId,ObjectUtils.emptyMap());
+    public java.util.List<Map> uploadFiles(java.util.List<MultipartFile> files) {
+        java.util.List<java.util.concurrent.CompletableFuture<Map>> futures = files.stream()
+                .filter(file -> file != null && !file.isEmpty())
+                .map(file -> java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return this.uploadFile(file);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to upload file to Cloudinary", e);
+                    }
+                }))
+                .collect(java.util.stream.Collectors.toList());
+
+        return futures.stream()
+                .map(java.util.concurrent.CompletableFuture::join)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void deleteFile(String publicId) throws IOException {
+        cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
     }
 }

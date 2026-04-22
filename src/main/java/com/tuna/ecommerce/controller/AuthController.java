@@ -119,8 +119,13 @@ public class AuthController {
         this.userService.updateUserToken(refresh_token, loginDTO.getUsername());
 
         // set cookie
-        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token).httpOnly(true).secure(true)
-                .path("/").maxAge(refreshTokenExpiration).build();
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.SET_COOKIE, resCookies.toString())
                 .body(res);
@@ -198,6 +203,7 @@ public class AuthController {
         ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
                 .httpOnly(true)
                 .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(refreshTokenExpiration)
                 .build();
@@ -282,8 +288,13 @@ public class AuthController {
         this.userService.updateUserToken(new_refresh_token, email);
 
         // set cookie
-        ResponseCookie resCookies = ResponseCookie.from("refresh_token", new_refresh_token).httpOnly(true).secure(true)
-                .path("/").maxAge(refreshTokenExpiration).build();
+        ResponseCookie resCookies = ResponseCookie.from("refresh_token", new_refresh_token)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.SET_COOKIE, resCookies.toString())
                 .body(res);
@@ -302,6 +313,7 @@ public class AuthController {
                 .from("refresh_token", email)
                 .httpOnly(true)
                 .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(0)
                 .build();
@@ -352,6 +364,7 @@ public class AuthController {
         ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)
                 .httpOnly(true)
                 .secure(true)
+                .sameSite("None")
                 .path("/")
                 .maxAge(refreshTokenExpiration)
                 .build();

@@ -464,6 +464,12 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Get flash sales", "/api/v1/flash-sales", "GET", "FLASH SALE", true));
         perms.add(new PermDef("Get active flash sale", "/api/v1/flash-sales/active", "GET", "FLASH SALE", true));
 
+        // CONTACT
+        perms.add(new PermDef("Send contact message", "/api/v1/public/contact", "POST", "CONTACT", true));
+        perms.add(new PermDef("Get contact messages with pagination", "/api/v1/contact", "GET", "CONTACT", false));
+        perms.add(new PermDef("Delete a contact message", "/api/v1/contact/{id}", "DELETE", "CONTACT", false));
+        perms.add(new PermDef("Update contact message status", "/api/v1/contact/{id}/status", "PATCH", "CONTACT", false));
+
         boolean updated = false;
         for (PermDef def : perms) {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);
