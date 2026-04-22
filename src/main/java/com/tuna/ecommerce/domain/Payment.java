@@ -2,6 +2,7 @@ package com.tuna.ecommerce.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -31,6 +32,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "payments")
 public class Payment {
     @Id

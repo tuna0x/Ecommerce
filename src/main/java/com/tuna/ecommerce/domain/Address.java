@@ -1,6 +1,7 @@
 package com.tuna.ecommerce.domain;
 
 import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
@@ -24,6 +25,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Table(name = "addresses")
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,7 +47,7 @@ public class Address {
     @JoinColumn(name = "user_id")
     private User user;
 
-        @PrePersist
+    @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
                 ? SecurityUtil.getCurrentUserLogin().get()

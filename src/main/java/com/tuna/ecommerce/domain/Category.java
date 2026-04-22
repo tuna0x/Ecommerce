@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import jakarta.persistence.Column;
@@ -28,6 +29,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "categories", indexes = {
         @Index(name = "idx_category_name", columnList = "name"),
         @Index(name = "idx_category_slug", columnList = "slug")

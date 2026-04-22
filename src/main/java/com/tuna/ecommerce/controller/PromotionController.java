@@ -29,9 +29,6 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-
-
-
 @RestController
 @RequestMapping("/api/v1")
 @AllArgsConstructor
@@ -40,14 +37,16 @@ public class PromotionController {
 
     @PostMapping("/promotions")
     @APIMessage("Create Promotion successfully")
-    public ResponseEntity<Promotion> createPromotion(@RequestBody ReqCreatePromotionDTO promotion) throws IdInvalidException {
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.promotionService.createPromotion(promotion));
+    public ResponseEntity<ResPromotionDTO> createPromotion(@RequestBody ReqCreatePromotionDTO promotion)
+            throws IdInvalidException {
+        Promotion res = this.promotionService.createPromotion(promotion);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.promotionService.convertToResPromotionDTO(res));
     }
 
     @PatchMapping("/promotions/{id}/active")
     @APIMessage("Toggle Promotion active status")
-    public ResponseEntity<Void> toggleActive(@PathVariable("id") Long id, @RequestParam("active") boolean active) throws IdInvalidException {
+    public ResponseEntity<Void> toggleActive(@PathVariable("id") Long id, @RequestParam("active") boolean active)
+            throws IdInvalidException {
         if (active) {
             this.promotionService.isActive(id);
         } else {
@@ -58,11 +57,13 @@ public class PromotionController {
 
     @PutMapping("/promotions")
     @APIMessage("Update Promotion successfully")
-    public ResponseEntity<Promotion> updatePromotion(@RequestBody ReqUpdatePromotionDTO promotion) throws IdInvalidException {
+    public ResponseEntity<ResPromotionDTO> updatePromotion(@RequestBody ReqUpdatePromotionDTO promotion)
+            throws IdInvalidException {
         if (this.promotionService.getPromotionById(promotion.getId()) == null) {
             throw new IdInvalidException("Promotion not found");
         }
-        return ResponseEntity.ok(this.promotionService.updatePromotion(promotion));
+        Promotion res = this.promotionService.updatePromotion(promotion);
+        return ResponseEntity.ok(this.promotionService.convertToResPromotionDTO(res));
     }
 
     @GetMapping("/promotions/{id}")
@@ -77,7 +78,7 @@ public class PromotionController {
 
     @GetMapping("/promotions")
     @APIMessage("Get all Promotions successfully")
-    public ResponseEntity<ResultPaginationDTO> getAllPromotion(@Filter Specification<Promotion> spec,Pageable   page) {
+    public ResponseEntity<ResultPaginationDTO> getAllPromotion(@Filter Specification<Promotion> spec, Pageable page) {
         return ResponseEntity.ok(this.promotionService.handleGetAll(spec, page));
     }
 
@@ -99,7 +100,8 @@ public class PromotionController {
 
     @PostMapping("/promotions/{id}/products")
     @APIMessage("Assign products to promotion successfully")
-    public ResponseEntity<Void> assignProducts(@PathVariable("id") Long id, @RequestBody List<Long> productIds) throws IdInvalidException {
+    public ResponseEntity<Void> assignProducts(@PathVariable("id") Long id, @RequestBody List<Long> productIds)
+            throws IdInvalidException {
         this.promotionService.assignProductsToPromotion(id, productIds);
         return ResponseEntity.ok().build();
     }

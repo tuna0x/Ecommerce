@@ -1,6 +1,7 @@
 package com.tuna.ecommerce.domain;
 
 import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
@@ -22,6 +23,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "blogs")
 public class Blog {
     @Id

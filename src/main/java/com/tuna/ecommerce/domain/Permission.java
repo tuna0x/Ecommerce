@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import jakarta.persistence.Column;
@@ -23,6 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "permissions")
 @Getter
 @Setter
@@ -49,7 +51,6 @@ public class Permission {
     private String createdBy;
     private String updatedBy;
 
-
     public Permission(@NotBlank(message = "Name is not blank") String name,
             @NotBlank(message = "API Path is not blank") String apiPath,
             @NotBlank(message = "Method is not blank") String method,
@@ -60,11 +61,11 @@ public class Permission {
         this.module = module;
     }
 
-    @ManyToMany(fetch = FetchType.LAZY,mappedBy = "permissions")
+    @ManyToMany(fetch = FetchType.LAZY, mappedBy = "permissions")
     @JsonIgnore
     private List<Role> roles;
 
-        @PrePersist
+    @PrePersist
     public void handleCreatedAt() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
                 ? SecurityUtil.getCurrentUserLogin().get()
