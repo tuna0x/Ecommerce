@@ -21,7 +21,12 @@ public class FileUtil {
         List<String> filePaths = new ArrayList<>();
         for (MultipartFile file : files) {
             if (file != null && !file.isEmpty()) {
-                String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+                String originalName = file.getOriginalFilename();
+                String extension = "";
+                if (originalName != null && originalName.contains(".")) {
+                    extension = originalName.substring(originalName.lastIndexOf("."));
+                }
+                String fileName = UUID.randomUUID().toString() + extension;
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(file.getInputStream(), filePath);
                 filePaths.add(filePath.toAbsolutePath().toString());
