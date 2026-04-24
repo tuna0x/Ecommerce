@@ -1,4 +1,5 @@
 package com.tuna.ecommerce.service;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.util.StringUtils;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import com.tuna.ecommerce.domain.FlashSaleItem;
@@ -38,6 +42,7 @@ public class FlashSaleService {
     private final ProductVariantRepository productVariantRepository;
     private final com.tuna.ecommerce.repository.InventoryRepository inventoryRepository;
 
+    @Cacheable(value = "active_flash_sale_item", key = "'product_' + #productId")
     public Optional<FlashSaleItem> findActiveFlashSaleForItem(Long productId) {
         LocalDateTime now = LocalDateTime.now();
         List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItem(productId, now);
@@ -49,12 +54,15 @@ public class FlashSaleService {
         return Optional.of(items.get(0));
     }
 
+    @Cacheable(value = "active_flash_sale_item", key = "'variant_' + #variantId")
     public Optional<FlashSaleItem> findActiveFlashSaleItemByVariant(Long variantId) {
-        List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItemByVariant(variantId, LocalDateTime.now());
+        List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItemByVariant(variantId,
+                LocalDateTime.now());
         return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
     }
 
     @Transactional
+    @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId")
     public void incrementSoldQuantity(Long productId) {
         findActiveFlashSaleForItem(productId).ifPresent(item -> {
             if (item.getSoldQuantity() < item.getLimitQuantity()) {
@@ -72,14 +80,16 @@ public class FlashSaleService {
 
     private void validateTimeConflict(LocalDateTime start, LocalDateTime end, Long currentId) {
         if (start.isAfter(end) || start.isEqual(end)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thời gian bắt đầu phải trước thời gian kết thúc");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Thời gian bắt đầu phải trước thời gian kết thúc");
         }
-        
+
         List<FlashSaleCampaign> overlaps = flashSaleCampaignRepository.findOverlappingCampaigns(start, end, currentId);
         if (!overlaps.isEmpty()) {
             FlashSaleCampaign conflict = overlaps.get(0);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Khung giờ này bị trùng với chiến dịch: " + conflict.getName() + 
-                " (" + conflict.getStartAt() + " - " + conflict.getEndAt() + ")");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Khung giờ này bị trùng với chiến dịch: " + conflict.getName() +
+                            " (" + conflict.getStartAt() + " - " + conflict.getEndAt() + ")");
         }
     }
 
@@ -89,32 +99,39 @@ public class FlashSaleService {
             variant = productVariantRepository.findById(variantId).orElse(null);
         } else {
             variant = product.getVariants().stream()
-                .filter(v -> v.getSku().startsWith("DEFAULT-")).findFirst().orElse(null);
+                    .filter(v -> v.getSku().startsWith("DEFAULT-")).findFirst().orElse(null);
         }
 
         if (variant != null) {
             inventoryRepository.findByProductVariant(variant).ifPresent(inv -> {
                 if (limitQuantity > inv.getStock()) {
-                    String name = (variantId != null) ? "bién thể " + variant.getSku() : "sản phẩm " + product.getName();
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                        "Số lượng Flash Sale cho " + name + " (" + limitQuantity + ") vượt quá tồn kho (" + inv.getStock() + ")");
+                    String name = (variantId != null) ? "bién thể " + variant.getSku()
+                            : "sản phẩm " + product.getName();
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Số lượng Flash Sale cho " + name + " (" + limitQuantity + ") vượt quá tồn kho ("
+                                    + inv.getStock() + ")");
                 }
             });
         }
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_flash_sale_item", allEntries = true),
+            @CacheEvict(value = "active_flash_sale_campaign", allEntries = true),
+            @CacheEvict(value = "flash_sale_products", allEntries = true)
+    })
     public ResFlashSaleCampaignDTO createCampaign(ReqFlashSaleCampaignDTO req) {
         if (!StringUtils.hasText(req.getName())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên chiến dịch không được để trống");
         }
-        
+
         if (req.getItems() == null || req.getItems().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chiến dịch phải có ít nhất một sản phẩm");
         }
 
         validateTimeConflict(req.getStartAt(), req.getEndAt(), null);
-        
+
         FlashSaleCampaign campaign = new FlashSaleCampaign();
         campaign.setName(req.getName().trim());
         campaign.setDescription(req.getDescription());
@@ -130,32 +147,38 @@ public class FlashSaleService {
                     FlashSaleItem item = new FlashSaleItem();
                     item.setCampaign(campaign);
                     item.setProduct(product);
-                    
+
                     if (itemReq.getVariantId() != null) {
                         productVariantRepository.findById(itemReq.getVariantId()).ifPresent(v -> {
                             item.setVariant(v);
                             // Validate price against variant price
-                            BigDecimal basePrice = (v.getPrice() == null || v.getPrice().compareTo(BigDecimal.ZERO) == 0) 
-                                ? product.getOriginalPrice() : v.getPrice();
-                            if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 || 
-                                itemReq.getFlashSalePrice().compareTo(basePrice) >= 0) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho biến thể " + v.getSku() + " không hợp lệ (phải >= 0 và < giá gốc)");
+                            BigDecimal basePrice = (v.getPrice() == null
+                                    || v.getPrice().compareTo(BigDecimal.ZERO) == 0)
+                                            ? product.getOriginalPrice()
+                                            : v.getPrice();
+                            if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 ||
+                                    itemReq.getFlashSalePrice().compareTo(basePrice) >= 0) {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho biến thể "
+                                        + v.getSku() + " không hợp lệ (phải >= 0 và < giá gốc)");
                             }
                         });
                     } else {
                         // Validate price against product price
-                        if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 || 
-                            itemReq.getFlashSalePrice().compareTo(product.getOriginalPrice()) >= 0) {
-                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho sản phẩm " + product.getName() + " không hợp lệ (phải >= 0 và < " + product.getOriginalPrice() + ")");
+                        if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 ||
+                                itemReq.getFlashSalePrice().compareTo(product.getOriginalPrice()) >= 0) {
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                    "Giá Flash Sale cho sản phẩm " + product.getName()
+                                            + " không hợp lệ (phải >= 0 và < " + product.getOriginalPrice() + ")");
                         }
                     }
-                    
+
                     if (itemReq.getLimitQuantity() == null || itemReq.getLimitQuantity() <= 0) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số lượng Sale cho sản phẩm " + product.getName() + " phải lớn hơn 0");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Số lượng Sale cho sản phẩm " + product.getName() + " phải lớn hơn 0");
                     }
-                    
+
                     validateStock(product, itemReq.getVariantId(), itemReq.getLimitQuantity());
-                    
+
                     item.setFlashSalePrice(itemReq.getFlashSalePrice());
                     item.setLimitQuantity(itemReq.getLimitQuantity());
                     item.setSoldQuantity(0);
@@ -175,11 +198,21 @@ public class FlashSaleService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_flash_sale_item", allEntries = true),
+            @CacheEvict(value = "active_flash_sale_campaign", allEntries = true),
+            @CacheEvict(value = "flash_sale_products", allEntries = true)
+    })
     public void deleteCampaign(Long id) {
         flashSaleCampaignRepository.deleteById(id);
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_flash_sale_item", allEntries = true),
+            @CacheEvict(value = "active_flash_sale_campaign", allEntries = true),
+            @CacheEvict(value = "flash_sale_products", allEntries = true)
+    })
     public ResFlashSaleCampaignDTO updateCampaign(Long id, ReqFlashSaleCampaignDTO req) {
         if (!StringUtils.hasText(req.getName())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên chiến dịch không được để trống");
@@ -190,7 +223,7 @@ public class FlashSaleService {
         }
 
         validateTimeConflict(req.getStartAt(), req.getEndAt(), id);
-        
+
         FlashSaleCampaign campaign = flashSaleCampaignRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Flash Sale Campaign not found"));
 
@@ -201,7 +234,7 @@ public class FlashSaleService {
 
         // Clear and update items
         campaign.getItems().clear();
-        
+
         if (req.getItems() != null) {
             for (ReqFlashSaleCampaignDTO.FlashSaleItemRequest itemReq : req.getItems()) {
                 Product product = productRepository.findById(itemReq.getProductId()).orElse(null);
@@ -209,35 +242,41 @@ public class FlashSaleService {
                     FlashSaleItem item = new FlashSaleItem();
                     item.setCampaign(campaign);
                     item.setProduct(product);
-                    
+
                     if (itemReq.getVariantId() != null) {
                         productVariantRepository.findById(itemReq.getVariantId()).ifPresent(v -> {
                             item.setVariant(v);
                             // Validate price against variant price
-                            BigDecimal basePrice = (v.getPrice() == null || v.getPrice().compareTo(BigDecimal.ZERO) == 0) 
-                                ? product.getOriginalPrice() : v.getPrice();
-                            if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 || 
-                                itemReq.getFlashSalePrice().compareTo(basePrice) >= 0) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho biến thể " + v.getSku() + " không hợp lệ (phải >= 0 và < giá gốc)");
+                            BigDecimal basePrice = (v.getPrice() == null
+                                    || v.getPrice().compareTo(BigDecimal.ZERO) == 0)
+                                            ? product.getOriginalPrice()
+                                            : v.getPrice();
+                            if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 ||
+                                    itemReq.getFlashSalePrice().compareTo(basePrice) >= 0) {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho biến thể "
+                                        + v.getSku() + " không hợp lệ (phải >= 0 và < giá gốc)");
                             }
                         });
                     } else {
                         // Validate price against product price
-                        if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 || 
-                            itemReq.getFlashSalePrice().compareTo(product.getOriginalPrice()) >= 0) {
-                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá Flash Sale cho sản phẩm " + product.getName() + " không hợp lệ (phải >= 0 và < " + product.getOriginalPrice() + ")");
+                        if (itemReq.getFlashSalePrice().compareTo(BigDecimal.ZERO) < 0 ||
+                                itemReq.getFlashSalePrice().compareTo(product.getOriginalPrice()) >= 0) {
+                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                    "Giá Flash Sale cho sản phẩm " + product.getName()
+                                            + " không hợp lệ (phải >= 0 và < " + product.getOriginalPrice() + ")");
                         }
                     }
-                    
+
                     if (itemReq.getLimitQuantity() == null || itemReq.getLimitQuantity() <= 0) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số lượng Sale cho sản phẩm " + product.getName() + " phải lớn hơn 0");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Số lượng Sale cho sản phẩm " + product.getName() + " phải lớn hơn 0");
                     }
-                    
+
                     validateStock(product, itemReq.getVariantId(), itemReq.getLimitQuantity());
-                    
+
                     item.setFlashSalePrice(itemReq.getFlashSalePrice());
                     item.setLimitQuantity(itemReq.getLimitQuantity());
-                    item.setSoldQuantity(0); 
+                    item.setSoldQuantity(0);
                     campaign.getItems().add(item);
                 }
             }
@@ -246,6 +285,7 @@ public class FlashSaleService {
         return convertToResDTO(saved);
     }
 
+    @Cacheable(value = "active_flash_sale_campaign", key = "'current'")
     public ResFlashSaleCampaignDTO getActiveCampaign() {
         LocalDateTime now = LocalDateTime.now();
         log.info(">>> Checking for active FlashSale campaign at: {}", now);

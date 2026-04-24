@@ -543,6 +543,7 @@ public class ProductService {
         return relatedSet.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
+    @Cacheable(value = "flash_sale_products", key = "#pageable.pageNumber + '_' + #pageable.pageSize")
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 

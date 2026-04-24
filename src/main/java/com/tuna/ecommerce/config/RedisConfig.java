@@ -28,7 +28,7 @@ public class RedisConfig {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         // Enable polymorphic type handling for generic object caching
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, 
+        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
                 ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
         return new GenericJackson2JsonRedisSerializer(mapper);
     }
@@ -48,13 +48,24 @@ public class RedisConfig {
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(1))
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(springSessionDefaultRedisSerializer()))
                 .disableCachingNullValues();
 
+        RedisCacheConfiguration flashSaleConfig = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofMinutes(1))
+                .serializeKeysWith(
+                        RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(springSessionDefaultRedisSerializer()));
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration("flash_sale_products", flashSaleConfig)
+                .withCacheConfiguration("active_flash_sale_item", flashSaleConfig)
+                .withCacheConfiguration("active_flash_sale_campaign", flashSaleConfig)
                 .build();
     }
 }
