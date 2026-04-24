@@ -2,6 +2,7 @@ package com.tuna.ecommerce.config;
 
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,9 @@ import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 public class CorsConfig {
+    @Value("${tuna.frontend-url}")
+    private String frontendUrl;
+
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
@@ -23,9 +27,14 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow all origins, methods, and headers for easier deployment
-        // Since allowCredentials(true) is used, we must use setAllowedOriginPatterns instead of setAllowedOrigins("*")
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Restricted origins for better security. 
+        // Using setAllowedOriginPatterns to support multiple origins and wildcard subdomains if needed.
+        if (frontendUrl != null && !frontendUrl.isEmpty()) {
+            configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl, "http://localhost:5173", "http://localhost:3000"));
+        } else {
+            configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Fallback if not configured, but should be specific in prod
+        }
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         

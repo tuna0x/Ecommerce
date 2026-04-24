@@ -35,9 +35,23 @@ public class PermissionInterceptor implements HandlerInterceptor {
         String httpMethod = request.getMethod();
         String requestURI = request.getRequestURI();
 
-        // White list for public endpoints, websockets, and payment callbacks
-        if ((path != null && (path.startsWith("/api/v1/public/") || path.startsWith("/api/v1/auth/") || path.startsWith("/websocket") || path.startsWith("/api/v1/payment/") || path.startsWith("/api/v1/wishlist/") || path.startsWith("/api/v1/subscribers") || path.startsWith("/api/v1/tracking/log") || path.startsWith("/api/v1/tracking/logs") || path.startsWith("/api/v1/tracking/analytics") || path.startsWith("/api/v1/admin/dashboard/") || path.startsWith("/api/v1/users/{id}/analytics") || path.startsWith("/api/v1/users/{id}/admin-notes") || path.startsWith("/api/v1/transactions"))) ||
-            (requestURI != null && (requestURI.startsWith("/api/v1/public/") || requestURI.startsWith("/api/v1/auth/") || requestURI.startsWith("/websocket") || requestURI.startsWith("/api/v1/payment/") || requestURI.startsWith("/api/v1/wishlist/") || requestURI.startsWith("/api/v1/subscribers") || requestURI.startsWith("/api/v1/tracking/log") || requestURI.startsWith("/api/v1/tracking/logs") || requestURI.startsWith("/api/v1/tracking/analytics") || requestURI.startsWith("/api/v1/admin/dashboard/") || requestURI.contains("/analytics") || requestURI.contains("/admin-notes") || requestURI.contains("/transactions")))) {
+        // SECURITY: Tighten whitelist and align with SecurityConfiguration
+        // Public endpoints that don't require permission checks
+        if (path != null && (
+                path.equals("/") ||
+                path.startsWith("/api/v1/auth/") ||
+                path.startsWith("/api/v1/public/") ||
+                path.startsWith("/websocket") ||
+                path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/actuator/") ||
+                // Specific payment callbacks are public
+                path.equals("/api/v1/payment/vn-pay-callback") ||
+                path.equals("/api/v1/payment/payos-callback") ||
+                path.equals("/api/v1/payment/vn-pay") ||
+                // Tracking endpoints (public loggers)
+                path.startsWith("/api/v1/tracking/")
+            )) {
             return true;
         }
 
