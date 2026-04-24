@@ -99,8 +99,25 @@ public class NotificationService {
 
     public void sendNotificationToAllUsers(String title, String message, String type) {
         List<User> users = this.userService.handleGetAllUsers();
+        sendNotifications(users, title, message, type);
+        this.messagingTemplate.convertAndSend("/topic/notifications", title + ": " + message);
+    }
+
+    public void sendNotificationToAdmins(String title, String message, String type) {
+        List<User> admins = this.userService.findByRoleIn(List.of("ADMIN", "SUPER_ADMIN"));
+        sendNotifications(admins, title, message, type);
+        // Only broadcast to admin topic if you have one, or just rely on per-user notifications
+        for (User admin : admins) {
+            this.messagingTemplate.convertAndSendToUser(
+                admin.getEmail().toLowerCase(),
+                "/queue/notifications",
+                title + ": " + message
+            );
+        }
+    }
+
+    private void sendNotifications(List<User> users, String title, String message, String type) {
         List<Notification> notifications = new java.util.ArrayList<>();
-        
         for (User user : users) {
              Notification notification = new Notification();
              notification.setUser(user);
@@ -111,9 +128,6 @@ public class NotificationService {
              notifications.add(notification);
         }
         this.notificationRepository.saveAll(notifications);
-        
-        // Broadcast via topic for real-time receipt by all online users
-        this.messagingTemplate.convertAndSend("/topic/notifications", title + ": " + message);
     }
     
     public long countUnread() {

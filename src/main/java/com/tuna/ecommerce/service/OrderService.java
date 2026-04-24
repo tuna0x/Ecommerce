@@ -746,4 +746,30 @@ public class OrderService {
 
         return order;
     }
+
+    @Transactional(readOnly = true)
+    public String getPurchaseHistorySummaryForChatbot() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null) return "Chưa đăng nhập.";
+
+        User user = this.userService.findByUsername(email);
+        if (user == null) return "Không thấy User.";
+
+        // Tìm tất cả đơn hàng đã DELIVERED
+        List<Order> deliveredOrders = this.orderRepository.findAll().stream()
+                .filter(o -> o.getUser().getId().equals(user.getId()) && o.getStatus() == OrderStatusEnum.DELIVERED)
+                .collect(Collectors.toList());
+
+        if (deliveredOrders.isEmpty()) return "Khách hàng chưa hoàn thành đơn hàng nào trước đây.";
+
+        java.util.Set<String> productNames = new java.util.HashSet<>();
+        for (Order o : deliveredOrders) {
+            if (o.getItems() != null) {
+                o.getItems().forEach(oi -> productNames.add(oi.getProduct().getName()));
+            }
+        }
+
+        return "Các sản phẩm khách đã từng mua và sử dụng: " + String.join(", ", productNames);
+    }
 }
+

@@ -50,6 +50,7 @@ public class UserProfile {
     @Column(columnDefinition = "MEDIUMTEXT")
     private String adminNotes;
     private String tags;
+    private String skinType; // Result from AI Skincare Quiz
 
     private Instant createdAt;
     private Instant updatedAt;

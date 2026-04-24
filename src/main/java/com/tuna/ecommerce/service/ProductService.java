@@ -69,6 +69,7 @@ public class ProductService {
     private final FlashSaleCampaignRepository flashSaleCampaignRepository;
     private final FlashSaleService flashSaleService;
     private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     public ProductService(
             ProductRepository productRepository,
@@ -84,7 +85,8 @@ public class ProductService {
             @Lazy InventoryService inventoryService,
             FlashSaleCampaignRepository flashSaleCampaignRepository,
             FlashSaleService flashSaleService,
-            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
+            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate,
+            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.attributeValueRepository = attributeValueRepository;
@@ -99,6 +101,7 @@ public class ProductService {
         this.flashSaleCampaignRepository = flashSaleCampaignRepository;
         this.flashSaleService = flashSaleService;
         this.rabbitTemplate = rabbitTemplate;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -121,6 +124,7 @@ public class ProductService {
         newProduct.setName(product.getName());
         newProduct.setOriginalPrice(product.getOriginalPrice());
         newProduct.setCategory(category);
+        newProduct.setSkinType(product.getSkinType());
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         if (brand != null) {
@@ -217,6 +221,19 @@ public class ProductService {
             variantCostPrices.put("DEFAULT-" + newProduct.getId(), product.getCostPrice());
         }
         this.inventoryService.syncInitialInventory(newProduct, variantStocks, variantCostPrices);
+
+        final String productName = newProduct.getName();
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend("/topic/product-updates", "Đã thêm sản phẩm mới: " + productName);
+                }
+            });
+        } else {
+            messagingTemplate.convertAndSend("/topic/product-updates", "Đã thêm sản phẩm mới: " + productName);
+        }
+
         return newProduct;
     }
 
@@ -243,6 +260,7 @@ public class ProductService {
         cur.setName(product.getName());
         cur.setOriginalPrice(product.getOriginalPrice());
         cur.setCategory(category);
+        cur.setSkinType(product.getSkinType());
 
         Brand brand = this.brandService.handleGetById(product.getBrandId());
         cur.setBrand(brand);
@@ -392,6 +410,19 @@ public class ProductService {
             variantCostPrices.put("DEFAULT-" + cur.getId(), product.getCostPrice());
         }
         this.inventoryService.syncInitialInventory(cur, variantStocks, variantCostPrices);
+
+        final String productName = cur.getName();
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend("/topic/product-updates", "Đã cập nhật sản phẩm: " + productName);
+                }
+            });
+        } else {
+            messagingTemplate.convertAndSend("/topic/product-updates", "Đã cập nhật sản phẩm: " + productName);
+        }
+
         return cur;
     }
 
@@ -444,6 +475,8 @@ public class ProductService {
         if (product != null) {
             product.setDeleted(true);
             this.productRepository.save(product);
+            final String productName = product.getName();
+            messagingTemplate.convertAndSend("/topic/product-updates", "Đã xóa sản phẩm: " + productName);
         }
     }
 
@@ -602,6 +635,7 @@ public class ProductService {
         res.setName(product.getName());
         res.setOriginalPrice(product.getOriginalPrice());
         res.setActive(product.isActive());
+        res.setSkinType(product.getSkinType());
 
         // Map Inventory Details for main product (from its variants or default variant)
         if (product.getVariants() != null && !product.getVariants().isEmpty()) {
@@ -865,6 +899,7 @@ public class ProductService {
         }
 
         sb.append(", Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Khác")
+                .append(", Loại da: ").append(p.getSkinType() != null ? p.getSkinType() : "Mọi loại da")
                 .append(", Đã bán: ").append(p.getSoldCount());
 
         if (p.getProductDetail() != null && p.getProductDetail().getDescription() != null) {

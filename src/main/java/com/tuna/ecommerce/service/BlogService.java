@@ -61,14 +61,25 @@ public class BlogService {
         return this.blogRepository.findAll(spec, pageable);
     }
 
-    public String getBlogsSummaryForChatbot() {
-        Page<Blog> blogs = this.blogRepository.findAll((org.springframework.data.jpa.domain.Specification<Blog>) null, org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("id").descending()));
+    public String getBlogsSummaryForChatbot(String keyword) {
+        Page<Blog> blogs;
+        if (keyword != null && !keyword.isEmpty()) {
+            // Simple keyword search in title
+            blogs = this.blogRepository.findByTitleContainingIgnoreCase(keyword, 
+                org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("id").descending()));
+        } else {
+            blogs = this.blogRepository.findAll((org.springframework.data.jpa.domain.Specification<Blog>) null, 
+                org.springframework.data.domain.PageRequest.of(0, 5, org.springframework.data.domain.Sort.by("id").descending()));
+        }
+        
         StringBuilder sb = new StringBuilder();
         if (blogs.hasContent()) {
-            sb.append("\n--- CÁC BÀI VIẾT TƯ VẤN (BLOG) MỚI NHẤT ---\n");
+            sb.append("\n--- KIẾN THỨC TƯ VẤN (BLOG) ---\n");
             for (Blog b : blogs.getContent()) {
                 sb.append("- ").append(b.getTitle()).append(": ").append(b.getExcerpt()).append("\n");
             }
+        } else if (keyword != null && !keyword.isEmpty()) {
+            return "Không tìm thấy bài viết nào về '" + keyword + "'.";
         }
         return sb.toString();
     }

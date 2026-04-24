@@ -465,4 +465,8 @@ public class UserService {
             this.userRepository.save(user);
         }
     }
+
+    public List<User> findByRoleIn(List<String> roleNames) {
+        return this.userRepository.findByRoleNameIn(roleNames);
+    }
 }

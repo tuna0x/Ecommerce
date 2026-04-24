@@ -26,6 +26,7 @@ public class ReqUpdateProductDTO {
     private List<Long> attributeValue;
     private Long categoryId;
     private Long brandId;
+    private String skinType;
     private List<String> image; // List of existing image URLs to keep
     private List<VariantDTO> variants;
     private Boolean active;

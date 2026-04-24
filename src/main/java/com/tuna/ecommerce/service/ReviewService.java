@@ -130,4 +130,18 @@ public class ReviewService {
 
         reviewRepository.delete(review);
     }
+
+    public String getReviewsSummaryForChatbot(Long productId) {
+        Page<Review> reviews = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId, org.springframework.data.domain.PageRequest.of(0, 10));
+        if (reviews.isEmpty()) return "Sản phẩm này chưa có đánh giá nào từ khách hàng.";
+
+        StringBuilder sb = new StringBuilder("Đánh giá thực tế từ khách hàng (10 cái gần nhất):\n");
+        double avg = reviews.getContent().stream().mapToInt(Review::getRating).average().orElse(0.0);
+        sb.append("- Đánh giá trung bình: ").append(String.format("%.1f", avg)).append("/5 ⭐️\n");
+        
+        for (Review r : reviews.getContent()) {
+            sb.append("- [").append(r.getRating()).append("⭐️] ").append(r.getComment()).append("\n");
+        }
+        return sb.toString();
+    }
 }
