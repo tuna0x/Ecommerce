@@ -20,6 +20,7 @@ public class ReqCreateProductDTO {
     private List<Long> attributeValue;
     private Long categoryId;
     private Long brandId;
+    private String skinType;
     private List<VariantDTO> variants;
 
     @Getter

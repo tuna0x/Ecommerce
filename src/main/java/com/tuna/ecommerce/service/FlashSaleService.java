@@ -333,4 +333,42 @@ public class FlashSaleService {
         }
         return dto;
     }
+
+    public String getFlashSaleSummaryForChatbot() {
+        LocalDateTime now = LocalDateTime.now();
+        StringBuilder sb = new StringBuilder();
+
+        // 1. Active Campaigns
+        List<FlashSaleCampaign> active = flashSaleCampaignRepository.findActiveCampaigns(now);
+        if (!active.isEmpty()) {
+            sb.append("\n🔥 ĐANG DIỄN RA FLASH SALE CỰC SỐC:\n");
+            for (FlashSaleCampaign c : active) {
+                sb.append("--- Chiến dịch: ").append(c.getName()).append(" ---\n");
+                if (c.getItems() != null) {
+                    for (FlashSaleItem item : c.getItems()) {
+                        sb.append("- ").append(item.getProduct().getName())
+                                .append(" chỉ còn: ").append(item.getFlashSalePrice()).append("đ")
+                                .append(" (Số lượng còn ít!)\n");
+                    }
+                }
+            }
+        }
+
+        // 2. Upcoming Campaigns
+        List<FlashSaleCampaign> upcoming = flashSaleCampaignRepository.findUpcomingCampaigns(now);
+        if (!upcoming.isEmpty()) {
+            sb.append("\n⏰ SẮP DIỄN RA (Nàng nhớ canh giờ nhé):\n");
+            for (int i = 0; i < Math.min(upcoming.size(), 2); i++) { // Lấy tối đa 2 cái sắp tới
+                FlashSaleCampaign c = upcoming.get(i);
+                sb.append("- ").append(c.getName()).append(" bắt đầu lúc: ")
+                        .append(c.getStartAt().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm dd/MM")))
+                        .append("\n");
+            }
+        }
+
+        if (sb.length() == 0) {
+            return "Hiện tại chưa có chương trình Flash Sale nào đang diễn ra. Nàng theo dõi shop thường xuyên để nhận tin nhé! 🌸";
+        }
+        return sb.toString();
+    }
 }

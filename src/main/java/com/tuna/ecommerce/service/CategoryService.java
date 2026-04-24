@@ -161,4 +161,22 @@ public class CategoryService {
             }
         }
     }
-}
+
+    public String getCategoriesSummaryForChatbot() {
+        List<Category> categories = this.categoryRepository.findAll();
+        if (categories == null || categories.isEmpty()) {
+            return "Hiện shop chưa phân loại danh mục cụ thể.";
+        }
+        StringBuilder sb = new StringBuilder("\n--- CÁC DANH MỤC SẢN PHẨM TẠI SHOP ---\n");
+        for (Category c : categories) {
+            if (c.getActive() != null && c.getActive()) {
+                sb.append("- ").append(c.getName());
+                if (c.getDescription() != null && !c.getDescription().isEmpty()) {
+                    sb.append(": ").append(c.getDescription());
+                }
+                sb.append("\n");
+            }
+        }
+        return sb.toString();
+    }
+}

@@ -42,6 +42,7 @@ public class ResProductDTO implements Serializable {
     private List<ProductVariantInner> variants;
     private FlashSaleInner flashSale;
     private boolean active;
+    private String skinType;
 
     @Getter
     @Setter

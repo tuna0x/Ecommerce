@@ -56,6 +56,8 @@ public class Product {
     private boolean active = true;
     private boolean deleted = false;
 
+    private String skinType; // Dầu, Khô, Hỗn hợp, Nhạy cảm, Mọi loại da
+
     @OneToOne(mappedBy = "product")
     @JsonIgnore
     private ProductDetail productDetail;

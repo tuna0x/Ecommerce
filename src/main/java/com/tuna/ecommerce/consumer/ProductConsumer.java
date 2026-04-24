@@ -77,10 +77,10 @@ public class ProductConsumer {
                     public void afterCommit() {
                         // Notify UI via WebSocket
                         messagingTemplate.convertAndSend("/topic/product-updates",
-                                "Images processed for product: " + product.getName());
+                                "Ảnh của sản phẩm " + product.getName() + " đã được xử lý xong.");
 
-                        // Also send a toast notification to all users
-                        notificationService.sendNotificationToAllUsers(
+                        // Also send a toast notification to admins
+                        notificationService.sendNotificationToAdmins(
                                 "Xử lý ảnh hoàn tất",
                                 "Ảnh cho sản phẩm " + product.getName() + " đã được tải lên thành công.",
                                 "SYSTEM");
@@ -91,9 +91,9 @@ public class ProductConsumer {
                 // Fallback for non-transactional contexts (though this method is
                 // @Transactional)
                 messagingTemplate.convertAndSend("/topic/product-updates",
-                        "Images processed for product: " + product.getName());
+                        "Ảnh của sản phẩm " + product.getName() + " đã được xử lý xong.");
 
-                notificationService.sendNotificationToAllUsers(
+                notificationService.sendNotificationToAdmins(
                         "Xử lý ảnh hoàn tất",
                         "Ảnh cho sản phẩm " + product.getName() + " đã được tải lên thành công.",
                         "SYSTEM");
