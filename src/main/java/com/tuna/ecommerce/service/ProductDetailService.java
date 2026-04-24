@@ -1,5 +1,6 @@
 package com.tuna.ecommerce.service;
 
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -23,40 +24,40 @@ public class ProductDetailService {
     private final ProductDetailRepository productDetailRepository;
     private final ProductRepository productRepository;
 
-        public ProductDetail createProductDetail(ReqCreateProductDetailDTO req) throws IdInvalidException{
-            ProductDetail productDetail=new ProductDetail();
-            productDetail.setDescription(req.getDescription());
-            productDetail.setIngredient(req.getIngredient());
-            productDetail.setUsageGuide(req.getUsageGuide());
-            productDetail.setSpecification(req.getSpecification());
+    public ProductDetail createProductDetail(ReqCreateProductDetailDTO req) throws IdInvalidException {
+        ProductDetail productDetail = new ProductDetail();
+        productDetail.setDescription(req.getDescription());
+        productDetail.setIngredient(req.getIngredient());
+        productDetail.setUsageGuide(req.getUsageGuide());
+        productDetail.setSpecification(req.getSpecification());
 
-            Product product= this.productRepository.findById(req.getProductId()).orElse(null);
-            if (product!=null) {
-                productDetail.setProduct(product);
-            }else{
-                throw new IdInvalidException("product not found");
-            }
+        Product product = this.productRepository.findById(req.getProductId()).orElse(null);
+        if (product != null) {
+            productDetail.setProduct(product);
+        } else {
+            throw new IdInvalidException("product not found");
+        }
         return this.productDetailRepository.save(productDetail);
     }
 
-    public ProductDetail getById(long id){
+    public ProductDetail getById(long id) {
         return this.productDetailRepository.findById(id).orElse(null);
     }
 
-    public ProductDetail updateProductDetail(ReqUpdateProductDetailDTO req) throws IdInvalidException{
-        ProductDetail cur= this.getById(req.getId());
-        if (cur!=null) {
+    public ProductDetail updateProductDetail(ReqUpdateProductDetailDTO req) throws IdInvalidException {
+        ProductDetail cur = this.getById(req.getId());
+        if (cur != null) {
             cur.setDescription(req.getDescription());
             cur.setIngredient(req.getIngredient());
             cur.setUsageGuide(req.getUsageGuide());
             cur.setSpecification(req.getSpecification());
-            Product product= this.productRepository.findById(req.getProductId()).orElse(null);
-            if (product!=null) {
+            Product product = this.productRepository.findById(req.getProductId()).orElse(null);
+            if (product != null) {
                 cur.setProduct(product);
-            }else{
+            } else {
                 throw new IdInvalidException("product not found");
             }
-            cur=this.productDetailRepository.save(cur);
+            cur = this.productDetailRepository.save(cur);
         }
         return cur;
 
@@ -86,15 +87,30 @@ public class ProductDetailService {
         res.setUsageGuide(productDetail.getUsageGuide());
         res.setSpecification(productDetail.getSpecification());
         if (productDetail.getProduct() != null) {
+            Product p = productDetail.getProduct();
             ResProductDetailDTO.ProductInner pInner = new ResProductDetailDTO.ProductInner();
-            pInner.setId(productDetail.getProduct().getId());
-            pInner.setName(productDetail.getProduct().getName());
+            pInner.setId(p.getId());
+            pInner.setName(p.getName());
+
+            // Map Brand
+            if (p.getBrand() != null) {
+                pInner.setBrand(p.getBrand().getName());
+            }
+
+            // Map Image (first one)
+            if (p.getImages() != null && !p.getImages().isEmpty()) {
+                List<String> imgUrls = p.getImages().stream()
+                        .map(img -> img.getImageUrl())
+                        .collect(java.util.stream.Collectors.toList());
+                pInner.setImage(imgUrls);
+            }
+
             res.setProduct(pInner);
         }
         return res;
     }
 
-    public void deleteProductDetail(long id){
+    public void deleteProductDetail(long id) {
         this.productDetailRepository.deleteById(id);
     }
 

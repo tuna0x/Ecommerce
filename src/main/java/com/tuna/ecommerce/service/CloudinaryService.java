@@ -21,6 +21,10 @@ public class CloudinaryService {
         return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
     }
 
+    public Map uploadFile(java.io.File file) throws IOException {
+        return cloudinary.uploader().upload(file, ObjectUtils.emptyMap());
+    }
+
     public java.util.List<Map> uploadFiles(java.util.List<MultipartFile> files) {
         java.util.List<java.util.concurrent.CompletableFuture<Map>> futures = files.stream()
                 .filter(file -> file != null && !file.isEmpty())

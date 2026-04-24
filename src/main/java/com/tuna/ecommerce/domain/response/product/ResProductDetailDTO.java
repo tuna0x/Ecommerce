@@ -24,5 +24,7 @@ public class ResProductDetailDTO {
     public static class ProductInner {
         private Long id;
         private String name;
+        private Object image;
+        private Object brand;
     }
 }

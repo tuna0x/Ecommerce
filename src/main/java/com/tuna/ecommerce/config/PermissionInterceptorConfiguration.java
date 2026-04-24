@@ -38,7 +38,10 @@ public class PermissionInterceptorConfiguration implements WebMvcConfigurer {
                 "/api/v1/auth/social-login",
                 "/api/v1/order/cancel",
                 "/api/v1/tracking/log",
-                "/api/v1/blogs/**"
+                "/api/v1/blogs/**",
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
         };
         registry.addInterceptor(getPermissionInterceptor())
                 .excludePathPatterns(whiteList);

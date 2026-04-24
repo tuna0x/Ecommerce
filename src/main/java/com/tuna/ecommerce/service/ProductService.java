@@ -14,6 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,21 +39,17 @@ import com.tuna.ecommerce.repository.ReviewRepository;
 import com.tuna.ecommerce.domain.ProductVariant;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
-import com.tuna.ecommerce.domain.ProductPromotion;
-import com.tuna.ecommerce.repository.ProductPromotionRepository;
-import com.tuna.ecommerce.repository.PromotionRepository;
 
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
-import com.tuna.ecommerce.repository.InventoryRepository;
 import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
-import com.tuna.ecommerce.repository.FlashSaleItemRepository;
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
+import com.tuna.ecommerce.domain.message.ProductImageMessage;
+import com.tuna.ecommerce.config.RabbitMQConfig;
+import com.tuna.ecommerce.ultil.FileUtil;
 
 @Service
 @Transactional
@@ -67,13 +65,10 @@ public class ProductService {
     private final BrandService brandService;
     private final PricingService pricingService;
     private final ProductVariantRepository productVariantRepository;
-    private final ProductPromotionRepository productPromotionRepository;
-    private final PromotionRepository promotionRepository;
     private final InventoryService inventoryService;
-    private final InventoryRepository inventoryRepository;
     private final FlashSaleCampaignRepository flashSaleCampaignRepository;
-    private final FlashSaleItemRepository flashSaleItemRepository;
     private final FlashSaleService flashSaleService;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
 
     public ProductService(
             ProductRepository productRepository,
@@ -86,13 +81,10 @@ public class ProductService {
             BrandService brandService,
             PricingService pricingService,
             ProductVariantRepository productVariantRepository,
-            ProductPromotionRepository productPromotionRepository,
-            PromotionRepository promotionRepository,
             @Lazy InventoryService inventoryService,
-            InventoryRepository inventoryRepository,
             FlashSaleCampaignRepository flashSaleCampaignRepository,
-            FlashSaleItemRepository flashSaleItemRepository,
-            FlashSaleService flashSaleService) {
+            FlashSaleService flashSaleService,
+            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.attributeValueRepository = attributeValueRepository;
@@ -103,13 +95,10 @@ public class ProductService {
         this.brandService = brandService;
         this.pricingService = pricingService;
         this.productVariantRepository = productVariantRepository;
-        this.productPromotionRepository = productPromotionRepository;
-        this.promotionRepository = promotionRepository;
         this.inventoryService = inventoryService;
-        this.inventoryRepository = inventoryRepository;
         this.flashSaleCampaignRepository = flashSaleCampaignRepository;
-        this.flashSaleItemRepository = flashSaleItemRepository;
         this.flashSaleService = flashSaleService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -138,20 +127,30 @@ public class ProductService {
             newProduct.setBrand(brand);
         }
 
-        // Save first to get ID for images and attributes
+        // Save first to get ID for messages and attributes
         newProduct = this.productRepository.save(newProduct);
 
-        List<ProductImage> uploadedImages = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
-            List<Map> uploadResults = cloudinaryService.uploadFiles(files);
-            for (Map uploadResult : uploadResults) {
-                ProductImage image = new ProductImage();
-                image.setImageUrl(uploadResult.get("secure_url").toString());
-                image.setPublicId(uploadResult.get("public_id").toString());
-                image.setProduct(newProduct);
-                this.productImageRepository.save(image);
-                newProduct.addImage(image);
-                uploadedImages.add(image);
+            try {
+                List<String> tempPaths = FileUtil.saveTempFiles(files);
+                ProductImageMessage productImageMessage = new ProductImageMessage(newProduct.getId(), tempPaths);
+
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
+                                    RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                            log.info("Sent product image upload message after commit for product ID: {}",
+                                    productImageMessage.getProductId());
+                        }
+                    });
+                } else {
+                    this.rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
+                            RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                }
+            } catch (Exception e) {
+                log.error("Failed to process images for product ID: {}", newProduct.getId(), e);
             }
         }
 
@@ -178,9 +177,9 @@ public class ProductService {
 
                 if (vDto.getProductImageId() != null) {
                     this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
-                } else if (vDto.getProductImageIndex() != null && vDto.getProductImageIndex() < uploadedImages.size()) {
-                    variant.setProductImage(uploadedImages.get(vDto.getProductImageIndex()));
                 }
+                // Note: productImageIndex logic is removed for now as images are processed
+                // asynchronously
 
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
@@ -269,17 +268,27 @@ public class ProductService {
             }
         }
 
-        List<ProductImage> newlyUploadedImages = new ArrayList<>();
         if (files != null && !files.isEmpty()) {
-            List<Map> uploadResults = cloudinaryService.uploadFiles(files);
-            for (Map uploadResult : uploadResults) {
-                ProductImage image = new ProductImage();
-                image.setImageUrl(uploadResult.get("secure_url").toString());
-                image.setPublicId(uploadResult.get("public_id").toString());
-                image.setProduct(cur);
-                this.productImageRepository.save(image);
-                cur.addImage(image);
-                newlyUploadedImages.add(image);
+            try {
+                List<String> tempPaths = FileUtil.saveTempFiles(files);
+                ProductImageMessage productImageMessage = new ProductImageMessage(cur.getId(), tempPaths);
+
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
+                                    RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                            log.info("Sent product image upload message after commit for product ID (update): {}",
+                                    productImageMessage.getProductId());
+                        }
+                    });
+                } else {
+                    this.rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
+                            RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                }
+            } catch (Exception e) {
+                log.error("Failed to process images for product ID (update): {}", cur.getId(), e);
             }
         }
 
@@ -303,10 +312,9 @@ public class ProductService {
 
                 if (vDto.getProductImageId() != null) {
                     this.productImageRepository.findById(vDto.getProductImageId()).ifPresent(variant::setProductImage);
-                } else if (vDto.getProductImageIndex() != null
-                        && vDto.getProductImageIndex() < newlyUploadedImages.size()) {
-                    variant.setProductImage(newlyUploadedImages.get(vDto.getProductImageIndex()));
                 }
+                // Note: productImageIndex logic is removed for now as images are processed
+                // asynchronously
 
                 if (vDto.getAttributeValues() != null) {
                     List<AttributeValue> avs = vDto.getAttributeValues().stream()
@@ -318,7 +326,8 @@ public class ProductService {
                 updatedVariants.add(variant);
             }
 
-            // Soft delete removed variants instead of physically removing them (Avoiding FK Error)
+            // Soft delete removed variants instead of physically removing them (Avoiding FK
+            // Error)
             for (ProductVariant v : cur.getVariants()) {
                 boolean stillExists = product.getVariants().stream()
                         .anyMatch(vDto -> vDto.getSku().equals(v.getSku()));
@@ -364,7 +373,8 @@ public class ProductService {
             cur.getImages().clear();
         }
 
-        // Redundant upload block removed as files are already uploaded at the start of handleUpdate
+        // Redundant upload block removed as files are already uploaded at the start of
+        // handleUpdate
 
         this.syncProductWithVariants(cur);
         this.updateProductPrice(cur);
@@ -503,7 +513,8 @@ public class ProductService {
         // 1. Same Brand + Same Category (Top 4)
         if (brandId != null) {
             List<Product> brandRelated = this.productRepository
-                    .findTop4ByDeletedFalseAndActiveTrueAndCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(categoryId, brandId, id);
+                    .findTop4ByDeletedFalseAndActiveTrueAndCategoryIdAndBrandIdAndIdNotOrderBySoldCountDesc(categoryId,
+                            brandId, id);
             relatedSet.addAll(brandRelated);
         }
 
