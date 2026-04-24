@@ -66,7 +66,9 @@ public class ReviewService {
         review.setProduct(product);
         review.setUser(user);
         review.setRating(req.getRating());
-        review.setComment(req.getComment());
+        // SECURITY: Escape HTML to prevent XSS
+        String sanitizedComment = org.springframework.web.util.HtmlUtils.htmlEscape(req.getComment());
+        review.setComment(sanitizedComment);
 
         if (files != null && !files.isEmpty()) {
             java.util.List<java.util.Map> uploadResults = cloudinaryService.uploadFiles(files);

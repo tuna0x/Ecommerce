@@ -191,7 +191,7 @@ public class PaymentController {
             @RequestParam(required = false) Long orderCode) throws IdInvalidException {
 
         // Log the incoming callback for debugging
-        log.info("\u003e\u003e\u003e PayOS Callback: orderCode={}, code={}, status={}, cancel={}, id={}", orderCode, code, status, cancel, id);
+        log.info(">>> PayOS Callback Redirect: orderCode={}, code={}, status={}, cancel={}, id={}", orderCode, code, status, cancel, id);
 
         String frontendRedirectUrl = frontendUrl + "/payment-result";
 
@@ -200,6 +200,18 @@ public class PaymentController {
                 .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Missing_orderCode"))
                 .build();
         }
+
+        // --- SECURITY IMPROVEMENT: Verify status with PayOS API ---
+        com.fasterxml.jackson.databind.JsonNode paymentInfo = this.payOSService.getPaymentLinkInfo(orderCode);
+        if (paymentInfo == null || !"00".equals(paymentInfo.get("code").asText())) {
+             return ResponseEntity.status(HttpStatus.FOUND)
+                .location(java.net.URI.create(frontendRedirectUrl + "?status=failed&message=Payment_verification_failed"))
+                .build();
+        }
+
+        com.fasterxml.jackson.databind.JsonNode data = paymentInfo.get("data");
+        String actualStatus = data.get("status").asText();
+        // --- END SECURITY IMPROVEMENT ---
 
         Order order = this.orderRepository.findById(orderCode).orElse(null);
         if (order == null) {
@@ -215,27 +227,28 @@ public class PaymentController {
                 .build();
         }
 
-        // PayOS logic: cancel can be "true" string, status can be "CANCELLED"
-        boolean isCancelled = "true".equals(cancel) || "CANCELLED".equals(status);
-        boolean isSuccess = "00".equals(code) && "PAID".equals(status);
+        if (payment.getStatus() == OrderStatusEnum.CONFIRMED) {
+             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId()
+                    + "&transactionId=" + (payment.getTransactionId() != null ? payment.getTransactionId() : id);
+            return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
+        }
+
+        boolean isSuccess = "PAID".equals(actualStatus);
+        boolean isCancelled = "CANCELLED".equals(actualStatus);
 
         if (isSuccess) {
-            // Thanh toán thành công
             String transactionId = (id != null) ? id : "PAYOS-" + orderCode;
-            String rawData = "code=" + code + "&id=" + id + "&status=" + status + "&orderCode=" + orderCode;
+            String rawData = "verified_via_api=true&" + data.toString();
             this.paymentService.processPaymentSuccess(payment, transactionId, rawData);
 
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId()
                     + "&transactionId=" + transactionId;
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
-            // Thanh toán thất bại hoặc bị hủy
-            // Cập nhật trạng thái payment trước
             payment.setStatus(OrderStatusEnum.CANCELLED);
             this.paymentService.save(payment);
 
-            // Log failed transaction
-            String rawData = "code=" + code + "&id=" + id + "&status=" + status + "&orderCode=" + orderCode + "&cancel=" + cancel;
+            String rawData = "verified_via_api=true&status=" + actualStatus + "&orderCode=" + orderCode;
             this.transactionService.handleLogTransaction(
                     order,
                     payment.getAmount(),
@@ -244,15 +257,12 @@ public class PaymentController {
                     id,
                     rawData);
 
-            // Xử lý hủy đơn hàng nếu đang PENDING
             if (order.getStatus() == OrderStatusEnum.PENDING) {
                 order.setPaymentStatus(PaymentStatusEnum.UNPAID);
-                // logic handleUpdateStatus sẽ: đổi trạng thái order thành CANCELLED, releaseStock, gửi notification
                 this.orderService.handleUpdateStatus(order.getId(), OrderStatusEnum.CANCELLED,
-                        isCancelled ? "Khách hàng hủy thanh toán PayOS" : "Giao dịch PayOS thất bại");
+                        isCancelled ? "Khách hàng hủy thanh toán PayOS (Xác thực API)" : "Giao dịch PayOS thất bại (Xác thực API)");
             }
 
-            // Redirect về frontend kèm theo message cụ thể nếu là hủy
             String redirectUrl = frontendRedirectUrl + "?status=failed&orderId=" + order.getId();
             if (isCancelled) {
                 redirectUrl += "&message=cancelled";

@@ -113,6 +113,7 @@ public class ProductService {
         log.info(">>> ProductService: Product price sync completed.");
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Category category = this.categoryService.handleGetById(product.getCategoryId());
@@ -245,6 +246,7 @@ public class ProductService {
         return product;
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
     public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Product cur = this.handleGetById(product.getId());
@@ -470,6 +472,7 @@ public class ProductService {
         }
     }
 
+    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
         if (product != null) {
@@ -480,6 +483,7 @@ public class ProductService {
         }
     }
 
+    @Cacheable(value = "products", key = "{#categoryId, #search, #page.pageNumber, #page.pageSize, #page.sort.toString(), #isPublic}", condition = "#spec == null")
     public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search,
             Pageable page, boolean isPublic) {
         // Default filter: never show deleted products
