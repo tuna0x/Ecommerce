@@ -25,15 +25,19 @@ import com.turkraft.springfilter.boot.Filter;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1")
 @AllArgsConstructor
+@Tag(name = "Product Detail", description = "Product Detail Management API")
 public class ProductDetailController {
     private final ProductDetailService productDetailService;
 
     @PostMapping("/product-detail")
     @APIMessage("Create new product detail")
+    @Operation(summary = "Create product detail", description = "Create detailed information for a specific product")
     public ResponseEntity<ResProductDetailDTO> createProductDetail(@Valid @RequestBody ReqCreateProductDetailDTO req)
             throws IdInvalidException {
         ProductDetail res = this.productDetailService.createProductDetail(req);
@@ -43,6 +47,7 @@ public class ProductDetailController {
 
     @PutMapping("/product-detail")
     @APIMessage("Update product detail")
+    @Operation(summary = "Update product detail", description = "Update existing detailed information")
     public ResponseEntity<ResProductDetailDTO> updateProductDetail(@RequestBody ReqUpdateProductDetailDTO req)
             throws IdInvalidException {
         ProductDetail cur = this.productDetailService.getById(req.getId());
@@ -77,6 +82,7 @@ public class ProductDetailController {
 
     @GetMapping("/product-detail")
     @APIMessage("Get all product-detail with filter and pagination")
+    @Operation(summary = "Get paginated product details", description = "Retrieve list of all product details")
     public ResponseEntity<ResultPaginationDTO> getAllProductDetails(@Filter Specification<ProductDetail> spec,
             Pageable page) {
         return ResponseEntity.ok().body(this.productDetailService.handleGetAll(spec, page));

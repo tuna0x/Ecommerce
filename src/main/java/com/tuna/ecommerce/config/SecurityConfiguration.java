@@ -57,7 +57,7 @@ public class SecurityConfiguration {
                 "/api/v1/auth/login",
                 "/api/v1/auth/refresh",
                 "/api/v1/auth/register",
-                 "/api/v1/auth/social-login",
+                "/api/v1/auth/social-login",
                 "/api/v1/auth/otp/send",
                 "/api/v1/auth/otp/verify",
                 "/api/v1/auth/check-email",
@@ -68,7 +68,10 @@ public class SecurityConfiguration {
                 "/api/v1/public/**",
                 "/api/v1/tracking/log",
                 "/api/v1/tracking/logs",
-                "/api/v1/tracking/analytics"
+                "/api/v1/tracking/analytics",
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
         };
         http.csrf(c -> c.disable())
                 .cors(Customizer.withDefaults())

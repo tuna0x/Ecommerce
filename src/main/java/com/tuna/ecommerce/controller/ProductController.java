@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
@@ -29,38 +32,41 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestPart;
 
-
-
 @RestController
 @RequestMapping("/api/v1")
 @AllArgsConstructor
+@Tag(name = "Product", description = "Product Management API")
 public class ProductController {
     private final ProductService productService;
 
     @PostMapping("/products")
     @APIMessage("Product created successfully")
+    @Operation(summary = "Create a new product", description = "Create a product with data and multiple files")
     public ResponseEntity<ResProductDTO> createProduct(@RequestPart("data") ReqCreateProductDTO product,
-     @RequestPart(value = "files", required = false) List<MultipartFile> files) throws IdInvalidException, IOException {
-        Product cur=this.productService.handleCreate(product, files);
+            @RequestPart(value = "files", required = false) List<MultipartFile> files)
+            throws IdInvalidException, IOException {
+        Product cur = this.productService.handleCreate(product, files);
         return ResponseEntity.status(HttpStatus.CREATED).body(this.productService.convertToResProductDTO(cur));
 
     }
 
-
-
     @PutMapping("/products")
     @APIMessage("Product updated successfully")
-    public ResponseEntity<ResProductDTO> updateProduct(@RequestPart("data") ReqUpdateProductDTO product, @RequestPart(value = "files", required = false) List<MultipartFile> files) throws IdInvalidException, IOException {
+    @Operation(summary = "Update an existing product", description = "Update product details and images")
+    public ResponseEntity<ResProductDTO> updateProduct(@RequestPart("data") ReqUpdateProductDTO product,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files)
+            throws IdInvalidException, IOException {
         Product existingProduct = this.productService.handleGetById(product.getId());
         if (existingProduct == null) {
             throw new IdInvalidException("Id invalid");
         }
-        existingProduct=this.productService.handleUpdate(product,files);
+        existingProduct = this.productService.handleUpdate(product, files);
         return ResponseEntity.ok().body(this.productService.convertToResProductDTO(existingProduct));
     }
 
     @GetMapping("/products/{id}")
     @APIMessage("Get product by id successfully")
+    @Operation(summary = "Get a product by ID", description = "Retrieve full details of a specific product")
     public ResponseEntity<ResProductDTO> getProductById(@PathVariable Long id) throws IdInvalidException {
         Product product = this.productService.handleGetById(id);
         if (product == null) {
@@ -71,6 +77,7 @@ public class ProductController {
 
     @GetMapping("/products")
     @APIMessage("Get all products successfully")
+    @Operation(summary = "Get paginated products", description = "Retrieve list of products with filtering and searching")
     public ResponseEntity<ResultPaginationDTO> getAllProduct(
             @Filter Specification<Product> spec,
             @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
