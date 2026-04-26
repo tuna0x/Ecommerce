@@ -842,15 +842,17 @@ public class ProductService {
         sb.append("- Tên: ").append(p.getName())
                 .append(" (ID: ").append(p.getId()).append(")");
 
+        BigDecimal finalPrice = p.getOriginalPrice();
         if (this.pricingService != null) {
             List<Promotion> promotions = this.pricingService.getApplicablePromotions(p);
             ResPriceResultDTO priceResult = this.pricingService.calculatePriceWithPromotions(p.getOriginalPrice(),
                     promotions);
+            finalPrice = priceResult.getFinalPrice();
             if (priceResult.getDiscountPrice() != null
                     && priceResult.getDiscountPrice().compareTo(BigDecimal.ZERO) > 0) {
                 sb.append(", Giá gốc: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()))
-                        .append(", [ĐANG CÓ FLASHSALE/GIẢM GIÁ] Giá chỉ còn: ")
-                        .append(String.format("%,.0f VNĐ", priceResult.getFinalPrice().doubleValue()));
+                        .append(", [ĐANG CÓ GIẢM GIÁ] Giá chỉ còn: ")
+                        .append(String.format("%,.0f VNĐ", finalPrice.doubleValue()));
             } else {
                 sb.append(", Giá: ").append(String.format("%,.0f VNĐ", p.getOriginalPrice().doubleValue()));
             }
@@ -862,14 +864,24 @@ public class ProductService {
                 .append(", Loại da: ").append(p.getSkinType() != null ? p.getSkinType() : "Mọi loại da")
                 .append(", Đã bán: ").append(p.getSoldCount());
 
+        String thumbnail = (p.getImages() != null && !p.getImages().isEmpty())
+                ? p.getImages().get(0).getImageUrl()
+                : "";
+
         if (p.getProductDetail() != null && p.getProductDetail().getDescription() != null) {
-            // Loại bỏ HTML tags để đưa vào AI
             String desc = p.getProductDetail().getDescription().replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim();
             if (desc.length() > 150) {
                 desc = desc.substring(0, 150) + "...";
             }
-            sb.append(", Mô tả/Tính năng: ").append(desc);
+            sb.append(", Mô tả: ").append(desc);
         }
+
+        // Thẻ tag đặc biệt để Frontend nhận diện và hiển thị Rich Card
+        sb.append(" [PRODUCT_CARD:").append(p.getId()).append("|")
+                .append(p.getName()).append("|")
+                .append(String.format("%,.0f", finalPrice.doubleValue())).append("|")
+                .append(thumbnail).append("]");
+
         sb.append("\n");
     }
 }
