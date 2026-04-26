@@ -17,15 +17,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "flash_sale_items")
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public class FlashSaleItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,17 +31,17 @@ public class FlashSaleItem {
 
     @ManyToOne
     @JoinColumn(name = "campaign_id")
-    @JsonIgnore
+    @JsonIgnoreProperties("items")
     private FlashSaleCampaign campaign;
 
     @ManyToOne
     @JoinColumn(name = "product_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private Product product;
 
     @ManyToOne
     @JoinColumn(name = "variant_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "attributeValues" })
     private ProductVariant variant;
 
     private BigDecimal flashSalePrice;

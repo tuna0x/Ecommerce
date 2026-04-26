@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
@@ -31,8 +32,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "attribute_values", indexes = {
-    @Index(name = "idx_attribute_value", columnList = "attribute_value")
+        @Index(name = "idx_attribute_value", columnList = "attribute_value")
 })
 public class AttributeValue {
     @Id
@@ -40,7 +42,7 @@ public class AttributeValue {
     private Long id;
     @Column(name = "attribute_value")
     private String attributeValue;
-    
+
     @Column(name = "value")
     private String value;
 
@@ -48,7 +50,7 @@ public class AttributeValue {
     @JoinColumn(name = "attribute_id")
     private Attribute attribute;
 
-    @OneToMany(mappedBy = "attributeValue",fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "attributeValue", fetch = FetchType.LAZY)
     @JsonIgnore
     private List<ProductAttributeValue> productAttributeValue;
 
@@ -56,7 +58,7 @@ public class AttributeValue {
     private Instant updatedAt;
 
     @PrePersist
-    public void handleBeforeCreate(){
+    public void handleBeforeCreate() {
         this.createdAt = Instant.now();
         if (this.value == null) {
             this.value = this.attributeValue;
@@ -64,7 +66,7 @@ public class AttributeValue {
     }
 
     @PreUpdate
-    public void handleBeforeUpdate(){
+    public void handleBeforeUpdate() {
         this.updatedAt = Instant.now();
         this.value = this.attributeValue;
     }

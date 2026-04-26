@@ -1,5 +1,7 @@
 package com.tuna.ecommerce.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,6 +19,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "product_image")
 public class ProductImage {
     @Id
@@ -26,7 +29,7 @@ public class ProductImage {
     private String imageUrl;
     private String publicId;
     private Boolean main;
-    private Integer sortOrder=0;
+    private Integer sortOrder = 0;
 
     @ManyToOne
     @JoinColumn(name = "product_id")

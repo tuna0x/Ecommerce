@@ -42,8 +42,6 @@ import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
-import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
-import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -66,7 +64,6 @@ public class ProductService {
     private final PricingService pricingService;
     private final ProductVariantRepository productVariantRepository;
     private final InventoryService inventoryService;
-    private final FlashSaleCampaignRepository flashSaleCampaignRepository;
     private final FlashSaleService flashSaleService;
     private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
@@ -83,7 +80,6 @@ public class ProductService {
             PricingService pricingService,
             ProductVariantRepository productVariantRepository,
             @Lazy InventoryService inventoryService,
-            FlashSaleCampaignRepository flashSaleCampaignRepository,
             FlashSaleService flashSaleService,
             org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate,
             org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
@@ -98,7 +94,6 @@ public class ProductService {
         this.pricingService = pricingService;
         this.productVariantRepository = productVariantRepository;
         this.inventoryService = inventoryService;
-        this.flashSaleCampaignRepository = flashSaleCampaignRepository;
         this.flashSaleService = flashSaleService;
         this.rabbitTemplate = rabbitTemplate;
         this.messagingTemplate = messagingTemplate;
@@ -588,55 +583,6 @@ public class ProductService {
         return relatedSet.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
-    @Cacheable(value = "flash_sale_products", key = "#pageable.pageNumber + '_' + #pageable.pageSize")
-    public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-
-        // Check for Active Flash Sale Campaigns (Strict Mode)
-        List<FlashSaleCampaign> activeCampaigns = this.flashSaleCampaignRepository.findActiveCampaigns(now);
-        if (!activeCampaigns.isEmpty()) {
-            List<Long> campaignProductIds = activeCampaigns.stream()
-                    .flatMap(c -> c.getItems().stream())
-                    .map(item -> item.getProduct().getId())
-                    .distinct()
-                    .collect(Collectors.toList());
-
-            if (!campaignProductIds.isEmpty()) {
-                Page<Product> flashSaleProducts = this.productRepository.findByDeletedFalseAndActiveTrueAndIdIn(
-                        campaignProductIds, pageable);
-                return this.convertToResultPaginationDTO(flashSaleProducts);
-            }
-        }
-
-        // If no active campaign, return empty result with valid Meta
-        ResultPaginationDTO emptyRs = new ResultPaginationDTO();
-        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
-        mt.setPage(pageable.getPageNumber() + 1);
-        mt.setPageSize(pageable.getPageSize());
-        emptyRs.setMeta(mt);
-        emptyRs.setResult(new ArrayList<>());
-        return emptyRs;
-    }
-
-    private ResultPaginationDTO convertToResultPaginationDTO(Page<Product> page) {
-        ResultPaginationDTO rs = new ResultPaginationDTO();
-        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
-
-        mt.setPage(page.getNumber() + 1);
-        mt.setPageSize(page.getSize());
-        mt.setPages(page.getTotalPages());
-        mt.setTotal(page.getTotalElements());
-
-        rs.setMeta(mt);
-
-        List<ResProductDTO> list = page.getContent().stream()
-                .map(item -> this.convertToResProductDTO(item))
-                .collect(Collectors.toList());
-
-        rs.setResult(list);
-        return rs;
-    }
-
     public double findByOriginalPrice(long id) {
         return this.productRepository.findOriginalPriceById(id).orElse(0.0);
     }
@@ -824,12 +770,14 @@ public class ProductService {
 
         // Fill Flash Sale Info
         this.flashSaleService.findActiveFlashSaleForItem(product.getId()).ifPresent(fs -> {
-            ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
-            fsInner.setPrice(fs.getFlashSalePrice());
-            fsInner.setLimitQuantity(fs.getLimitQuantity());
-            fsInner.setSoldQuantity(fs.getSoldQuantity());
-            fsInner.setEndAt(fs.getCampaign().getEndAt());
-            res.setFlashSale(fsInner);
+            if (fs.getCampaign() != null) {
+                ResProductDTO.FlashSaleInner fsInner = new ResProductDTO.FlashSaleInner();
+                fsInner.setPrice(fs.getFlashSalePrice());
+                fsInner.setLimitQuantity(fs.getLimitQuantity());
+                fsInner.setSoldQuantity(fs.getSoldQuantity());
+                fsInner.setEndAt(fs.getCampaign().getEndAt());
+                res.setFlashSale(fsInner);
+            }
         });
 
         return res;

@@ -29,10 +29,12 @@ import com.tuna.ecommerce.repository.FlashSaleItemRepository;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
+import org.springframework.context.annotation.Lazy;
 
 @Service
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Slf4j
 public class FlashSaleService {
@@ -41,10 +43,26 @@ public class FlashSaleService {
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
     private final com.tuna.ecommerce.repository.InventoryRepository inventoryRepository;
+    private final ProductService productService;
+
+    public FlashSaleService(
+            FlashSaleCampaignRepository flashSaleCampaignRepository,
+            FlashSaleItemRepository flashSaleItemRepository,
+            ProductRepository productRepository,
+            ProductVariantRepository productVariantRepository,
+            com.tuna.ecommerce.repository.InventoryRepository inventoryRepository,
+            @Lazy ProductService productService) {
+        this.flashSaleCampaignRepository = flashSaleCampaignRepository;
+        this.flashSaleItemRepository = flashSaleItemRepository;
+        this.productRepository = productRepository;
+        this.productVariantRepository = productVariantRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.productService = productService;
+    }
 
     @Cacheable(value = "active_flash_sale_item", key = "'product_' + #productId")
     public Optional<FlashSaleItem> findActiveFlashSaleForItem(Long productId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItem(productId, now);
         if (items.isEmpty()) {
             log.info(">>> No active FlashSale found for product {}. Current system time: {}", productId, now);
@@ -57,7 +75,7 @@ public class FlashSaleService {
     @Cacheable(value = "active_flash_sale_item", key = "'variant_' + #variantId")
     public Optional<FlashSaleItem> findActiveFlashSaleItemByVariant(Long variantId) {
         List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItemByVariant(variantId,
-                LocalDateTime.now());
+                LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
         return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
     }
 
@@ -285,17 +303,26 @@ public class FlashSaleService {
         return convertToResDTO(saved);
     }
 
-    @Cacheable(value = "active_flash_sale_campaign", key = "'current'")
     public ResFlashSaleCampaignDTO getActiveCampaign() {
-        LocalDateTime now = LocalDateTime.now();
-        log.info(">>> Checking for active FlashSale campaign at: {}", now);
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+        log.info(">>> Checking for active/upcoming FlashSale campaign at: {}", now);
+
+        // 1. Check for active campaigns
         List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
-        if (activeCampaigns.isEmpty()) {
-            log.info(">>> No active campaign found.");
-            return null; // Return null instead of throwing 404
+        if (!activeCampaigns.isEmpty()) {
+            log.info(">>> Active campaign found: {}", activeCampaigns.get(0).getName());
+            return convertToResDTO(activeCampaigns.get(0));
         }
-        log.info(">>> Active campaign found: {}", activeCampaigns.get(0).getName());
-        return convertToResDTO(activeCampaigns.get(0));
+
+        // 2. If no active, check for the nearest upcoming campaign
+        List<FlashSaleCampaign> upcomingCampaigns = flashSaleCampaignRepository.findUpcomingCampaigns(now);
+        if (!upcomingCampaigns.isEmpty()) {
+            log.info(">>> Upcoming campaign found: {}", upcomingCampaigns.get(0).getName());
+            return convertToResDTO(upcomingCampaigns.get(0));
+        }
+
+        log.info(">>> No active or upcoming campaign found.");
+        return null;
     }
 
     public ResFlashSaleCampaignDTO convertToResDTO(FlashSaleCampaign campaign) {
@@ -334,8 +361,56 @@ public class FlashSaleService {
         return dto;
     }
 
+    public ResultPaginationDTO getActiveFlashSaleProducts(Pageable pageable) {
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
+        if (activeCampaigns.isEmpty()) {
+            ResultPaginationDTO emptyRs = new ResultPaginationDTO();
+            ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+            mt.setPage(pageable.getPageNumber() + 1);
+            mt.setPageSize(pageable.getPageSize());
+            emptyRs.setMeta(mt);
+            emptyRs.setResult(new ArrayList<>());
+            return emptyRs;
+        }
+
+        List<Long> campaignProductIds = activeCampaigns.stream()
+                .flatMap(c -> c.getItems().stream())
+                .map(item -> item.getProduct().getId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (campaignProductIds.isEmpty()) {
+            ResultPaginationDTO emptyRs = new ResultPaginationDTO();
+            ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+            mt.setPage(pageable.getPageNumber() + 1);
+            mt.setPageSize(pageable.getPageSize());
+            emptyRs.setMeta(mt);
+            emptyRs.setResult(new ArrayList<>());
+            return emptyRs;
+        }
+
+        Page<Product> productPage = productRepository.findByDeletedFalseAndActiveTrueAndIdIn(campaignProductIds,
+                pageable);
+
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+        mt.setPage(productPage.getNumber() + 1);
+        mt.setPageSize(productPage.getSize());
+        mt.setPages(productPage.getTotalPages());
+        mt.setTotal(productPage.getTotalElements());
+        rs.setMeta(mt);
+
+        rs.setResult(productPage.getContent().stream()
+                .map(productService::convertToResProductDTO)
+                .collect(Collectors.toList()));
+
+        return rs;
+    }
+
     public String getFlashSaleSummaryForChatbot() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         StringBuilder sb = new StringBuilder();
 
         // 1. Active Campaigns

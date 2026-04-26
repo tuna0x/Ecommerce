@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import com.tuna.ecommerce.service.FlashSaleService;
 import com.tuna.ecommerce.domain.Product;
 import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 @Tag(name = "Product", description = "Product Management API")
 public class ProductController {
     private final ProductService productService;
+    private final FlashSaleService flashSaleService;
 
     @PostMapping("/products")
     @APIMessage("Product created successfully")
@@ -90,7 +92,7 @@ public class ProductController {
     @GetMapping("/products/flash-sale")
     @APIMessage("Get all flash sale products successfully")
     public ResponseEntity<ResultPaginationDTO> getAllFlashSale(Pageable pageable) {
-        return ResponseEntity.ok().body(this.productService.handleGetFlashSale(pageable));
+        return ResponseEntity.ok().body(this.flashSaleService.getActiveFlashSaleProducts(pageable));
     }
 
     @DeleteMapping("/products/{id}")
