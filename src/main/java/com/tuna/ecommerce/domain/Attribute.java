@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -32,8 +33,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Table(name = "attributes", indexes = {
-    @Index(name = "idx_attribute_name", columnList = "name")
+        @Index(name = "idx_attribute_name", columnList = "name")
 })
 public class Attribute {
     @Id
@@ -55,13 +57,13 @@ public class Attribute {
     private Instant createdAt;
     private Instant updatedAt;
 
-            @PrePersist
-    public void handleBeforeCreate(){
+    @PrePersist
+    public void handleBeforeCreate() {
         this.createdAt = Instant.now();
     }
 
-        @PreUpdate
-    public void handleBeforeUpdate(){
+    @PreUpdate
+    public void handleBeforeUpdate() {
         this.updatedAt = Instant.now();
     }
 }

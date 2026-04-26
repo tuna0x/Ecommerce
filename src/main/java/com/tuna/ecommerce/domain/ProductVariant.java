@@ -2,6 +2,7 @@ package com.tuna.ecommerce.domain;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "product_variants")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "attributeValues" })
 @org.hibernate.annotations.SQLRestriction("deleted = false")
 @AllArgsConstructor
 @NoArgsConstructor
@@ -46,19 +48,15 @@ public class ProductVariant {
     private String sku;
     private BigDecimal price; // Price override for this variant
     private double weight;
-    
+
     private boolean deleted = false;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_image_id")
     private ProductImage productImage;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "product_variant_attribute_values",
-        joinColumns = @JoinColumn(name = "product_variant_id"),
-        inverseJoinColumns = @JoinColumn(name = "attribute_value_id")
-    )
+    @JoinTable(name = "product_variant_attribute_values", joinColumns = @JoinColumn(name = "product_variant_id"), inverseJoinColumns = @JoinColumn(name = "attribute_value_id"))
     private List<AttributeValue> attributeValues = new ArrayList<>();
 
     @OneToOne(mappedBy = "productVariant", cascade = CascadeType.ALL)
