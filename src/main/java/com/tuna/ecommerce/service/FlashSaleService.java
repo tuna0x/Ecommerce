@@ -44,7 +44,7 @@ public class FlashSaleService {
 
     @Cacheable(value = "active_flash_sale_item", key = "'product_' + #productId")
     public Optional<FlashSaleItem> findActiveFlashSaleForItem(Long productId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItem(productId, now);
         if (items.isEmpty()) {
             log.info(">>> No active FlashSale found for product {}. Current system time: {}", productId, now);
@@ -57,7 +57,7 @@ public class FlashSaleService {
     @Cacheable(value = "active_flash_sale_item", key = "'variant_' + #variantId")
     public Optional<FlashSaleItem> findActiveFlashSaleItemByVariant(Long variantId) {
         List<FlashSaleItem> items = flashSaleItemRepository.findActiveFlashSaleItemByVariant(variantId,
-                LocalDateTime.now());
+                LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")));
         return items.isEmpty() ? Optional.empty() : Optional.of(items.get(0));
     }
 
@@ -285,9 +285,9 @@ public class FlashSaleService {
         return convertToResDTO(saved);
     }
 
-    @Cacheable(value = "active_flash_sale_campaign", key = "'current'")
+    // @Cacheable(value = "active_flash_sale_campaign", key = "'current'")
     public ResFlashSaleCampaignDTO getActiveCampaign() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         log.info(">>> Checking for active FlashSale campaign at: {}", now);
         List<FlashSaleCampaign> activeCampaigns = flashSaleCampaignRepository.findActiveCampaigns(now);
         if (activeCampaigns.isEmpty()) {
@@ -335,7 +335,7 @@ public class FlashSaleService {
     }
 
     public String getFlashSaleSummaryForChatbot() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         StringBuilder sb = new StringBuilder();
 
         // 1. Active Campaigns

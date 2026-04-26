@@ -588,9 +588,10 @@ public class ProductService {
         return relatedSet.stream().map(this::convertToResProductDTO).collect(Collectors.toList());
     }
 
-    @Cacheable(value = "flash_sale_products", key = "#pageable.pageNumber + '_' + #pageable.pageSize")
+    // @Cacheable(value = "flash_sale_products", key = "#pageable.pageNumber + '_' +
+    // #pageable.pageSize")
     public ResultPaginationDTO handleGetFlashSale(Pageable pageable) {
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
 
         // Check for Active Flash Sale Campaigns (Strict Mode)
         List<FlashSaleCampaign> activeCampaigns = this.flashSaleCampaignRepository.findActiveCampaigns(now);
