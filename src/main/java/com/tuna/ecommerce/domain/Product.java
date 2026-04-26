@@ -77,6 +77,8 @@ public class Product {
     private Category category;
 
     private int soldCount = 0;
+    private Double averageRating = 0.0;
+    private Long reviewCount = 0L;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @JsonIgnore

@@ -467,7 +467,15 @@ public class ProductService {
     public void syncAllProductsPrice() {
         List<Product> products = this.productRepository.findAll();
         for (Product p : products) {
+            // Update prices
             this.updateProductPrice(p);
+
+            // Sync ratings
+            Double avgRating = reviewRepository.findAverageRatingByProductId(p.getId());
+            Long count = reviewRepository.countByProductId(p.getId());
+            p.setAverageRating(avgRating != null ? avgRating : 0.0);
+            p.setReviewCount(count != null ? count : 0L);
+
             this.productRepository.save(p);
         }
     }

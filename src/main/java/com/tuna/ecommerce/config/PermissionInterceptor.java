@@ -37,8 +37,7 @@ public class PermissionInterceptor implements HandlerInterceptor {
 
         // SECURITY: Tighten whitelist and align with SecurityConfiguration
         // Public endpoints that don't require permission checks
-        if (path != null && (
-                path.equals("/") ||
+        if (path != null && (path.equals("/") ||
                 path.startsWith("/api/v1/auth/") ||
                 path.startsWith("/api/v1/public/") ||
                 path.startsWith("/websocket") ||
@@ -50,8 +49,19 @@ public class PermissionInterceptor implements HandlerInterceptor {
                 path.equals("/api/v1/payment/payos-callback") ||
                 path.equals("/api/v1/payment/vn-pay") ||
                 // Tracking endpoints (public loggers)
-                path.startsWith("/api/v1/tracking/")
-            )) {
+                path.startsWith("/api/v1/tracking/") ||
+                // Public GET endpoints
+                (httpMethod.equals("GET") && (path.startsWith("/api/v1/flash-sales/active") ||
+                        path.startsWith("/api/v1/products") ||
+                        path.startsWith("/api/v1/categories") ||
+                        path.startsWith("/api/v1/brands") ||
+                        path.startsWith("/api/v1/banners") ||
+                        path.startsWith("/api/v1/coupons") ||
+                        path.startsWith("/api/v1/reviews") ||
+                        path.startsWith("/api/v1/attribute") ||
+                        path.startsWith("/api/v1/attributes-values") ||
+                        path.startsWith("/api/v1/product-detail") ||
+                        path.startsWith("/api/v1/fee"))))) {
             return true;
         }
 

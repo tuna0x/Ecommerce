@@ -81,7 +81,23 @@ public class ReviewService {
             }
         }
 
-        return reviewRepository.save(review);
+        Review savedReview = reviewRepository.save(review);
+
+        // Update product statistics
+        updateProductStatistics(product.getId());
+
+        return savedReview;
+    }
+
+    private void updateProductStatistics(Long productId) {
+        Product product = productRepository.findById(productId).orElse(null);
+        if (product != null) {
+            Double avgRating = reviewRepository.findAverageRatingByProductId(productId);
+            Long count = reviewRepository.countByProductId(productId);
+            product.setAverageRating(avgRating != null ? avgRating : 0.0);
+            product.setReviewCount(count != null ? count : 0L);
+            productRepository.save(product);
+        }
     }
 
     @Cacheable(value = "reviews", key = "#productId + '-' + #pageable.pageNumber")
@@ -130,17 +146,23 @@ public class ReviewService {
             throw new IdInvalidException("Bạn không có quyền xóa đánh giá này");
         }
 
+        Long productId = review.getProduct().getId();
         reviewRepository.delete(review);
+
+        // Update product statistics after deletion
+        updateProductStatistics(productId);
     }
 
     public String getReviewsSummaryForChatbot(Long productId) {
-        Page<Review> reviews = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId, org.springframework.data.domain.PageRequest.of(0, 10));
-        if (reviews.isEmpty()) return "Sản phẩm này chưa có đánh giá nào từ khách hàng.";
+        Page<Review> reviews = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId,
+                org.springframework.data.domain.PageRequest.of(0, 10));
+        if (reviews.isEmpty())
+            return "Sản phẩm này chưa có đánh giá nào từ khách hàng.";
 
         StringBuilder sb = new StringBuilder("Đánh giá thực tế từ khách hàng (10 cái gần nhất):\n");
         double avg = reviews.getContent().stream().mapToInt(Review::getRating).average().orElse(0.0);
         sb.append("- Đánh giá trung bình: ").append(String.format("%.1f", avg)).append("/5 ⭐️\n");
-        
+
         for (Review r : reviews.getContent()) {
             sb.append("- [").append(r.getRating()).append("⭐️] ").append(r.getComment()).append("\n");
         }
