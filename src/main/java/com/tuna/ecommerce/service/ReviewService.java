@@ -117,6 +117,29 @@ public class ReviewService {
         return rs;
     }
 
+    @Cacheable(value = "featured_reviews", key = "#minRating + '-' + #pageable.pageNumber")
+    public ResultPaginationDTO getFeaturedReviews(int minRating, Pageable pageable) {
+        Page<Review> pageReview = reviewRepository.findByRatingGreaterThanEqualOrderByCreatedAtDesc(minRating, pageable);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(pageReview.getTotalPages());
+        mt.setTotal(pageReview.getTotalElements());
+
+        rs.setMeta(mt);
+        rs.setResult(pageReview.getContent().stream().map(review -> {
+            ResReviewDTO dto = this.convertToDTO(review);
+            // Also include product name for testimonials
+            dto.setComment(review.getComment());
+            dto.setProductName(review.getProduct().getName());
+            return dto;
+        }).toList());
+
+        return rs;
+    }
+
     public ResReviewDTO convertToDTO(Review review) {
         ResReviewDTO res = new ResReviewDTO();
         res.setId(review.getId());

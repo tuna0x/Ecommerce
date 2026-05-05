@@ -43,6 +43,14 @@ public class ReviewController {
         return ResponseEntity.ok().body(reviewService.getReviewsByProduct(productId, pageable));
     }
 
+    @GetMapping("/reviews/featured")
+    @APIMessage("Lấy danh sách đánh giá nổi bật thành công")
+    public ResponseEntity<ResultPaginationDTO> getFeaturedReviews(
+            @org.springframework.web.bind.annotation.RequestParam(value = "minRating", defaultValue = "5") int minRating,
+            Pageable pageable) {
+        return ResponseEntity.ok().body(reviewService.getFeaturedReviews(minRating, pageable));
+    }
+
     @DeleteMapping("/reviews/{id}")
     @APIMessage("Xóa đánh giá thành công")
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) throws IdInvalidException {
