@@ -93,11 +93,14 @@ public class EmailService {
 
     @Async
     public void sendOrderConfirmationEmail(com.tuna.ecommerce.domain.Order order, boolean isCod) {
-        String subject = isCod ? "Vui l\u00F2ng x\u00E1c nh\u1EADn \u0111\u01A1n h\u00E0ng c\u1EE7a b\u1EA1n - B\u00F4ng Cosmetic" : "Th\u00F4ng tin \u0111\u01A1n h\u00E0ng c\u1EE7a b\u1EA1n - B\u00F4ng Cosmetic";
+        String subject = isCod ? "Vui lòng xác nhận đơn hàng của bạn - Bông Cosmetic" : "Thông tin đơn hàng của bạn - Bông Cosmetic";
         
         Context context = new Context();
         context.setVariable("order", order);
         context.setVariable("isCod", isCod);
+        
+        // Add payment status for template logic
+        context.setVariable("paymentStatus", order.getPaymentStatus());
         
         if (isCod) {
             String confirmationUrl = backendUrl + "/api/v1/public/order/confirm?token=" + order.getConfirmationToken();
@@ -108,6 +111,19 @@ public class EmailService {
         
         this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
     }
+
+    @Async
+    public void sendOrderSuccessEmail(com.tuna.ecommerce.domain.Order order) {
+        String subject = "Cảm ơn bạn đã đặt hàng thành công - Bông Cosmetic";
+        
+        Context context = new Context();
+        context.setVariable("order", order);
+        
+        String content = templateEngine.process("email/order-success", context);
+        
+        this.sendEmailSync(order.getUser().getEmail(), subject, content, true);
+    }
+
 
     @Async
     public void sendWelcomeNewsletterEmail(String to) {
