@@ -14,6 +14,8 @@ import com.tuna.ecommerce.domain.Review;
 public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecificationExecutor<Review> {
     Page<Review> findByProductIdOrderByCreatedAtDesc(Long productId, Pageable pageable);
 
+    Page<Review> findByRatingGreaterThanEqualOrderByCreatedAtDesc(int rating, Pageable pageable);
+
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.product.id = :productId")
     Double findAverageRatingByProductId(@Param("productId") Long productId);
 

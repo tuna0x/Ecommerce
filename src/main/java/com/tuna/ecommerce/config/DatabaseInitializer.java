@@ -413,6 +413,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         // REVIEWS
         perms.add(new PermDef("Create a review", "/api/v1/reviews", "POST", "REVIEWS", true));
         perms.add(new PermDef("Get reviews by product", "/api/v1/reviews/product/{productId}", "GET", "REVIEWS", true));
+        perms.add(new PermDef("Get featured reviews", "/api/v1/reviews/featured", "GET", "REVIEWS", true));
         perms.add(new PermDef("Delete a review", "/api/v1/reviews/{id}", "DELETE", "REVIEWS", true));
 
         // CHAT
