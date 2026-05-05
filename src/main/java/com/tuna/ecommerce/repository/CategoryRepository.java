@@ -14,6 +14,8 @@ import com.tuna.ecommerce.domain.Category;
 public interface  CategoryRepository extends JpaRepository<Category,Long>,JpaSpecificationExecutor<Category>{
     boolean existsByName(String name);
     boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsBySlug(String slug);
+    boolean existsBySlugAndIdNot(String slug, Long id);
     Category findByName(String name);
     List<Category> findByParentCategory_Id(Long parentId);
 }

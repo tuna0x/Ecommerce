@@ -77,8 +77,6 @@ public class Category {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         this.createdAt = Instant.now();
-        this.slug = toSlug(this.name);
-
     }
 
     @PreUpdate
@@ -87,11 +85,10 @@ public class Category {
                 ? SecurityUtil.getCurrentUserLogin().get()
                 : "";
         this.updatedAt = Instant.now();
-        this.slug = toSlug(this.name);
-
     }
 
-    private String toSlug(String input) {
+    public static String toSlug(String input) {
+        if (input == null) return "";
         return Normalizer.normalize(input, Normalizer.Form.NFD)
                 .replaceAll("[^\\p{ASCII}]", "")
                 .toLowerCase()

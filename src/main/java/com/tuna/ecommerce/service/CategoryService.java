@@ -26,7 +26,7 @@ import lombok.AllArgsConstructor;
 public class CategoryService {
     private final CategoryRepository categoryRepository;
 
-    @CacheEvict(value = "categories", allEntries = true)
+    @CacheEvict(value = { "categories", "category" }, allEntries = true)
     public Category handleCreate(ReqCreateCategoryDTO req) {
         Category category = new Category();
         category.setName(req.getName());
@@ -36,6 +36,7 @@ public class CategoryService {
             Category parent = this.handleGetById(req.getParentId());
             category.setParentCategory(parent);
         }
+        category.setSlug(this.generateUniqueSlug(category.getName(), null));
         return this.categoryRepository.save(category);
     }
 
@@ -59,6 +60,7 @@ public class CategoryService {
             } else {
                 category.setParentCategory(null);
             }
+            category.setSlug(this.generateUniqueSlug(category.getName(), category.getId()));
             category = this.categoryRepository.save(category);
         }
         return category;
@@ -80,7 +82,8 @@ public class CategoryService {
 
     @Cacheable(value = "categories")
     public List<ResCategoryDTO> handleGetAll() {
-        List<Category> categories = this.categoryRepository.findAll();
+        // Sắp xếp theo ID giảm dần để thấy cái mới nhất lên đầu
+        List<Category> categories = this.categoryRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "id"));
         return categories.stream().map(this::convertToResCategoryDTO).collect(java.util.stream.Collectors.toList());
     }
 
@@ -179,4 +182,24 @@ public class CategoryService {
         }
         return sb.toString();
     }
-}
+
+    private String generateUniqueSlug(String name, Long currentId) {
+        String baseSlug = Category.toSlug(name);
+        String slug = baseSlug;
+        int count = 1;
+
+        while (true) {
+            boolean exists;
+            if (currentId == null) {
+                exists = this.categoryRepository.existsBySlug(slug);
+            } else {
+                exists = this.categoryRepository.existsBySlugAndIdNot(slug, currentId);
+            }
+
+            if (!exists) {
+                return slug;
+            }
+            slug = baseSlug + "-" + count++;
+        }
+    }
+}
