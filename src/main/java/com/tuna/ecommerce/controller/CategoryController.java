@@ -84,7 +84,9 @@ public class CategoryController {
 
     @GetMapping("/categories")
     @APIMessage("Get all categories with filter and pagination")
-    public ResponseEntity<ResultPaginationDTO> getAllCategory(@Filter Specification<Category> spec, Pageable page) {
+    public ResponseEntity<ResultPaginationDTO> getAllCategory(
+            @Filter Specification<Category> spec,
+            @org.springframework.data.web.PageableDefault(size = 10, sort = "id", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable page) {
         return ResponseEntity.ok().body(this.categoryService.handleGetAll(spec, page));
     }
 
