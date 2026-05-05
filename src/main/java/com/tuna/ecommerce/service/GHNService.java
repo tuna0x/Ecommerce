@@ -45,7 +45,7 @@ public class GHNService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    //@Cacheable(value = "ghn_fee", key = "{#provinceName, #districtName, #wardName, #weight}")
+    @Cacheable(value = "ghn_fee", key = "{#provinceName, #districtName, #wardName, #weight}")
     public Integer calculateFee(String provinceName, String districtName, String wardName, int weight) {
         log.info("--- GHN FEE CALCULATION DEBUG (TestMode={}) ---", testMode);
         if (testMode) {

@@ -84,16 +84,14 @@ public class FlashSaleService {
     }
 
     @Transactional
-    @Retryable(
-        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
-        maxAttempts = 5,
-        backoff = @Backoff(delay = 300)
-    )
     @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId")
-    public void incrementSoldQuantity(Long productId) {
+    public void incrementSoldQuantity(Long productId, int quantity) {
         findActiveFlashSaleForItem(productId).ifPresent(item -> {
-            if (item.getSoldQuantity() < item.getLimitQuantity()) {
-                item.setSoldQuantity(item.getSoldQuantity() + 1);
+            if (item.getSoldQuantity() + quantity <= item.getLimitQuantity()) {
+                item.setSoldQuantity(item.getSoldQuantity() + quantity);
+                flashSaleItemRepository.save(item);
+            } else {
+                item.setSoldQuantity(item.getLimitQuantity());
                 flashSaleItemRepository.save(item);
             }
         });

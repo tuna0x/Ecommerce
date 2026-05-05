@@ -252,9 +252,7 @@ public class OrderService {
             subTotal = subTotal.add(orderItem.getSubTotal());
 
             // Update Flash Sale Sold Quantity if applicable
-            for (int q = 0; q < i.getQuantity(); q++) {
-                this.flashSaleService.incrementSoldQuantity(product.getId());
-            }
+            this.flashSaleService.incrementSoldQuantity(product.getId(), i.getQuantity());
 
             order.addOrderItem(orderItem);
         }
