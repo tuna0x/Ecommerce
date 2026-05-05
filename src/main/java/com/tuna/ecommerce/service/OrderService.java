@@ -333,19 +333,7 @@ public class OrderService {
         }
 
         // Initialize lazy collections for Async Email processing
-        if (savedOrder.getUser() != null) {
-            savedOrder.getUser().getEmail(); // Force load user
-        }
-        if (savedOrder.getItems() != null) {
-            for (OrderItem item : savedOrder.getItems()) {
-                if (item.getProduct() != null) {
-                    item.getProduct().getName(); // Force load product
-                }
-                if (item.getProductVariant() != null && item.getProductVariant().getAttributeValues() != null) {
-                    item.getProductVariant().getAttributeValues().size(); // Force load attributes
-                }
-            }
-        }
+        this.forceLoadOrder(savedOrder);
 
         // Send Email Confirmation/Notification
         boolean isCod = req.getPaymentMethod() == PaymentMethodEnum.COD;
@@ -390,7 +378,14 @@ public class OrderService {
         order.setStatus(OrderStatusEnum.CONFIRMED);
         order.setConfirmedAt(Instant.now());
         order.setConfirmationToken(null); // Clear token after use
-        return this.orderRepository.save(order);
+        
+        Order savedOrder = this.orderRepository.save(order);
+        
+        // Send Thank You Email for COD Confirmation
+        this.forceLoadOrder(savedOrder);
+        this.emailService.sendOrderSuccessEmail(savedOrder);
+        
+        return savedOrder;
     }
 
     public Order getOrder(Long id) {
@@ -508,6 +503,10 @@ public class OrderService {
 
                 // Send Telegram Notification to Admin
                 this.telegramService.sendOrderConfirmedNotification(order);
+                
+                // Send Thank You Email (Admin manual confirmation)
+                this.forceLoadOrder(order);
+                this.emailService.sendOrderSuccessEmail(order);
                 break;
             case DELIVERING:
                 title = "Đơn hàng đang được giao";
@@ -771,5 +770,25 @@ public class OrderService {
 
         return "Các sản phẩm khách đã từng mua và sử dụng: " + String.join(", ", productNames);
     }
+
+    public void forceLoadOrder(Order order) {
+        if (order.getUser() != null) {
+            order.getUser().getEmail(); // Force load user
+        }
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName(); // Force load product
+                }
+                if (item.getProductVariant() != null && item.getProductVariant().getAttributeValues() != null) {
+                    item.getProductVariant().getAttributeValues().size(); // Force load attributes
+                }
+            }
+        }
+        if (order.getPayment() != null) {
+            order.getPayment().getMethod(); // Force load payment
+        }
+    }
 }
+
 

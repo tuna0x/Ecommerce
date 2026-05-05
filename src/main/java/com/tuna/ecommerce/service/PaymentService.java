@@ -191,6 +191,11 @@ public class PaymentService {
             "Đơn hàng #" + order.getId() + " của bạn đã được xác nhận thanh toán thành công.",
             "PAYMENT_SUCCESS"
         );
+        
+        // Send Thank You Email
+        this.orderService.forceLoadOrder(order);
+        this.emailService.sendOrderSuccessEmail(order);
+
     }
 
     @Transactional
