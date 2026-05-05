@@ -506,17 +506,27 @@ public class ProductService {
             spec = (spec == null) ? categorySpec : spec.and(categorySpec);
         }
 
-        // Unaccented search: if search param exists, add OR condition for nameUnsigned
+        // Multi-field search: if search param exists, match against name, brand, or category
         if (search != null && !search.trim().isEmpty()) {
-            String unsignedSearch = Product.removeVietnameseAccents(search.trim());
-            Specification<Product> unsignedSpec = (root, query, cb) -> cb.like(cb.lower(root.get("nameUnsigned")),
-                    "%" + unsignedSearch.toLowerCase() + "%");
-            // AND with the original spec from springfilter (which searches `name`)
-            if (spec != null) {
-                spec = spec.and(unsignedSpec);
-            } else {
-                spec = unsignedSpec;
-            }
+            String keyword = search.trim().toLowerCase();
+            String unsignedSearch = Product.removeVietnameseAccents(keyword);
+            
+            Specification<Product> searchSpec = (root, query, cb) -> {
+                // Search in Product Name (unaccented)
+                jakarta.persistence.criteria.Predicate namePredicate = cb.like(cb.lower(root.get("nameUnsigned")), "%" + unsignedSearch + "%");
+                
+                // Search in Brand Name
+                jakarta.persistence.criteria.Join<Product, Brand> brandJoin = root.join("brand", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Predicate brandPredicate = cb.like(cb.lower(brandJoin.get("name")), "%" + keyword + "%");
+                
+                // Search in Category Name
+                jakarta.persistence.criteria.Join<Product, Category> categoryJoin = root.join("category", jakarta.persistence.criteria.JoinType.LEFT);
+                jakarta.persistence.criteria.Predicate categoryPredicate = cb.like(cb.lower(categoryJoin.get("name")), "%" + keyword + "%");
+                
+                return cb.or(namePredicate, brandPredicate, categoryPredicate);
+            };
+
+            spec = (spec == null) ? searchSpec : spec.and(searchSpec);
         }
 
         Page<Product> product = this.productRepository.findAll(spec, page);
