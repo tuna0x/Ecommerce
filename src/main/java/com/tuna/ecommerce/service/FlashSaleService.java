@@ -17,6 +17,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.tuna.ecommerce.domain.FlashSaleCampaign;
 import com.tuna.ecommerce.domain.FlashSaleItem;
@@ -80,6 +84,11 @@ public class FlashSaleService {
     }
 
     @Transactional
+    @Retryable(
+        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
+        maxAttempts = 5,
+        backoff = @Backoff(delay = 300)
+    )
     @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId")
     public void incrementSoldQuantity(Long productId) {
         findActiveFlashSaleForItem(productId).ifPresent(item -> {

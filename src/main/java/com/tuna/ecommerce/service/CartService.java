@@ -8,6 +8,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.tuna.ecommerce.domain.Cart;
 import com.tuna.ecommerce.domain.CartItem;
@@ -98,6 +102,11 @@ public class CartService {
         return cart;
     }
 
+    @Retryable(
+        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500)
+    )
     public Cart addToCart(ReqAddToCartDTO req) throws IdInvalidException {
         Cart cart = this.getOrCreateCart();
         if (cart == null) throw new IdInvalidException("User cart not found");

@@ -774,8 +774,8 @@ public class ProductService {
             }
         }
 
-        res.setAverageRating(this.reviewRepository.findAverageRatingByProductId(product.getId()));
-        res.setReviewCount(this.reviewRepository.countByProductId(product.getId()));
+        res.setAverageRating(product.getAverageRating() != null ? product.getAverageRating() : 0.0);
+        res.setReviewCount(product.getReviewCount() != null ? product.getReviewCount() : 0L);
         res.setSoldCount(product.getSoldCount());
 
         // Fill Flash Sale Info

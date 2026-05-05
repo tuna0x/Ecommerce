@@ -22,6 +22,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.tuna.ecommerce.ultil.constant.PaymentMethodEnum;
 import com.tuna.ecommerce.domain.response.payment.ResPaymentVNPAYDTO;
 import com.tuna.ecommerce.domain.Payment;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.tuna.ecommerce.domain.Address;
 import com.tuna.ecommerce.domain.CartItem;
@@ -185,6 +189,11 @@ public class OrderService {
         return rs;
     }
 
+    @Retryable(
+        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500)
+    )
     public ResGetOrderDTO createOrder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
         User user = this.userService.findByUsername(email);
@@ -197,6 +206,9 @@ public class OrderService {
         if (cartItems.isEmpty()) {
             throw new IdInvalidException("Giỏ hàng của bạn đang trống.");
         }
+
+        // TỐI ƯU: Sắp xếp cartItems theo ID để tránh Deadlock do tranh chấp thứ tự khóa dữ liệu
+        cartItems.sort((a, b) -> Long.compare(a.getId(), b.getId()));
 
         Order order = new Order();
         order.setUser(user);
