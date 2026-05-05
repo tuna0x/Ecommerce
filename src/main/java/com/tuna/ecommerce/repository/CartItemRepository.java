@@ -10,8 +10,12 @@ import com.tuna.ecommerce.domain.CartItem;
 
 
 
+import org.springframework.data.jpa.repository.EntityGraph;
+
 @Repository
 public interface CartItemRepository extends JpaRepository<CartItem,Long>,JpaSpecificationExecutor<CartItem>{
     CartItem findByCartIdAndProductId(long cartId, long productId);
+    
+    @EntityGraph(attributePaths = {"product", "productVariant"})
     List<CartItem> findByIdIn(List<Long> list);
 }
