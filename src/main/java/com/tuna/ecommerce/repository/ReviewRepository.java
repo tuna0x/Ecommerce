@@ -6,14 +6,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Repository;
 
 import com.tuna.ecommerce.domain.Review;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long>, JpaSpecificationExecutor<Review> {
+    @EntityGraph(attributePaths = { "user", "user.userProfile" })
     Page<Review> findByProductIdOrderByCreatedAtDesc(Long productId, Pageable pageable);
 
+    @EntityGraph(attributePaths = { "user", "user.userProfile", "product" })
     Page<Review> findByRatingGreaterThanEqualOrderByCreatedAtDesc(int rating, Pageable pageable);
 
     @Query("SELECT AVG(r.rating) FROM Review r WHERE r.product.id = :productId")

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Random;
 
+import com.tuna.ecommerce.ultil.err.IdInvalidException;
+
 @Service
 public class OtpService {
     private static final Logger log = LoggerFactory.getLogger(OtpService.class);
@@ -20,18 +22,26 @@ public class OtpService {
     }
 
     private static final String OTP_PREFIX = "OTP_";
+    private static final String OTP_COOLDOWN_PREFIX = "OTP_COOLDOWN_";
 
-    public String generateAndSendOtp(String email) {
+    public String generateAndSendOtp(String email) throws IdInvalidException {
         if (email != null) email = email.trim().toLowerCase();
         
+        // 0. Check Cooldown (Anti-spam)
+        String cooldownKey = OTP_COOLDOWN_PREFIX + email;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(cooldownKey))) {
+            throw new IdInvalidException("Vui lòng đợi 1 phút trước khi yêu cầu mã mới.");
+        }
+
         // 1. Generate 6-digit code
         String otp = String.format("%06d", new Random().nextInt(999999));
 
-        // 2. Save to Redis (TTL 5 minutes)
+        // 2. Save to Redis (TTL 5 minutes for OTP, 1 minute for Cooldown)
         try {
             redisTemplate.opsForValue().set(OTP_PREFIX + email, otp, Duration.ofMinutes(5));
+            redisTemplate.opsForValue().set(cooldownKey, "lock", Duration.ofMinutes(1));
         } catch (Exception e) {
-            log.error("FAILED to save OTP to Redis: {}", e.getMessage());
+            log.error("FAILED to save OTP/Cooldown to Redis: {}", e.getMessage());
         }
 
         // 3. Send via Email

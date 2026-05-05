@@ -18,11 +18,17 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
     public Map uploadFile(MultipartFile file) throws IOException {
-        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                "resource_type", "auto",
+                "fetch_format", "auto",
+                "quality", "auto"));
     }
 
     public Map uploadFile(java.io.File file) throws IOException {
-        return cloudinary.uploader().upload(file, ObjectUtils.emptyMap());
+        return cloudinary.uploader().upload(file, ObjectUtils.asMap(
+                "resource_type", "auto",
+                "fetch_format", "auto",
+                "quality", "auto"));
     }
 
     public java.util.List<Map> uploadFiles(java.util.List<MultipartFile> files) {

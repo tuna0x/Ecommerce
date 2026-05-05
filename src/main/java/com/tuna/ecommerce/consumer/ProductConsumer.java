@@ -63,8 +63,16 @@ public class ProductConsumer {
                     productImageRepository.save(image);
                     product.addImage(image);
                     log.info("Successfully uploaded and saved image: {}", image.getImageUrl());
+
+                    // TỐI ƯU: Chỉ xóa file sau khi đã upload thành công
+                    try {
+                        Files.deleteIfExists(Paths.get(filePath));
+                        log.info("Deleted temp file after success: {}", filePath);
+                    } catch (Exception e) {
+                        log.warn("Could not delete temp file: {}", filePath);
+                    }
                 } else {
-                    log.warn("Temp file not found: {}", filePath);
+                    log.warn("Temp file not found (possibly already uploaded in previous attempt): {}", filePath);
                 }
             }
 
@@ -102,8 +110,6 @@ public class ProductConsumer {
         } catch (Exception e) {
             log.error("Error processing images for product ID: {}. Retrying...", message.getProductId(), e);
             throw e; // Rethrow to trigger Spring AMQP retry policy
-        } finally {
-            cleanupTempFiles(message.getTempFilePaths());
         }
     }
 

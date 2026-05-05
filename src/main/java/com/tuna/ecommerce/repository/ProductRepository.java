@@ -41,7 +41,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Double> findOriginalPriceById(@Param("id") Long id);
 
     @Override
-    @EntityGraph(attributePaths = { "category", "brand", "images" })
+    @EntityGraph(attributePaths = { "category", "brand" })
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     @EntityGraph(attributePaths = { "category", "brand", "images", "productAttributeValues" })

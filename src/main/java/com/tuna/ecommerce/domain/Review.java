@@ -55,6 +55,7 @@ public class Review {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @org.hibernate.annotations.BatchSize(size = 20)
     @jakarta.persistence.OneToMany(mappedBy = "review", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private java.util.List<ReviewImage> images = new java.util.ArrayList<>();
 

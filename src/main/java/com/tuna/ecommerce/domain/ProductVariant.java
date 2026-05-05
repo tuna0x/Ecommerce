@@ -55,6 +55,7 @@ public class ProductVariant {
     @JoinColumn(name = "product_image_id")
     private ProductImage productImage;
 
+    @org.hibernate.annotations.BatchSize(size = 20)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "product_variant_attribute_values", joinColumns = @JoinColumn(name = "product_variant_id"), inverseJoinColumns = @JoinColumn(name = "attribute_value_id"))
     private List<AttributeValue> attributeValues = new ArrayList<>();
