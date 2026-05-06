@@ -47,7 +47,7 @@ public class User {
     private String email;
     private String password;
 
-    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^$|^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại không hợp lệ")
     private String phoneNumber;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)

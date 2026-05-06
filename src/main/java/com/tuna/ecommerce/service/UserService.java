@@ -77,7 +77,8 @@ public class UserService {
             }
 
             if (user.getPhoneNumber() != null) {
-                curUser.setPhoneNumber(user.getPhoneNumber());
+                String phone = user.getPhoneNumber().trim();
+                curUser.setPhoneNumber(phone.isEmpty() ? null : phone);
             }
 
             if (user.getUserProfile() != null) {
@@ -145,7 +146,8 @@ public class UserService {
             }
 
             if (req.getPhoneNumber() != null) {
-                curUser.setPhoneNumber(req.getPhoneNumber());
+                String phone = req.getPhoneNumber().trim();
+                curUser.setPhoneNumber(phone.isEmpty() ? null : phone);
             }
 
             curUser = this.userRepository.save(curUser);
@@ -444,7 +446,10 @@ public class UserService {
         User user = new User();
         user.setEmail(req.getEmail());
         user.setPassword(req.getPassword());
-        user.setPhoneNumber(req.getPhoneNumber());
+        if (req.getPhoneNumber() != null) {
+            String phone = req.getPhoneNumber().trim();
+            user.setPhoneNumber(phone.isEmpty() ? null : phone);
+        }
 
         UserProfile profile = new UserProfile();
         profile.setName(req.getName());
