@@ -234,6 +234,27 @@ public class InventoryService {
                 .collect(Collectors.toList());
     }
 
+    public ResultPaginationDTO fetchInventory(Specification<Inventory> spec, Pageable pageable) {
+        Page<Inventory> pageInventory = this.inventoryRepository.findAll(spec, pageable);
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta mt = new ResultPaginationDTO.Meta();
+
+        mt.setPage(pageable.getPageNumber() + 1);
+        mt.setPageSize(pageable.getPageSize());
+        mt.setPages(pageInventory.getTotalPages());
+        mt.setTotal(pageInventory.getTotalElements());
+
+        rs.setMeta(mt);
+
+        List<ResInventoryDTO> listInventory = pageInventory.getContent()
+                .stream()
+                .map(this::convertToResInventoryDTO)
+                .collect(Collectors.toList());
+
+        rs.setResult(listInventory);
+        return rs;
+    }
+
     public List<ResInventoryDTO> getAllInventory() {
         return inventoryRepository.findAll().stream()
                 .filter(inv -> inv.getProductVariant() != null && !inv.getProductVariant().isDeleted())

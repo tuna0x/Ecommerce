@@ -6,13 +6,14 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import com.tuna.ecommerce.domain.Inventory;
 import com.tuna.ecommerce.domain.ProductVariant;
 
 @Repository
-public interface InventoryRepository extends JpaRepository<Inventory, Long> {
+public interface InventoryRepository extends JpaRepository<Inventory, Long>, JpaSpecificationExecutor<Inventory> {
     Optional<Inventory> findByProductVariant(ProductVariant productVariant);
     
     List<Inventory> findByProductVariantProduct(com.tuna.ecommerce.domain.Product product);

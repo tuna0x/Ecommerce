@@ -246,8 +246,11 @@ public class CartService {
         double totalWeight = 0.0;
         for (CartItem item : items) {
             ProductVariant variant = item.getProductVariant();
-            if (variant != null) {
+            if (variant != null && variant.getWeight() > 0) {
                 totalWeight += variant.getWeight() * item.getQuantity();
+            } else if (item.getProduct() != null) {
+                // Fallback to product weight or a default 0.5kg
+                totalWeight += 0.5 * item.getQuantity();
             }
         }
         return totalWeight;

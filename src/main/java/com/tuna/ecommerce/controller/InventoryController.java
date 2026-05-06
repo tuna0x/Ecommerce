@@ -36,9 +36,11 @@ public class InventoryController {
     private final InventoryService inventoryService;
 
     @GetMapping
-    @APIMessage("Get all inventory successfully")
-    public ResponseEntity<List<ResInventoryDTO>> getAll() {
-        return ResponseEntity.ok(inventoryService.getAllInventory());
+    @APIMessage("Fetch inventory with pagination successfully")
+    public ResponseEntity<ResultPaginationDTO> getAll(
+            @Filter Specification<com.tuna.ecommerce.domain.Inventory> spec,
+            Pageable pageable) {
+        return ResponseEntity.ok(inventoryService.fetchInventory(spec, pageable));
     }
 
     @PostMapping("/adjust")
