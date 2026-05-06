@@ -20,6 +20,7 @@ public class GlobalException {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RestResponse<Object>> handleAllException(Exception ex){
+        ex.printStackTrace();
         RestResponse<Object> res=new RestResponse<Object>();
         res.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         res.setMessage(ex.getMessage());
