@@ -122,11 +122,7 @@ public class CategoryService {
                     category.getParentCategory().getName()));
         }
 
-        if (category.getProducts() != null) {
-            res.setProductCount(category.getProducts().size());
-        } else {
-            res.setProductCount(0);
-        }
+        res.setProductCount(category.getProductCount() != null ? category.getProductCount() : 0);
 
         return res;
     }

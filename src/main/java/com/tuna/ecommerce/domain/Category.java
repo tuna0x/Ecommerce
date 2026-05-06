@@ -71,6 +71,9 @@ public class Category {
     @JsonIgnore
     private List<Attribute> attributes;
 
+    @org.hibernate.annotations.Formula("(SELECT COUNT(*) FROM products p WHERE p.category_id = id)")
+    private Integer productCount;
+
     @PrePersist
     public void handleBeforeCreate() {
         this.createdBy = SecurityUtil.getCurrentUserLogin().isPresent() == true
