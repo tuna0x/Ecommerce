@@ -48,7 +48,16 @@ public class CloudinaryService {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    public void deleteFile(String publicId) throws IOException {
-        cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+    public void deleteFile(String publicId) {
+        if (publicId == null || publicId.trim().isEmpty()) {
+            return;
+        }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            } catch (Exception e) {
+                System.err.println(">>> Background Cloudinary Delete Error: " + e.getMessage());
+            }
+        });
     }
 }
