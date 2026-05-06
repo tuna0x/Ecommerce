@@ -88,11 +88,20 @@ public class Category {
     }
 
     public static String toSlug(String input) {
-        if (input == null) return "";
-        return Normalizer.normalize(input, Normalizer.Form.NFD)
-                .replaceAll("[^\\p{ASCII}]", "")
-                .toLowerCase()
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(^-|-$)", "");
+        if (input == null || input.trim().isEmpty())
+            return "";
+        // Normalize and remove diacritics
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        normalized = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+
+        // Handle 'đ' and 'Đ' specifically
+        normalized = normalized.replace('đ', 'd').replace('Đ', 'D');
+
+        return normalized.toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "") // Remove special chars except space and hyphen
+                .trim()
+                .replaceAll("\\s+", "-") // Replace spaces with hyphen
+                .replaceAll("-+", "-") // Remove duplicate hyphens
+                .replaceAll("(^-|-$)", ""); // Remove leading/trailing hyphens
     }
 }

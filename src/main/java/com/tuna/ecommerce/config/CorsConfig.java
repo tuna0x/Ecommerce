@@ -30,7 +30,7 @@ public class CorsConfig {
         // Restricted origins for better security. 
         // Using setAllowedOriginPatterns to support multiple origins and wildcard subdomains if needed.
         if (frontendUrl != null && !frontendUrl.isEmpty()) {
-            configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl, "http://localhost:5173", "http://localhost:3000"));
+            configuration.setAllowedOriginPatterns(Arrays.asList(frontendUrl, "https://bongcosmetic.store", "http://localhost:5173", "http://localhost:3000"));
         } else {
             configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Fallback if not configured, but should be specific in prod
         }
