@@ -178,8 +178,8 @@ public class GHNService {
             }
 
             Map<String, Object> requestBody = new java.util.HashMap<>();
-            requestBody.put("payment_type_id", 2);
-            requestBody.put("note", "Giao hàng nhanh - Bông Cosmetic");
+            requestBody.put("payment_type_id", 1); // Shop pays shipping (since we include it in finalPrice)
+            requestBody.put("note", "Bông Cosmetic - Giao hàng nhanh");
             requestBody.put("required_note", "CHOXEMHANGKHONGTHU");
             requestBody.put("return_phone", "0949098987");
             requestBody.put("return_address", "180 P. Triều Khúc, Thanh Liệt, Thanh Trì, Hà Nội");
@@ -189,6 +189,7 @@ public class GHNService {
             requestBody.put("to_ward_code", toWardCode);
             requestBody.put("to_district_id", toDistrictId);
             requestBody.put("cod_amount", codAmount);
+            requestBody.put("insurance_value", order.getTotalPrice().intValue()); // Value of goods
             requestBody.put("content", "Đơn hàng #" + order.getId());
             requestBody.put("client_order_code", order.getId().toString());
 
