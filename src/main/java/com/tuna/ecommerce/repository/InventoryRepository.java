@@ -12,9 +12,14 @@ import org.springframework.stereotype.Repository;
 import com.tuna.ecommerce.domain.Inventory;
 import com.tuna.ecommerce.domain.ProductVariant;
 
+
 @Repository
 public interface InventoryRepository extends JpaRepository<Inventory, Long>, JpaSpecificationExecutor<Inventory> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"productVariant", "productVariant.product", "productVariant.product.category", "productVariant.product.images"})
     Optional<Inventory> findByProductVariant(ProductVariant productVariant);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"productVariant", "productVariant.product", "productVariant.product.category", "productVariant.product.images"})
+    org.springframework.data.domain.Page<Inventory> findAll(org.springframework.data.jpa.domain.Specification<Inventory> spec, org.springframework.data.domain.Pageable pageable);
     
     List<Inventory> findByProductVariantProduct(com.tuna.ecommerce.domain.Product product);
 

@@ -45,9 +45,9 @@ public class GHNService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Cacheable(value = "ghn_fee", key = "{#provinceName, #districtName, #wardName, #weight}")
+    @Cacheable(value = "ghn_fee_v2", key = "{#provinceName, #districtName, #wardName, #weight}")
     public Integer calculateFee(String provinceName, String districtName, String wardName, int weight) {
-        log.info(">>> GHN FEE CALCULATION: province={}, district={}, ward={}, weight={} (TestMode={})", 
+        log.info(">>> GHN FEE CALCULATION: province='{}', district='{}', ward='{}', weight={} (TestMode={})", 
                 provinceName, districtName, wardName, weight, testMode);
         if (testMode) {
             return 30000; // Fixed test fee
@@ -56,7 +56,8 @@ public class GHNService {
             // 1. Get Province ID
             Integer provinceId = getProvinceIdByName(provinceName);
             if (provinceId == null) {
-                log.warn(">>> GHN Mapping Failed: Could not find ProvinceID for '{}'", provinceName);
+                log.warn(">>> GHN Mapping Failed: Could not find ProvinceID for '{}'. Available provinces: {}", 
+                        provinceName, getProvinces().size());
                 return 30000;
             }
 
