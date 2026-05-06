@@ -175,8 +175,8 @@ public class GHNService {
             requestBody.put("payment_type_id", 2);
             requestBody.put("note", "Giao hàng nhanh - Bông Cosmetic");
             requestBody.put("required_note", "CHOXEMHANGKHONGTHU");
-            requestBody.put("return_phone", "0949098987");
-            requestBody.put("return_address", "180 Triêu Khúc, Thanh Trì, Hà Nội");
+            requestBody.put("return_phone", "0865190253");
+            requestBody.put("return_address", "180 P. Triều Khúc, Thanh Liệt, Thanh Trì, Hà Nội");
             requestBody.put("to_name", order.getReceiverName());
             requestBody.put("to_phone", order.getPhone());
             requestBody.put("to_address", order.getShippingAddress());
@@ -200,13 +200,13 @@ public class GHNService {
             Map body = response.getBody();
             log.info("GHN Create Order Response Body: {}", body);
 
-            if (body != null && String.valueOf(body.get("code")).equals("200")) {
+            if (body != null && (String.valueOf(body.get("code")).equals("200") || String.valueOf(body.get("code")).equals("201"))) {
                 Map data = (Map) body.get("data");
                 if (data != null && data.get("order_code") != null) {
                     return (String) data.get("order_code");
                 }
             }
-            log.error("GHN Create Order API Error: {}", body);
+            log.error("GHN Create Order API Error (Code: {}): {}", body != null ? body.get("code") : "N/A", body);
             throw new RuntimeException("Failed to create GHN order: " + (body != null ? body.get("message") : "Unknown error"));
 
         } catch (Exception e) {
@@ -301,18 +301,24 @@ public class GHNService {
 
     private String normalizeName(String name) {
         if (name == null) return "";
-        return name.toLowerCase()
-                .replace("th\u00E0nh ph\u1ED1", "")
-                .replace("t\u1EC9nh", "")
-                .replace("qu\u1EADn", "")
-                .replace("huy\u1EC7n", "")
-                .replace("th\u1ECB x\u00E3", "")
-                .replace("ph\u01B0\u1EDDng", "")
-                .replace("x\u00E3", "")
-                .replace("th\u1ECB tr\u1EA5n", "")
+        // Remove accents and normalize to base characters
+        String normalized = java.text.Normalizer.normalize(name.toLowerCase(), java.text.Normalizer.Form.NFD);
+        normalized = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        normalized = normalized.replace('đ', 'd').replace('Đ', 'D');
+
+        return normalized
+                .replace("thanh pho", "")
+                .replace("tinh", "")
+                .replace("quan", "")
+                .replace("huyen", "")
+                .replace("thi xa", "")
+                .replace("phuong", "")
+                .replace("xa", "")
+                .replace("thi tran", "")
                 .replace("tp.", "")
                 .replace("p.", "")
                 .replace("q.", "")
+                .replaceAll("[^a-z0-9 ]", "") // Remove special characters
                 .trim();
     }
 }
