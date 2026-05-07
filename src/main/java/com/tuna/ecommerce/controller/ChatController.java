@@ -29,6 +29,21 @@ public class ChatController {
 
     private final GeminiService geminiService;
     private final ChatMessageService chatMessageService;
+    private final com.tuna.ecommerce.service.CloudinaryService cloudinaryService;
+
+    @PostMapping("/chat/upload")
+    @APIMessage("Tải ảnh chat thành công")
+    public ResponseEntity<java.util.Map<String, String>> uploadChatImage(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            java.util.Map<?, ?> uploadResult = cloudinaryService.uploadFile(file);
+            String url = (String) uploadResult.get("secure_url");
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("url", url);
+            return ResponseEntity.ok().body(response);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Lỗi tải ảnh lên Cloudinary", e);
+        }
+    }
 
     @PostMapping("/chat")
     @APIMessage("Nhận phản hồi từ Chatbot thành công")
