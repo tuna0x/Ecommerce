@@ -5,9 +5,11 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.tuna.ecommerce.domain.ChatMessage;
 
@@ -26,4 +28,12 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             "GROUP BY CASE WHEN sender_email = :email THEN receiver_email ELSE sender_email END" +
             ") ORDER BY timestamp DESC", nativeQuery = true)
     List<ChatMessage> findRecentConversations(@Param("email") String email);
+
+    @Query("SELECT COUNT(m) FROM ChatMessage m WHERE m.senderEmail = :sender AND m.receiverEmail = :receiver AND m.isRead = false")
+    long countUnreadMessages(@Param("sender") String sender, @Param("receiver") String receiver);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ChatMessage m SET m.isRead = true WHERE m.senderEmail = :sender AND m.receiverEmail = :receiver AND m.isRead = false")
+    void markMessagesAsRead(@Param("sender") String sender, @Param("receiver") String receiver);
 }

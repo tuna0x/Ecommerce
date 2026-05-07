@@ -37,6 +37,8 @@ public class ChatMessage {
 
     private Instant timestamp;
 
+    private boolean isRead = false;
+
     @PrePersist
     public void handleBeforeCreate() {
         this.timestamp = Instant.now();
