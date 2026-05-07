@@ -217,6 +217,7 @@ public class GeminiService {
             }
             return "Bông đang suy nghĩ chút nhé... 🌸";
         } catch (Exception e) {
+            e.printStackTrace();
             return "Bông gặp sự cố nhỏ, Nàng đợi chút nha! 💖";
         }
     }
