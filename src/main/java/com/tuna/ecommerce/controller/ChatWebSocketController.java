@@ -7,6 +7,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import com.tuna.ecommerce.domain.ChatMessage;
 import com.tuna.ecommerce.domain.response.chat.ResChatMessageDTO;
 import com.tuna.ecommerce.service.ChatMessageService;
 
@@ -51,5 +52,30 @@ public class ChatWebSocketController {
                 "/queue/messages",
                 chatMessageDTO
         );
+
+        // Kiểm tra và tạo tin nhắn tự động chăm sóc khách hàng
+        ChatMessage autoReply = chatMessageService.checkAndGenerateAutoReply(senderEmail, receiverEmail);
+        if (autoReply != null) {
+            ResChatMessageDTO autoReplyDTO = new ResChatMessageDTO(
+                    autoReply.getSenderEmail(),
+                    autoReply.getReceiverEmail(),
+                    autoReply.getContent(),
+                    autoReply.getTimestamp()
+            );
+
+            // Gửi tin nhắn tự động tới khách hàng (người nhận tin tự động)
+            messagingTemplate.convertAndSendToUser(
+                    autoReply.getReceiverEmail(),
+                    "/queue/messages",
+                    autoReplyDTO
+            );
+
+            // Gửi tin nhắn tự động tới Admin (người gửi tin tự động) để cập nhật giao diện Admin
+            messagingTemplate.convertAndSendToUser(
+                    autoReply.getSenderEmail(),
+                    "/queue/messages",
+                    autoReplyDTO
+            );
+        }
     }
 }

@@ -60,4 +60,12 @@ public class ChatController {
         List<ResChatMessageDTO> conversations = chatMessageService.getRecentConversations(currentUser);
         return ResponseEntity.ok().body(conversations);
     }
+
+    @PostMapping("/chat/read")
+    @APIMessage("Đánh dấu tin nhắn đã đọc thành công")
+    public ResponseEntity<Void> markAsRead(@RequestParam String participant) {
+        String currentUser = SecurityUtil.getCurrentUserLogin().orElse("");
+        chatMessageService.markAsRead(participant, currentUser);
+        return ResponseEntity.ok().build();
+    }
 }
