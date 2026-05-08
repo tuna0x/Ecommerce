@@ -58,16 +58,19 @@ public class PaymentService {
     private final NotificationService notificationService;
     private final TransactionService transactionService;
     private final EmailService emailService;
+    private final TelegramService telegramService;
 
     public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository,
             @Lazy OrderService orderService, NotificationService notificationService,
-            TransactionService transactionService, EmailService emailService) {
+            TransactionService transactionService, EmailService emailService,
+            TelegramService telegramService) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
         this.notificationService = notificationService;
         this.transactionService = transactionService;
         this.emailService = emailService;
+        this.telegramService = telegramService;
     }
 
     public Payment createCODPayment(Long orderId) {
@@ -196,6 +199,8 @@ public class PaymentService {
         this.orderService.forceLoadOrder(order);
         this.emailService.sendOrderSuccessEmail(order);
 
+        // Send Telegram Notification to Admin on successful online payment (VNPay/PayOS)
+        this.telegramService.sendOrderNotification(order);
     }
 
     @Transactional

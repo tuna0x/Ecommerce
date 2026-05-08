@@ -87,12 +87,14 @@ public class FlashSaleService {
     @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId")
     public void incrementSoldQuantity(Long productId, int quantity) {
         findActiveFlashSaleForItem(productId).ifPresent(item -> {
-            if (item.getSoldQuantity() + quantity <= item.getLimitQuantity()) {
-                item.setSoldQuantity(item.getSoldQuantity() + quantity);
-                flashSaleItemRepository.save(item);
+            FlashSaleItem lockedItem = flashSaleItemRepository.findByIdWithWriteLock(item.getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy vật phẩm Flash Sale"));
+            if (lockedItem.getSoldQuantity() + quantity <= lockedItem.getLimitQuantity()) {
+                lockedItem.setSoldQuantity(lockedItem.getSoldQuantity() + quantity);
+                flashSaleItemRepository.save(lockedItem);
             } else {
-                item.setSoldQuantity(item.getLimitQuantity());
-                flashSaleItemRepository.save(item);
+                lockedItem.setSoldQuantity(lockedItem.getLimitQuantity());
+                flashSaleItemRepository.save(lockedItem);
             }
         });
     }
