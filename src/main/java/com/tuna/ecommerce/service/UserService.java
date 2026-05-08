@@ -356,6 +356,15 @@ public class UserService {
         }
     }
 
+    public void updateLoginAndToken(User user, String ip, String token) {
+        if (user != null) {
+            user.setLastLoginAt(java.time.Instant.now());
+            user.setLastIpAddress(ip);
+            user.setRefreshToken(token);
+            this.userRepository.save(user);
+        }
+    }
+
     public com.tuna.ecommerce.domain.response.user.ResUserAnalyticsDTO getUserAnalytics(Long userId) {
         User user = this.getUserById(userId);
         if (user == null) return null;

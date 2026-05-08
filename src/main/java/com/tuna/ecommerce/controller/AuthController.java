@@ -70,9 +70,6 @@ public class AuthController {
     @APIMessage("User logged in successfully")
     public ResponseEntity<RestLoginDTO> login(@Valid @RequestBody ReqLoginDTO loginDTO,
             jakarta.servlet.http.HttpServletRequest request) throws IdInvalidException {
-        String ip = request.getRemoteAddr();
-        this.userService.updateLoginInfo(loginDTO.getUsername(), ip);
-
         // Nạp input gồm username/password vào Security
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                 loginDTO.getUsername(), loginDTO.getPassword());
@@ -115,8 +112,9 @@ public class AuthController {
         // create refresh token
         String refresh_token = this.securityUtil.refreshToken(loginDTO.getUsername(), res);
 
-        // update user
-        this.userService.updateUserToken(refresh_token, loginDTO.getUsername());
+        // update user with login info and token in a single DB save operation
+        String ip = request.getRemoteAddr();
+        this.userService.updateLoginAndToken(curUserDB, ip, refresh_token);
 
         // set cookie
         ResponseCookie resCookies = ResponseCookie.from("refresh_token", refresh_token)

@@ -9,10 +9,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+
 import com.tuna.ecommerce.domain.FlashSaleItem;
 
 @Repository
 public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, Long> {
+    
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM FlashSaleItem i WHERE i.id = :id")
+    Optional<FlashSaleItem> findByIdWithWriteLock(@Param("id") Long id);
     
     @Query("SELECT i FROM FlashSaleItem i " +
            "JOIN FETCH i.campaign c " +

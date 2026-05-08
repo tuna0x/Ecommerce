@@ -175,7 +175,7 @@ public class TelegramService {
         }
     }
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelayString = "${telegram.bot.polling-delay-ms:30000}")
     public void pollUpdates() {
         if ("xxx".equals(botToken) || "xxx".equals(chatId)) return;
 

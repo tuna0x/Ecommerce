@@ -355,8 +355,10 @@ public class OrderService {
                 "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
                 "ORDER_SUCCESS");
 
-        // Send Telegram Notification to Admin
-        this.telegramService.sendOrderNotification(savedOrder);
+        // Send Telegram Notification to Admin (Only COD immediately)
+        if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
+            this.telegramService.sendOrderNotification(savedOrder);
+        }
 
         // Convert to DTO at the very end to ensure all fields (Payment, TransactionID)
         // are populated
