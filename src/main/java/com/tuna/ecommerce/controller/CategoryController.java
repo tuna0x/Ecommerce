@@ -82,6 +82,12 @@ public class CategoryController {
         return ResponseEntity.ok().body(this.categoryService.convertToResCategoryDTO(cur));
     }
 
+    @GetMapping("/categories/all")
+    @APIMessage("Get all categories without pagination (cached)")
+    public ResponseEntity<java.util.List<ResCategoryDTO>> getAllCategoriesWithoutPagination() {
+        return ResponseEntity.ok().body(this.categoryService.handleGetAll());
+    }
+
     @GetMapping("/categories")
     @APIMessage("Get all categories with filter and pagination")
     public ResponseEntity<ResultPaginationDTO> getAllCategory(

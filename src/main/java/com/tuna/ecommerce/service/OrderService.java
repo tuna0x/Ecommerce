@@ -61,6 +61,10 @@ import java.time.ZoneId;
 @Transactional
 @Slf4j
 public class OrderService {
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private OrderService self;
+
     private final OrderRepository orderRepository;
     private final CartService cartService;
     private final UserService userService;
@@ -189,13 +193,8 @@ public class OrderService {
         return rs;
     }
 
-    @Retryable(
-        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
-        maxAttempts = 3,
-        backoff = @Backoff(delay = 500)
-    )
-    public ResGetOrderDTO createOrder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
-        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+    @Transactional(rollbackFor = Exception.class)
+    public Order createOrderTransaction(ReqCheckoutDTO req, String email) throws IdInvalidException {
         User user = this.userService.findByUsername(email);
         Address address = this.addressService.getAddressById(req.getAddressId());
         if (address == null) {
@@ -207,8 +206,12 @@ public class OrderService {
             throw new IdInvalidException("Giỏ hàng của bạn đang trống.");
         }
 
-        // TỐI ƯU: Sắp xếp cartItems theo ID để tránh Deadlock do tranh chấp thứ tự khóa dữ liệu
-        cartItems.sort((a, b) -> Long.compare(a.getId(), b.getId()));
+        // TỐI ƯU CỐT LÕI: Sắp xếp cartItems theo ID của ProductVariant/Product thực tế bị khóa trong DB (chứ không phải CartItem ID) để triệt tiêu hoàn toàn nguy cơ Deadlock khi nhiều khách hàng cùng checkout các sản phẩm trùng nhau.
+        cartItems.sort((a, b) -> {
+            Long idA = (a.getProductVariant() != null) ? a.getProductVariant().getId() : a.getProduct().getId();
+            Long idB = (b.getProductVariant() != null) ? b.getProductVariant().getId() : b.getProduct().getId();
+            return Long.compare(idA, idB);
+        });
 
         Order order = new Order();
         order.setUser(user);
@@ -228,20 +231,15 @@ public class OrderService {
             Product product = i.getProduct();
             ProductVariant variant = i.getProductVariant();
 
-            // Validate stock from inventory directly
-            int currentStock = this.inventoryService.getCurrentStock(
-                    product.getId(),
-                    (variant != null) ? variant.getId() : null);
-            if (currentStock < i.getQuantity()) {
-                throw new IdInvalidException(
-                        "Sản phẩm " + product.getName() + " không đủ hàng. Còn lại: " + currentStock);
+            // TỐI ƯU CỐT LÕI: Gọi trực tiếp reserveStock để vừa kiểm tra và vừa giữ hàng (reserve) trong 1 lần gọi DB duy nhất, thay vì gọi getCurrentStock kiểm tra trước rồi mới gọi reserveStock (gây thừa 1 vòng truy vấn DB không đáng có).
+            try {
+                this.inventoryService.reserveStock(
+                        product.getId(),
+                        (variant != null) ? variant.getId() : null,
+                        i.getQuantity());
+            } catch (IdInvalidException e) {
+                throw new IdInvalidException("Sản phẩm " + product.getName() + " không đủ hàng. " + e.getMessage());
             }
-
-            // Reserve from Inventory (Available -> Reserved)
-            this.inventoryService.reserveStock(
-                    product.getId(),
-                    (variant != null) ? variant.getId() : null,
-                    i.getQuantity());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
@@ -306,26 +304,13 @@ public class OrderService {
         order.setFinalPrice(finalPrice);
         Order savedOrder = this.orderRepository.save(order);
 
-        // Payment Handling (Synchronous with Order Creation)
-        String paymentUrl = null;
+        // Payment Handling (Synchronous DB Record Creation)
         switch (req.getPaymentMethod()) {
             case VNPAY:
-                Payment payment = this.paymentService.createPendingVNPayPayment(savedOrder.getId());
-                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, payment.getId());
-                if (!"00".equals(vnpayRes.getCode())) {
-                    throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
-                }
-                paymentUrl = vnpayRes.getPaymentUrl();
+                this.paymentService.createPendingVNPayPayment(savedOrder.getId());
                 break;
             case PAYOS:
-                Payment payosPayment = this.paymentService.createPendingPayOSPayment(savedOrder.getId());
-                try {
-                    String payosUrl = this.payOSService.createPaymentLink(savedOrder);
-                    paymentUrl = payosUrl;
-                } catch (Exception e) {
-                    log.error(">>> PayOS payment link creation failed for order #{}", savedOrder.getId(), e);
-                    throw new IdInvalidException("Lỗi khởi tạo thanh toán PayOS: " + e.getMessage());
-                }
+                this.paymentService.createPendingPayOSPayment(savedOrder.getId());
                 break;
             case COD:
             default:
@@ -336,21 +321,58 @@ public class OrderService {
         // Finalize order to save payment association
         savedOrder = this.orderRepository.save(savedOrder);
 
-        // Only clear cart immediately for COD. For online payments, we clear after
-        // success callback.
+        // Only clear cart immediately for COD. For online payments, we clear after success callback.
         if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
             this.cartItemRepository.deleteAll(cartItems);
         }
 
         // Initialize lazy collections for Async Email processing
         this.forceLoadOrder(savedOrder);
+        return savedOrder;
+    }
 
-        // Send Email Confirmation/Notification
+    @Retryable(
+        value = { CannotAcquireLockException.class, ObjectOptimisticLockingFailureException.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 500)
+    )
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public ResGetOrderDTO createOrder(ReqCheckoutDTO req, HttpServletRequest request) throws IdInvalidException {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+
+        // 1. PHASE 1: DB Transaction (Commits instantly, releasing connection & table locks)
+        Order savedOrder = self.createOrderTransaction(req, email);
+
+        // 2. PHASE 2: Slow external HTTP/Network Calls (Executed OUTSIDE database transaction)
+        String paymentUrl = null;
+        switch (req.getPaymentMethod()) {
+            case VNPAY:
+                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, savedOrder.getPayment().getId());
+                if (!"00".equals(vnpayRes.getCode())) {
+                    throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
+                }
+                paymentUrl = vnpayRes.getPaymentUrl();
+                break;
+            case PAYOS:
+                try {
+                    String payosUrl = this.payOSService.createPaymentLink(savedOrder);
+                    paymentUrl = payosUrl;
+                } catch (Exception e) {
+                    log.error(">>> PayOS payment link creation failed for order #{}", savedOrder.getId(), e);
+                    throw new IdInvalidException("Lỗi khởi tạo thanh toán PayOS: " + e.getMessage());
+                }
+                break;
+            case COD:
+            default:
+                break;
+        }
+
+        // 3. PHASE 3: Async Notifications & Emails
         boolean isCod = req.getPaymentMethod() == PaymentMethodEnum.COD;
         this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
 
         this.notificationService.createNotification(
-                user,
+                savedOrder.getUser(),
                 "Đặt hàng thành công",
                 "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
                 "ORDER_SUCCESS");
@@ -360,8 +382,7 @@ public class OrderService {
             this.telegramService.sendOrderNotification(savedOrder);
         }
 
-        // Convert to DTO at the very end to ensure all fields (Payment, TransactionID)
-        // are populated
+        // 4. PHASE 4: Build Response DTO
         ResGetOrderDTO resDTO = this.convertToResGetOrderDTO(savedOrder);
         if (paymentUrl != null) {
             resDTO.setPaymentUrl(paymentUrl);
