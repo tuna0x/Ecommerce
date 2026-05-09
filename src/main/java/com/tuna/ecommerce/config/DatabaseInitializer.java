@@ -293,6 +293,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Delete a category", "/api/v1/categories/{id}", "DELETE", "CATEGORIES", false));
         perms.add(new PermDef("Get a category by id", "/api/v1/categories/{id}", "GET", "CATEGORIES", true));
         perms.add(new PermDef("Get categories with pagination", "/api/v1/categories", "GET", "CATEGORIES", true));
+        perms.add(new PermDef("Get all categories without pagination", "/api/v1/categories/all", "GET", "CATEGORIES", true));
 
         // BRANDS
         perms.add(new PermDef("Create a brand", "/api/v1/brands", "POST", "BRANDS", false));
