@@ -64,7 +64,7 @@ public class SecurityConfiguration {
                 "/api/v1/auth/forgot-password",
                 "/api/v1/auth/reset-password",
                 "/websocket/**",
-                "/actuator/health",
+                "/actuator/**",
                 "/api/v1/public/**",
                 "/api/v1/tracking/log",
                 "/api/v1/tracking/logs",
