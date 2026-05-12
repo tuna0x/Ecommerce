@@ -196,6 +196,12 @@ public class DatabaseInitializer implements CommandLineRunner {
             log.info("\u003e\u003e\u003e CREATED DEFAULT COUPONS");
         }
 
+        // 5.2 Ensure Skincare Milestone Coupons exist
+        createMilestoneCouponIfAbsent("BONGBUDS", "🌸 Quà tặng mầm non", "Giảm 10K cho đơn từ 50K", com.tuna.ecommerce.ultil.constant.CouponTypeEnum.FIXED, BigDecimal.valueOf(10000), BigDecimal.valueOf(50000));
+        createMilestoneCouponIfAbsent("BONGXINH10", "🎟️ Voucher Bông Xinh - Giảm 10%", "Giảm 10% tối đa 30K cho đơn từ 100K", com.tuna.ecommerce.ultil.constant.CouponTypeEnum.PERCENT, BigDecimal.valueOf(10), BigDecimal.valueOf(100000));
+        createMilestoneCouponIfAbsent("BONGFREESHIP", "🚚 Voucher Miễn phí vận chuyển", "Miễn phí vận chuyển tối đa 30K cho đơn từ 150K", com.tuna.ecommerce.ultil.constant.CouponTypeEnum.FIXED, BigDecimal.valueOf(30000), BigDecimal.valueOf(150000));
+        createMilestoneCouponIfAbsent("BONGVIP50K", "👑 Siêu Voucher Giảm 50K", "Giảm trực tiếp 50K cho đơn từ 300K", com.tuna.ecommerce.ultil.constant.CouponTypeEnum.FIXED, BigDecimal.valueOf(50000), BigDecimal.valueOf(300000));
+
         // 5.1 Cleanup existing Coupons with null usedCount
         try {
             jdbcTemplate.execute("UPDATE coupons SET used_count = 0 WHERE used_count IS NULL");
@@ -472,6 +478,11 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Delete a contact message", "/api/v1/contact/{id}", "DELETE", "CONTACT", false));
         perms.add(new PermDef("Update contact message status", "/api/v1/contact/{id}/status", "PATCH", "CONTACT", false));
 
+        // SKINCARE CHECK-IN
+        perms.add(new PermDef("Get skincare check-in state", "/api/v1/skincare-checkin", "GET", "SKINCARE CHECK-IN", true));
+        perms.add(new PermDef("Perform daily skincare check-in", "/api/v1/skincare-checkin", "POST", "SKINCARE CHECK-IN", true));
+        perms.add(new PermDef("Claim milestone reward voucher", "/api/v1/skincare-checkin/claim/{milestoneId}", "POST", "SKINCARE CHECK-IN", true));
+
         boolean updated = false;
         for (PermDef def : perms) {
             Permission p = this.permissionRepository.findByModuleAndApiPathAndMethod(def.module, def.path, def.method);
@@ -510,6 +521,26 @@ public class DatabaseInitializer implements CommandLineRunner {
                 this.roleRepository.save(adminRole);
             if (userRole != null)
                 this.roleRepository.save(userRole);
+        }
+    }
+
+    private void createMilestoneCouponIfAbsent(String code, String name, String description, com.tuna.ecommerce.ultil.constant.CouponTypeEnum type, BigDecimal value, BigDecimal minOrder) {
+        if (!this.couponRepository.existsByCode(code)) {
+            com.tuna.ecommerce.domain.Coupon c = new com.tuna.ecommerce.domain.Coupon();
+            c.setCode(code);
+            c.setName(name);
+            c.setDescription(description);
+            c.setType(type);
+            c.setDiscountValue(value);
+            c.setMinOrderValue(minOrder);
+            c.setStartDate(LocalDateTime.now().minusDays(2));
+            c.setEndDate(LocalDateTime.now().plusDays(365));
+            c.setStatus(com.tuna.ecommerce.ultil.constant.CouponStatus.ACTIVE);
+            c.setPublic(false); // Private coupon, only claimable via check-in
+            c.setUsageLimit(50000);
+            c.setUsedCount(0);
+            this.couponRepository.save(c);
+            log.info(">>> CREATED SKINCARE MILESTONE COUPON: {}", code);
         }
     }
 
