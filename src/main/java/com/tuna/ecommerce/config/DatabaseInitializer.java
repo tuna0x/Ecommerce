@@ -66,12 +66,21 @@ public class DatabaseInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         log.info("\u003e\u003e\u003e START INIT DATABASE");
 
-        // Schema Cleanup (Safe/Idempotent)
-
+        // Schema Cleanup (Safe/Idempotent and isolated)
         try {
             jdbcTemplate.execute("ALTER TABLE products DROP COLUMN stock");
+        } catch (Exception e) {
+        }
+        try {
             jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN stock");
+        } catch (Exception e) {
+        }
+        try {
             jdbcTemplate.execute("ALTER TABLE product_variants DROP COLUMN active");
+        } catch (Exception e) {
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE coupons DROP COLUMN public_status");
         } catch (Exception e) {
         }
 
