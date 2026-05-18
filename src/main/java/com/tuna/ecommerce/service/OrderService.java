@@ -488,7 +488,7 @@ public class OrderService {
         BigDecimal discount;
         if (coupon.getType() == CouponTypeEnum.PERCENT) {
             discount = coupon.getDiscountValue().multiply(total).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
-            if (coupon.getMaxDiscountValue() != null && discount.compareTo(coupon.getMaxDiscountValue()) > 0) {
+            if (coupon.getMaxDiscountValue() != null && coupon.getMaxDiscountValue().compareTo(BigDecimal.ZERO) > 0 && discount.compareTo(coupon.getMaxDiscountValue()) > 0) {
                 discount = coupon.getMaxDiscountValue();
             }
         } else {
