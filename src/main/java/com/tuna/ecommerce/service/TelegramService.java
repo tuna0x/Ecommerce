@@ -58,7 +58,16 @@ public class TelegramService {
             message.append("<b>📍 Địa chỉ:</b> ").append(order.getShippingAddress()).append(", ")
                    .append(order.getWard()).append(", ").append(order.getDistrict()).append(", ").append(order.getProvince()).append("\n");
             message.append("<b>💰 Tổng tiền:</b> ").append(String.format("%,.0f VNĐ", order.getFinalPrice().doubleValue())).append("\n");
-            message.append("<b>💳 Thanh toán:</b> ").append(order.getPayment() != null ? order.getPayment().getMethod() : "N/A").append("\n");
+            String paymentMethodName = "N/A";
+            if (order.getPayment() != null && order.getPayment().getMethod() != null) {
+                switch (order.getPayment().getMethod()) {
+                    case COD: paymentMethodName = "💵 COD (Thanh toán khi nhận hàng)"; break;
+                    case VNPAY: paymentMethodName = "🏦 VNPay"; break;
+                    case PAYOS: paymentMethodName = "🏦 PayOS"; break;
+                    default: paymentMethodName = order.getPayment().getMethod().name(); break;
+                }
+            }
+            message.append("<b>💳 Thanh toán:</b> ").append(paymentMethodName).append("\n");
             message.append("<b>📊 Trạng thái:</b> 🟠 Đang chờ\n\n");
             
             message.append("<b>🛒 Danh sách sản phẩm:</b>\n");
