@@ -149,7 +149,7 @@ public class PaymentController {
             this.paymentService.processPaymentSuccess(payment, vnp_TransactionNo, rawData);
 
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + payment.getOrder().getId() + "&transactionId="
-                    + vnp_TransactionNo;
+                    + vnp_TransactionNo + "&method=vnpay";
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
             // Thanh toán thất bại hoặc bị hủy bởi khách hàng
@@ -243,7 +243,7 @@ public class PaymentController {
             this.paymentService.processPaymentSuccess(payment, transactionId, rawData);
 
             String redirectUrl = frontendRedirectUrl + "?status=success&orderId=" + order.getId()
-                    + "&transactionId=" + transactionId;
+                    + "&transactionId=" + transactionId + "&method=payos";
             return ResponseEntity.status(HttpStatus.FOUND).location(java.net.URI.create(redirectUrl)).build();
         } else {
             payment.setStatus(OrderStatusEnum.CANCELLED);
