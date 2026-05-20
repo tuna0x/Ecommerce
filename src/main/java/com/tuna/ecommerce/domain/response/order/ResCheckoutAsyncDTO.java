@@ -19,4 +19,5 @@ public class ResCheckoutAsyncDTO {
     private Long orderId;
     private String paymentUrl;
     private String message;
+    private String transactionId;
 }

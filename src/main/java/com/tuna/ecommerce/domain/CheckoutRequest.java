@@ -50,6 +50,8 @@ public class CheckoutRequest {
 
     private String couponCode;
 
+    private Integer shippingFee;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private PaymentMethodEnum paymentMethod;

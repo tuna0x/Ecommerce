@@ -848,22 +848,41 @@ public class OrderService {
     }
 
     public void forceLoadOrder(Order order) {
-        if (order.getUser() != null) {
-            order.getUser().getEmail(); // Force load user
+        // Re-fetch from DB to get a managed entity in the current persistence context.
+        // This is necessary because @Modifying(clearAutomatically=true) on reserveStockAtomically
+        // clears the entire persistence context, detaching all previously loaded entities/proxies.
+        Order managed = this.orderRepository.findById(order.getId()).orElse(null);
+        if (managed == null) return;
+
+        // Force load on managed entity (session is active)
+        if (managed.getUser() != null) {
+            managed.getUser().getEmail();
         }
-        if (order.getItems() != null) {
-            for (OrderItem item : order.getItems()) {
+        if (managed.getItems() != null) {
+            for (OrderItem item : managed.getItems()) {
                 if (item.getProduct() != null) {
-                    item.getProduct().getName(); // Force load product
+                    item.getProduct().getName();
+                    if (item.getProduct().getImages() != null) {
+                        item.getProduct().getImages().size();
+                    }
                 }
-                if (item.getProductVariant() != null && item.getProductVariant().getAttributeValues() != null) {
-                    item.getProductVariant().getAttributeValues().size(); // Force load attributes
+                if (item.getProductVariant() != null) {
+                    item.getProductVariant().getSku();
+                    if (item.getProductVariant().getAttributeValues() != null) {
+                        item.getProductVariant().getAttributeValues().size();
+                    }
                 }
             }
         }
-        if (order.getPayment() != null) {
-            order.getPayment().getMethod(); // Force load payment
+        if (managed.getPayment() != null) {
+            managed.getPayment().getMethod();
         }
+
+        // Copy initialized references back to the original order object
+        // so callers holding the old reference get the initialized data
+        order.setUser(managed.getUser());
+        order.setItems(managed.getItems());
+        order.setPayment(managed.getPayment());
     }
 }
 
