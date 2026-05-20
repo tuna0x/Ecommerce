@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.tuna.ecommerce.domain.Address;
+import com.tuna.ecommerce.domain.Cart;
 import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.Product;
@@ -107,8 +108,13 @@ class OrderServiceTest {
         testProduct.setId(100L);
         testProduct.setName("Sản phẩm dưỡng da cao cấp");
 
+        Cart testCart = new Cart();
+        testCart.setId(50L);
+        testCart.setUser(testUser);
+
         testCartItem = new CartItem();
         testCartItem.setId(500L);
+        testCartItem.setCart(testCart);
         testCartItem.setProduct(testProduct);
         testCartItem.setQuantity(2);
         testCartItem.setUnitPrice(BigDecimal.valueOf(150000));
