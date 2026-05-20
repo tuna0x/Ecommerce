@@ -69,6 +69,10 @@ public class InventoryService {
 
     @Transactional
     public Inventory reserveStock(Long productId, Long variantId, int quantity) throws IdInvalidException {
+        if (quantity <= 0) {
+            throw new IdInvalidException("So luong giu hang phai lon hon 0.");
+        }
+
         Inventory inventory;
         try {
             inventory = getOrCreateInventory(productId, variantId);
@@ -77,13 +81,12 @@ public class InventoryService {
             return null;
         }
 
-        if (inventory.getStock() < quantity) {
+        int updatedRows = inventoryRepository.reserveStockAtomically(inventory.getId(), quantity);
+        if (updatedRows == 0) {
             throw new IdInvalidException("Chỉ còn " + inventory.getStock() + " sản phẩm trong kho.");
         }
 
-        inventory.setStock(inventory.getStock() - quantity);
-        inventory.setReservedStock(inventory.getReservedStock() + quantity);
-        inventory = inventoryRepository.save(inventory);
+        inventory = inventoryRepository.findById(inventory.getId()).orElse(inventory);
 
         InventoryLog log = new InventoryLog();
         log.setInventory(inventory);

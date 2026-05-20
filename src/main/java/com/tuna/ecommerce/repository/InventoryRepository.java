@@ -7,6 +7,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.tuna.ecommerce.domain.Inventory;
@@ -31,6 +33,16 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long>, Jpa
 
     @Query("SELECT COUNT(i) FROM Inventory i WHERE i.stock > 0 AND i.stock < i.minStockThreshold")
     long countLowStock();
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE Inventory i
+            SET i.stock = i.stock - :quantity,
+                i.reservedStock = i.reservedStock + :quantity
+            WHERE i.id = :inventoryId
+              AND i.stock >= :quantity
+            """)
+    int reserveStockAtomically(@Param("inventoryId") Long inventoryId, @Param("quantity") int quantity);
 
     @Query("SELECT p.name as name, SUM(i.stock * pv.price) as totalValue " +
            "FROM Inventory i JOIN i.productVariant pv JOIN pv.product p " +

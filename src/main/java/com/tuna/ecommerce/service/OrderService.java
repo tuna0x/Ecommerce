@@ -195,18 +195,41 @@ public class OrderService {
 
     @Transactional(rollbackFor = Exception.class)
     public Order createOrderTransaction(ReqCheckoutDTO req, String email) throws IdInvalidException {
+        if (req == null) {
+            throw new IdInvalidException("Du lieu checkout khong hop le.");
+        }
+        if (req.getAddressId() == null) {
+            throw new IdInvalidException("Dia chi giao hang khong duoc de trong.");
+        }
+        if (req.getCartItemId() == null || req.getCartItemId().isEmpty()) {
+            throw new IdInvalidException("Gio hang cua ban dang trong.");
+        }
+
         User user = this.userService.findByUsername(email);
+        if (user == null) {
+            throw new IdInvalidException("Nguoi dung khong hop le.");
+        }
         Address address = this.addressService.getAddressById(req.getAddressId());
         if (address == null) {
             throw new IdInvalidException("Địa chỉ không tồn tại.");
         }
 
+        PaymentMethodEnum paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethodEnum.COD;
         List<CartItem> cartItems = cartItemRepository.findByIdIn(req.getCartItemId());
-        if (cartItems.isEmpty()) {
+        long requestedItemCount = req.getCartItemId().stream().distinct().count();
+        if (cartItems.isEmpty() || cartItems.size() != requestedItemCount) {
             throw new IdInvalidException("Giỏ hàng của bạn đang trống.");
         }
 
         // TỐI ƯU CỐT LÕI: Sắp xếp cartItems theo ID của ProductVariant/Product thực tế bị khóa trong DB (chứ không phải CartItem ID) để triệt tiêu hoàn toàn nguy cơ Deadlock khi nhiều khách hàng cùng checkout các sản phẩm trùng nhau.
+        boolean hasInvalidOwner = cartItems.stream()
+                .anyMatch(item -> item.getCart() == null
+                        || item.getCart().getUser() == null
+                        || !item.getCart().getUser().getId().equals(user.getId()));
+        if (hasInvalidOwner) {
+            throw new IdInvalidException("Gio hang khong hop le.");
+        }
+
         cartItems.sort((a, b) -> {
             Long idA = (a.getProductVariant() != null) ? a.getProductVariant().getId() : a.getProduct().getId();
             Long idB = (b.getProductVariant() != null) ? b.getProductVariant().getId() : b.getProduct().getId();
@@ -305,7 +328,7 @@ public class OrderService {
         Order savedOrder = this.orderRepository.save(order);
 
         // Payment Handling (Synchronous DB Record Creation)
-        switch (req.getPaymentMethod()) {
+        switch (paymentMethod) {
             case VNPAY:
                 this.paymentService.createPendingVNPayPayment(savedOrder.getId());
                 break;
@@ -322,7 +345,7 @@ public class OrderService {
         savedOrder = this.orderRepository.save(savedOrder);
 
         // Only clear cart immediately for COD. For online payments, we clear after success callback.
-        if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
+        if (paymentMethod == PaymentMethodEnum.COD) {
             this.cartItemRepository.deleteAll(cartItems);
         }
 
@@ -345,7 +368,8 @@ public class OrderService {
 
         // 2. PHASE 2: Slow external HTTP/Network Calls (Executed OUTSIDE database transaction)
         String paymentUrl = null;
-        switch (req.getPaymentMethod()) {
+        PaymentMethodEnum paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethodEnum.COD;
+        switch (paymentMethod) {
             case VNPAY:
                 ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, savedOrder.getPayment().getId());
                 if (!"00".equals(vnpayRes.getCode())) {
@@ -368,7 +392,7 @@ public class OrderService {
         }
 
         // 3. PHASE 3: Async Notifications & Emails
-        boolean isCod = req.getPaymentMethod() == PaymentMethodEnum.COD;
+        boolean isCod = paymentMethod == PaymentMethodEnum.COD;
         this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
 
         this.notificationService.createNotification(
@@ -378,7 +402,7 @@ public class OrderService {
                 "ORDER_SUCCESS");
 
         // Send Telegram Notification to Admin (Only COD immediately)
-        if (req.getPaymentMethod() == PaymentMethodEnum.COD) {
+        if (paymentMethod == PaymentMethodEnum.COD) {
             this.telegramService.sendOrderNotification(savedOrder);
         }
 
@@ -387,9 +411,7 @@ public class OrderService {
         if (paymentUrl != null) {
             resDTO.setPaymentUrl(paymentUrl);
         }
-        if (req.getPaymentMethod() != null) {
-            resDTO.setPaymentMethod(req.getPaymentMethod().name());
-        }
+        resDTO.setPaymentMethod(paymentMethod.name());
 
         return resDTO;
     }
