@@ -91,9 +91,20 @@ public class VNPayUtil {
     }
 
     public static String createVnPayPayment(HttpServletRequest req, Long paymentId, String vnp_PayUrl, String vnp_ReturnUrl, String vnp_TmnCode, String secretKey, String vnp_Version, String vnp_Command, String orderType, BigDecimal amount) {
+        return createVnPayPayment(getIpAddress(req), paymentId, vnp_PayUrl, vnp_ReturnUrl, vnp_TmnCode, secretKey,
+                vnp_Version, vnp_Command, orderType, amount);
+    }
+
+    public static String createVnPayPayment(String ipAddress, Long paymentId, String vnp_PayUrl, String vnp_ReturnUrl,
+            String vnp_TmnCode, String secretKey, String vnp_Version, String vnp_Command, String orderType,
+            BigDecimal amount) {
         String vnp_TxnRef = String.valueOf(paymentId);
-        String vnp_IpAddr = getIpAddress(req);
-        if (vnp_IpAddr == null || vnp_IpAddr.equals("0:0:0:0:0:0:0:1") || vnp_IpAddr.equals("localhost")) {
+        String vnp_IpAddr = ipAddress;
+        if (vnp_IpAddr == null
+                || vnp_IpAddr.isBlank()
+                || vnp_IpAddr.startsWith("Invalid IP")
+                || vnp_IpAddr.equals("0:0:0:0:0:0:0:1")
+                || vnp_IpAddr.equals("localhost")) {
             vnp_IpAddr = "127.0.0.1";
         }
 

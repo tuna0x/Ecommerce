@@ -30,6 +30,7 @@ import com.tuna.ecommerce.domain.request.flashsale.ReqFlashSaleCampaignDTO;
 import com.tuna.ecommerce.domain.response.flashsale.ResFlashSaleCampaignDTO;
 import com.tuna.ecommerce.repository.FlashSaleCampaignRepository;
 import com.tuna.ecommerce.repository.FlashSaleItemRepository;
+import com.tuna.ecommerce.ultil.err.IdInvalidException;
 import com.tuna.ecommerce.repository.ProductRepository;
 import com.tuna.ecommerce.repository.ProductVariantRepository;
 
@@ -84,19 +85,48 @@ public class FlashSaleService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId"),
+            @CacheEvict(value = "active_flash_sale_item", key = "#variantId == null ? 'variant_null' : 'variant_' + #variantId")
+    })
+    public void reserveSoldQuantity(Long productId, Long variantId, int quantity) throws IdInvalidException {
+        if (quantity <= 0) {
+            throw new IdInvalidException("So luong flash sale phai lon hon 0.");
+        }
+
+        Optional<FlashSaleItem> item = variantId != null
+                ? findActiveFlashSaleItemByVariant(variantId)
+                : Optional.empty();
+        if (item.isEmpty()) {
+            item = findActiveFlashSaleForItem(productId);
+        }
+        if (item.isEmpty()) {
+            return;
+        }
+
+        int updatedRows = flashSaleItemRepository.reserveSoldQuantityAtomically(item.get().getId(), quantity);
+        if (updatedRows == 0) {
+            throw new IdInvalidException("Flash sale da het suat.");
+        }
+    }
+
+    @Transactional
     @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId")
-    public void incrementSoldQuantity(Long productId, int quantity) {
-        findActiveFlashSaleForItem(productId).ifPresent(item -> {
-            FlashSaleItem lockedItem = flashSaleItemRepository.findByIdWithWriteLock(item.getId())
+    public void incrementSoldQuantity(Long productId, int quantity) throws IdInvalidException {
+        Optional<FlashSaleItem> item = findActiveFlashSaleForItem(productId);
+        if (item.isEmpty()) {
+            return;
+        }
+        {
+            FlashSaleItem lockedItem = flashSaleItemRepository.findByIdWithWriteLock(item.get().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy vật phẩm Flash Sale"));
             if (lockedItem.getSoldQuantity() + quantity <= lockedItem.getLimitQuantity()) {
                 lockedItem.setSoldQuantity(lockedItem.getSoldQuantity() + quantity);
                 flashSaleItemRepository.save(lockedItem);
             } else {
-                lockedItem.setSoldQuantity(lockedItem.getLimitQuantity());
-                flashSaleItemRepository.save(lockedItem);
+                throw new IdInvalidException("Flash sale da het suat.");
             }
-        });
+        }
     }
 
     public boolean isFlashSaleAvailable(Long productId) {

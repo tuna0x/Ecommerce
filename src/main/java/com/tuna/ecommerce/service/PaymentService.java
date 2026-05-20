@@ -143,12 +143,17 @@ public class PaymentService {
     }
 
     public ResPaymentVNPAYDTO createVnPayPayment(HttpServletRequest req, Long paymentId) {
+        String ipAddress = req != null ? com.tuna.ecommerce.ultil.VNPayUtil.getIpAddress(req) : "127.0.0.1";
+        return createVnPayPayment(ipAddress, paymentId);
+    }
+
+    public ResPaymentVNPAYDTO createVnPayPayment(String ipAddress, Long paymentId) {
         Payment payment = this.paymentRepository.findById(paymentId).orElse(null);
         if (payment == null)
             return new ResPaymentVNPAYDTO("99", "Payment not found", null);
 
         String paymentUrl = VNPayUtil.createVnPayPayment(
-                req,
+                ipAddress,
                 payment.getId(),
                 vnp_PayUrl,
                 vnp_ReturnUrl,
