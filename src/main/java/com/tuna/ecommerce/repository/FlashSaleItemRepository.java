@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,9 +34,18 @@ public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, Lo
            "AND i.variant.id = :variantId")
     List<FlashSaleItem> findActiveFlashSaleItemByVariant(@Param("variantId") Long variantId, @Param("now") LocalDateTime now);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE FlashSaleItem i
+            SET i.soldQuantity = COALESCE(i.soldQuantity, 0) + :quantity
+            WHERE i.id = :id
+              AND COALESCE(i.soldQuantity, 0) + :quantity <= i.limitQuantity
+            """)
+    int reserveSoldQuantityAtomically(@Param("id") Long id, @Param("quantity") int quantity);
+
     List<FlashSaleItem> findByCampaignId(Long campaignId);
 
-    @org.springframework.data.jpa.repository.Modifying
+    @Modifying
     @org.springframework.transaction.annotation.Transactional
     void deleteByCampaignId(Long campaignId);
 }

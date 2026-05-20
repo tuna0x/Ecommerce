@@ -273,7 +273,10 @@ public class OrderService {
             subTotal = subTotal.add(orderItem.getSubTotal());
 
             // Update Flash Sale Sold Quantity if applicable
-            this.flashSaleService.incrementSoldQuantity(product.getId(), i.getQuantity());
+            this.flashSaleService.reserveSoldQuantity(
+                    product.getId(),
+                    (variant != null) ? variant.getId() : null,
+                    i.getQuantity());
 
             order.addOrderItem(orderItem);
         }
@@ -366,12 +369,25 @@ public class OrderService {
         // 1. PHASE 1: DB Transaction (Commits instantly, releasing connection & table locks)
         Order savedOrder = self.createOrderTransaction(req, email);
 
+        return finalizeCreatedOrder(req, request, savedOrder);
+    }
+
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public ResGetOrderDTO createOrderAsync(ReqCheckoutDTO req, String email) throws IdInvalidException {
+        Order savedOrder = self.createOrderTransaction(req, email);
+        return finalizeCreatedOrder(req, null, savedOrder);
+    }
+
+    private ResGetOrderDTO finalizeCreatedOrder(ReqCheckoutDTO req, HttpServletRequest request, Order savedOrder)
+            throws IdInvalidException {
         // 2. PHASE 2: Slow external HTTP/Network Calls (Executed OUTSIDE database transaction)
         String paymentUrl = null;
         PaymentMethodEnum paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethodEnum.COD;
         switch (paymentMethod) {
             case VNPAY:
-                ResPaymentVNPAYDTO vnpayRes = this.paymentService.createVnPayPayment(request, savedOrder.getPayment().getId());
+                ResPaymentVNPAYDTO vnpayRes = request != null
+                        ? this.paymentService.createVnPayPayment(request, savedOrder.getPayment().getId())
+                        : this.paymentService.createVnPayPayment("127.0.0.1", savedOrder.getPayment().getId());
                 if (!"00".equals(vnpayRes.getCode())) {
                     throw new IdInvalidException("Lỗi khởi tạo thanh toán VNPay: " + vnpayRes.getMessage());
                 }

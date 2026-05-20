@@ -2,6 +2,7 @@ package com.tuna.ecommerce.controller;
 
 import java.util.List;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +19,9 @@ import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
 import com.tuna.ecommerce.domain.request.order.ReqUpdateOrderAddressDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import java.time.Instant;
+import com.tuna.ecommerce.domain.response.order.ResCheckoutAsyncDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
+import com.tuna.ecommerce.service.CheckoutAsyncService;
 import com.tuna.ecommerce.service.OrderService;
 import com.tuna.ecommerce.ultil.constant.OrderStatusEnum;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
@@ -32,12 +35,27 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+    private final CheckoutAsyncService checkoutAsyncService;
 
     @PostMapping("/order/checkout")
     @APIMessage("checkout")
     public ResponseEntity<ResGetOrderDTO> checkout(@RequestBody ReqCheckoutDTO reqCheckoutDTO,
             HttpServletRequest request) throws IdInvalidException {
         return ResponseEntity.ok().body(this.orderService.createOrder(reqCheckoutDTO, request));
+    }
+
+    @PostMapping("/order/checkout/async")
+    @APIMessage("checkout request accepted")
+    public ResponseEntity<ResCheckoutAsyncDTO> checkoutAsync(@RequestBody ReqCheckoutDTO reqCheckoutDTO)
+            throws IdInvalidException {
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(this.checkoutAsyncService.submit(reqCheckoutDTO));
+    }
+
+    @GetMapping("/order/checkout/status/{checkoutId}")
+    @APIMessage("get checkout status")
+    public ResponseEntity<ResCheckoutAsyncDTO> getCheckoutStatus(@PathVariable("checkoutId") String checkoutId)
+            throws IdInvalidException {
+        return ResponseEntity.ok().body(this.checkoutAsyncService.getStatus(checkoutId));
     }
 
     @GetMapping("/order/{id}")

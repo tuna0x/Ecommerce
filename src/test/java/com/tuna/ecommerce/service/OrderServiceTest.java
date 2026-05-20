@@ -168,7 +168,7 @@ class OrderServiceTest {
 
         // Verify interactions
         verify(inventoryService, times(1)).reserveStock(100L, null, 2);
-        verify(flashSaleService, times(1)).incrementSoldQuantity(100L, 2);
+        verify(flashSaleService, times(1)).reserveSoldQuantity(100L, null, 2);
         verify(paymentService, times(1)).createCODPayment(1000L);
         verify(cartItemRepository, times(1)).deleteAll(testCartItems);
     }
