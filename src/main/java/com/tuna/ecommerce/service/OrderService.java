@@ -284,9 +284,14 @@ public class OrderService {
         order.setTotalPrice(subTotal);
 
         // Shipping logic
-        double weight = this.cartService.calculateTotalWeight(cartItems);
-        int shippingFeeRaw = this.shippingService.calculateShippingFee(address.getProvince(), address.getDistrict(),
-                address.getWard(), (int) weight);
+        int shippingFeeRaw;
+        if (req.getShippingFee() != null && req.getShippingFee() >= 0) {
+            shippingFeeRaw = req.getShippingFee();
+        } else {
+            double weight = this.cartService.calculateTotalWeight(cartItems);
+            shippingFeeRaw = this.shippingService.calculateShippingFee(address.getProvince(), address.getDistrict(),
+                    address.getWard(), (int) weight);
+        }
         BigDecimal shippingFee = (subTotal.compareTo(BigDecimal.valueOf(500000)) > 0) ? BigDecimal.ZERO
                 : BigDecimal.valueOf(shippingFeeRaw);
         order.setShippingFee(shippingFee.intValue());

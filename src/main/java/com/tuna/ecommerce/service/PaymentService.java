@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import com.tuna.ecommerce.domain.Order;
 import com.tuna.ecommerce.domain.Payment;
@@ -59,11 +60,12 @@ public class PaymentService {
     private final TransactionService transactionService;
     private final EmailService emailService;
     private final TelegramService telegramService;
+    private final RestTemplate restTemplate;
 
     public PaymentService(OrderRepository orderRepository, PaymentRepository paymentRepository,
             @Lazy OrderService orderService, NotificationService notificationService,
             TransactionService transactionService, EmailService emailService,
-            TelegramService telegramService) {
+            TelegramService telegramService, RestTemplate restTemplate) {
         this.orderRepository = orderRepository;
         this.paymentRepository = paymentRepository;
         this.orderService = orderService;
@@ -71,6 +73,7 @@ public class PaymentService {
         this.transactionService = transactionService;
         this.emailService = emailService;
         this.telegramService = telegramService;
+        this.restTemplate = restTemplate;
     }
 
     public Payment createCODPayment(Long orderId) {
@@ -293,7 +296,6 @@ public class PaymentService {
             String vnp_SecureHash = VNPayUtil.hmacSHA512(secretKey, hashData);
             vnp_Params.addProperty("vnp_SecureHash", vnp_SecureHash);
 
-            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(vnp_Params.toString(), headers);

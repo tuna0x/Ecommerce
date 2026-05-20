@@ -18,4 +18,5 @@ public class ReqCheckoutDTO {
     private List<Long> cartItemId;
     private String couponCode;
     private PaymentMethodEnum paymentMethod;
+    private Integer shippingFee;
 }
