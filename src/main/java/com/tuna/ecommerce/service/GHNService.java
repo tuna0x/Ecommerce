@@ -43,7 +43,11 @@ public class GHNService {
     @Value("${ghn.test-mode:false}")
     private boolean testMode;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public GHNService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Cacheable(value = "ghn_fee_v2", key = "{#provinceName, #districtName, #wardName, #weight}")
     public Integer calculateFee(String provinceName, String districtName, String wardName, int weight) {
