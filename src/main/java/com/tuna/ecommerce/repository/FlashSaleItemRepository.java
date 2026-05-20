@@ -34,7 +34,7 @@ public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, Lo
            "AND i.variant.id = :variantId")
     List<FlashSaleItem> findActiveFlashSaleItemByVariant(@Param("variantId") Long variantId, @Param("now") LocalDateTime now);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Modifying(flushAutomatically = true)
     @Query("""
             UPDATE FlashSaleItem i
             SET i.soldQuantity = COALESCE(i.soldQuantity, 0) + :quantity

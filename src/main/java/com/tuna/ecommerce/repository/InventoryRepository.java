@@ -34,7 +34,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long>, Jpa
     @Query("SELECT COUNT(i) FROM Inventory i WHERE i.stock > 0 AND i.stock < i.minStockThreshold")
     long countLowStock();
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Modifying(flushAutomatically = true)
     @Query("""
             UPDATE Inventory i
             SET i.stock = i.stock - :quantity,

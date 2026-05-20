@@ -86,6 +86,7 @@ public class CheckoutAsyncService {
         checkoutRequest.setAddressId(req.getAddressId());
         checkoutRequest.setCartItemIds(serializeCartItemIds(req.getCartItemId()));
         checkoutRequest.setCouponCode(req.getCouponCode());
+        checkoutRequest.setShippingFee(req.getShippingFee());
         checkoutRequest.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethodEnum.COD);
         checkoutRequest.setStatus(CheckoutStatusEnum.PROCESSING);
         checkoutRequest = checkoutRequestRepository.save(checkoutRequest);
@@ -176,12 +177,25 @@ public class CheckoutAsyncService {
     }
 
     private ResCheckoutAsyncDTO toResponse(CheckoutRequest checkoutRequest) {
+        String transactionId = null;
+        if (checkoutRequest.getOrderId() != null) {
+            try {
+                com.tuna.ecommerce.domain.Order order = orderService.getOrder(checkoutRequest.getOrderId());
+                if (order != null && order.getPayment() != null) {
+                    transactionId = order.getPayment().getTransactionId();
+                }
+            } catch (Exception e) {
+                log.warn("Failed to load payment transactionId for checkout request response: {}", e.getMessage());
+            }
+        }
+
         return ResCheckoutAsyncDTO.builder()
                 .checkoutId(checkoutRequest.getRequestId())
                 .status(checkoutRequest.getStatus())
                 .orderId(checkoutRequest.getOrderId())
                 .paymentUrl(checkoutRequest.getPaymentUrl())
                 .message(checkoutRequest.getErrorMessage())
+                .transactionId(transactionId)
                 .build();
     }
 
@@ -190,6 +204,7 @@ public class CheckoutAsyncService {
         req.setAddressId(checkoutRequest.getAddressId());
         req.setCartItemId(deserializeCartItemIds(checkoutRequest.getCartItemIds()));
         req.setCouponCode(checkoutRequest.getCouponCode());
+        req.setShippingFee(checkoutRequest.getShippingFee());
         req.setPaymentMethod(checkoutRequest.getPaymentMethod());
         return req;
     }

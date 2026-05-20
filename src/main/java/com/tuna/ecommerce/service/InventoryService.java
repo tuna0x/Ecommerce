@@ -39,6 +39,7 @@ public class InventoryService {
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductVariantRepository productVariantRepository;
     private final TelegramService telegramService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public int getCurrentStock(Long productId, Long variantId) throws IdInvalidException {
         return getOrCreateInventory(productId, variantId).getStock();
@@ -86,7 +87,7 @@ public class InventoryService {
             throw new IdInvalidException("Chỉ còn " + inventory.getStock() + " sản phẩm trong kho.");
         }
 
-        inventory = inventoryRepository.findById(inventory.getId()).orElse(inventory);
+        entityManager.refresh(inventory);
 
         InventoryLog log = new InventoryLog();
         log.setInventory(inventory);
