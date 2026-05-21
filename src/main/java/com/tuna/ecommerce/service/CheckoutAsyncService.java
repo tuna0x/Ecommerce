@@ -13,13 +13,13 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.tuna.ecommerce.config.RabbitMQConfig;
-import com.tuna.ecommerce.domain.Address;
 import com.tuna.ecommerce.domain.CheckoutRequest;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.message.CheckoutMessage;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
 import com.tuna.ecommerce.domain.response.order.ResCheckoutAsyncDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
+import com.tuna.ecommerce.repository.AddressRepository;
 import com.tuna.ecommerce.repository.CheckoutRequestRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.CheckoutStatusEnum;
@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CheckoutAsyncService {
     private final CheckoutRequestRepository checkoutRequestRepository;
     private final UserService userService;
-    private final AddressService addressService;
+    private final AddressRepository addressRepository;
     private final RabbitTemplate rabbitTemplate;
     private final OrderService orderService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -53,13 +53,12 @@ public class CheckoutAsyncService {
         }
 
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
-        User user = userService.findByUsername(email);
+        User user = userService.findByUsernameForAuth(email);
         if (user == null) {
             throw new IdInvalidException("Nguoi dung khong hop le.");
         }
 
-        Address address = addressService.getAddressById(req.getAddressId());
-        if (address == null || address.getUser() == null || !address.getUser().getId().equals(user.getId())) {
+        if (!addressRepository.existsByIdAndUserId(req.getAddressId(), user.getId())) {
             throw new IdInvalidException("Dia chi giao hang khong hop le.");
         }
 
@@ -83,7 +82,7 @@ public class CheckoutAsyncService {
     @Transactional(readOnly = true)
     public ResCheckoutAsyncDTO getStatus(String requestId) throws IdInvalidException {
         String email = SecurityUtil.getCurrentUserLogin().orElse(null);
-        User user = userService.findByUsername(email);
+        User user = userService.findByUsernameForAuth(email);
         if (user == null) {
             throw new IdInvalidException("Nguoi dung khong hop le.");
         }

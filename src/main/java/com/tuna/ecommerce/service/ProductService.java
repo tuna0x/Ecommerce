@@ -41,6 +41,8 @@ import com.tuna.ecommerce.repository.ProductVariantRepository;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -108,7 +110,11 @@ public class ProductService {
         log.info(">>> ProductService: Product price sync completed.");
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public Product handleCreate(ReqCreateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Category category = this.categoryService.handleGetById(product.getCategoryId());
@@ -241,7 +247,30 @@ public class ProductService {
         return product;
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
+    @Transactional(readOnly = true)
+    public Product handleGetPlainById(long id) {
+        Product product = this.productRepository.findPlainById(id).orElse(null);
+        if (product != null && product.isDeleted()) {
+            return null;
+        }
+        return product;
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "product_detail", key = "#id")
+    public ResProductDTO getProductDtoById(long id) throws IdInvalidException {
+        Product product = this.handleGetById(id);
+        if (product == null) {
+            throw new IdInvalidException("Id invalid");
+        }
+        return this.convertToResProductDTO(product);
+    }
+
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public Product handleUpdate(ReqUpdateProductDTO product, List<MultipartFile> files)
             throws IdInvalidException, IOException {
         Product cur = this.handleGetById(product.getId());
@@ -475,7 +504,11 @@ public class ProductService {
         }
     }
 
-    @org.springframework.cache.annotation.CacheEvict(value = "products", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public void handleDelete(long id) throws IOException {
         Product product = this.handleGetById(id);
         if (product != null) {

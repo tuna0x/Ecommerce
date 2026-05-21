@@ -70,11 +70,7 @@ public class ProductController {
     @APIMessage("Get product by id successfully")
     @Operation(summary = "Get a product by ID", description = "Retrieve full details of a specific product")
     public ResponseEntity<ResProductDTO> getProductById(@PathVariable Long id) throws IdInvalidException {
-        Product product = this.productService.handleGetById(id);
-        if (product == null) {
-            throw new IdInvalidException("Id invalid");
-        }
-        return ResponseEntity.ok().body(this.productService.convertToResProductDTO(product));
+        return ResponseEntity.ok().body(this.productService.getProductDtoById(id));
     }
 
     @GetMapping("/products")
