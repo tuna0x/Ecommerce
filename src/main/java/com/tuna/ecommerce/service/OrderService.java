@@ -54,6 +54,7 @@ import com.tuna.ecommerce.domain.UserCoupon;
 import com.tuna.ecommerce.repository.UserCouponRepository;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Value;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 
@@ -83,6 +84,12 @@ public class OrderService {
     private final FlashSaleService flashSaleService;
     private final SimpMessagingTemplate messagingTemplate;
     private final PayOSService payOSService;
+
+    @Value("${checkout.response.full-details:true}")
+    private boolean checkoutFullResponse;
+
+    @Value("${checkout.post-actions.enabled:true}")
+    private boolean checkoutPostActionsEnabled;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -412,19 +419,32 @@ public class OrderService {
 
         // 3. PHASE 3: Async Notifications & Emails
         boolean isCod = paymentMethod == PaymentMethodEnum.COD;
+        if (!checkoutFullResponse && paymentMethod == PaymentMethodEnum.COD) {
+            if (checkoutPostActionsEnabled) {
+                this.notificationService.createNotificationAsync(
+                        savedOrder.getUser().getId(),
+                        "Đặt hàng thành công",
+                        "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
+                        "ORDER_SUCCESS");
+            }
+            return buildLightCheckoutDTO(savedOrder, paymentMethod.name(), paymentUrl);
+        }
+
         this.forceLoadOrder(savedOrder);
 
-        this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
+        if (checkoutPostActionsEnabled) {
+            this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
 
-        this.notificationService.createNotificationAsync(
-                savedOrder.getUser().getId(),
-                "Đặt hàng thành công",
-                "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
-                "ORDER_SUCCESS");
+            this.notificationService.createNotificationAsync(
+                    savedOrder.getUser().getId(),
+                    "Đặt hàng thành công",
+                    "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
+                    "ORDER_SUCCESS");
 
-        // Send Telegram Notification to Admin (Only COD immediately)
-        if (paymentMethod == PaymentMethodEnum.COD) {
-            this.telegramService.sendOrderNotification(savedOrder);
+            // Send Telegram Notification to Admin (Only COD immediately)
+            if (paymentMethod == PaymentMethodEnum.COD) {
+                this.telegramService.sendOrderNotification(savedOrder);
+            }
         }
 
         // 4. PHASE 4: Build Response DTO
@@ -435,6 +455,36 @@ public class OrderService {
         resDTO.setPaymentMethod(paymentMethod.name());
 
         return resDTO;
+    }
+
+    private ResGetOrderDTO buildLightCheckoutDTO(Order order, String paymentMethod, String paymentUrl) {
+        ResGetOrderDTO res = new ResGetOrderDTO();
+        res.setId(order.getId());
+        res.setStatus(order.getStatus());
+        res.setPaymentStatus(order.getPaymentStatus());
+        res.setSubTotal(order.getTotalPrice());
+        res.setTotalPrice(order.getFinalPrice());
+        res.setShippingFee(order.getShippingFee());
+        res.setReceiverName(order.getReceiverName());
+        res.setPhone(order.getPhone());
+        res.setProvince(order.getProvince());
+        res.setDistrict(order.getDistrict());
+        res.setWard(order.getWard());
+        res.setShippingAddress(order.getShippingAddress());
+        res.setCreatedAt(order.getCreatedAt());
+        res.setPaymentMethod(paymentMethod);
+        res.setPaymentUrl(paymentUrl);
+        if (order.getPayment() != null) {
+            res.setTransactionID(order.getPayment().getTransactionId());
+        }
+        if (order.getUser() != null) {
+            ResGetOrderDTO.UserInner user = new ResGetOrderDTO.UserInner();
+            user.setId(order.getUser().getId());
+            user.setEmail(order.getUser().getEmail());
+            res.setUser(user);
+        }
+        res.setItems(java.util.Collections.emptyList());
+        return res;
     }
 
     public Order handleConfirmOrder(String token) throws IdInvalidException {

@@ -46,6 +46,15 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long>, Jpa
             """)
     int reserveStockAtomically(@Param("inventoryId") Long inventoryId, @Param("quantity") int quantity);
 
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            UPDATE Inventory i
+            SET i.stock = i.stock - :quantity,
+                i.reservedStock = i.reservedStock + :quantity
+            WHERE i.id = :inventoryId
+            """)
+    int applyReservationDelta(@Param("inventoryId") Long inventoryId, @Param("quantity") int quantity);
+
     @Query("SELECT p.name as name, SUM(i.stock * pv.price) as totalValue " +
            "FROM Inventory i JOIN i.productVariant pv JOIN pv.product p " +
            "GROUP BY p.id, p.name ORDER BY totalValue DESC")

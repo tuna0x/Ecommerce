@@ -33,21 +33,20 @@ public class CartController {
     @APIMessage("Add to cart successfully")
     public ResponseEntity<ResAddToCart> addToCart(@Valid @RequestBody ReqAddToCartDTO req) throws IdInvalidException {
         Cart cart=this.cartService.addToCart(req);
-        return ResponseEntity.ok().body(this.cartService.convertToResAddToCart(cart));
+        return ResponseEntity.ok().body(this.cartService.convertToLightResAddToCart(cart));
     }
 
     @GetMapping("/cart")
     @APIMessage("Get cart successfully")
     public ResponseEntity<ResGetCart> getCart() {
-        Cart cart =this.cartService.getOrCreateCart();
-        return ResponseEntity.ok().body(this.cartService.convertToResGetCart(cart));
+        return ResponseEntity.ok().body(this.cartService.getCurrentCartSummary());
     }
 
     @PutMapping("/cart")
     @APIMessage("Update cart item quantity successfully")
     public ResponseEntity<ResAddToCart> updateQuantity(@Valid @RequestBody ReqUpdateQuantityDTO req) throws IdInvalidException {
         Cart cart = this.cartService.updateQuantity(req);
-        return ResponseEntity.ok().body(this.cartService.convertToResAddToCart(cart));
+        return ResponseEntity.ok().body(this.cartService.convertToLightResAddToCart(cart));
     }
 
     @DeleteMapping("/cart/{id}")

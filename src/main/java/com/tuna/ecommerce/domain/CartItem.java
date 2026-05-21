@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
@@ -22,7 +23,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "cartItems")
+@Table(name = "cartItems", indexes = {
+        @Index(name = "idx_cart_items_cart_product_variant", columnList = "cart_id, product_id, product_variant_id")
+})
 @Getter
 @Setter
 @AllArgsConstructor

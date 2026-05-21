@@ -11,8 +11,16 @@ public interface UserRepository extends JpaRepository<User,Long>,JpaSpecificatio
 
     boolean existsByEmail(String email);
 
-    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role", "role.permissions"})
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role", "userProfile"})
     User findByEmail(String email);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role"})
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.email = :email")
+    User findByEmailForAuth(@org.springframework.data.repository.query.Param("email") String email);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"role", "role.permissions"})
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.email = :email")
+    User findByEmailWithPermissions(@org.springframework.data.repository.query.Param("email") String email);
 
     User findByRefreshTokenAndEmail(String refreshToken, String email);
     

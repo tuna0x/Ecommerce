@@ -54,52 +54,26 @@ public class CartService {
             cart.setUser(user);
             cart.setItems(new ArrayList<>());
             cart = this.cartRepository.save(cart);
-        } else {
-            java.util.Map<String, CartItem> uniqueItems = new java.util.HashMap<>();
-            List<CartItem> toRemove = new ArrayList<>();
-            boolean changed = false;
-
-            for (CartItem item : cart.getItems()) {
-                // 1. Dynamic Price Sync
-                com.tuna.ecommerce.domain.response.product.ResProductDTO productDTO = this.productService.convertToResProductDTO(item.getProduct());
-                BigDecimal currentPrice = productDTO.getFinalPrice();
-                if (item.getProductVariant() != null && productDTO.getVariants() != null) {
-                    for (com.tuna.ecommerce.domain.response.product.ResProductDTO.ProductVariantInner vi : productDTO.getVariants()) {
-                        if (vi.getId() == item.getProductVariant().getId()) {
-                            currentPrice = vi.getFinalPrice() != null ? vi.getFinalPrice() : vi.getPrice();
-                            break;
-                        }
-                    }
-                }
-                if (currentPrice != null && (item.getUnitPrice() == null || item.getUnitPrice().compareTo(currentPrice) != 0)) {
-                    item.setUnitPrice(currentPrice);
-                    item.setTotalPrice(currentPrice.multiply(java.math.BigDecimal.valueOf(item.getQuantity())));
-                    changed = true;
-                }
-
-                // 2. Duplicate Detection
-                String key = item.getProduct().getId() + "-" + (item.getProductVariant() != null ? item.getProductVariant().getId() : "null");
-                if (uniqueItems.containsKey(key)) {
-                    CartItem existing = uniqueItems.get(key);
-                    existing.setQuantity(existing.getQuantity() + item.getQuantity());
-                    if (existing.getUnitPrice() != null) {
-                        existing.setTotalPrice(existing.getUnitPrice().multiply(java.math.BigDecimal.valueOf(existing.getQuantity())));
-                    }
-                    toRemove.add(item);
-                    changed = true;
-                } else {
-                    uniqueItems.put(key, item);
-                }
-            }
-
-            if (changed) {
-                for (CartItem item : toRemove) {
-                    cart.removeCartItem(item);
-                }
-                cart = this.cartRepository.save(cart);
-            }
         }
         return cart;
+    }
+
+    public Cart getOrCreatePlainCart() {
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null) return null;
+
+        Cart cart = this.cartRepository.findPlainByUserEmail(email).orElse(null);
+        if (cart != null) {
+            return cart;
+        }
+
+        User user = this.userRepository.findByEmail(email);
+        if (user == null) return null;
+
+        cart = new Cart();
+        cart.setUser(user);
+        cart.setItems(new ArrayList<>());
+        return this.cartRepository.save(cart);
     }
 
     @Retryable(
@@ -108,7 +82,7 @@ public class CartService {
         backoff = @Backoff(delay = 500)
     )
     public Cart addToCart(ReqAddToCartDTO req) throws IdInvalidException {
-        Cart cart = this.getOrCreateCart();
+        Cart cart = this.getOrCreatePlainCart();
         if (cart == null) throw new IdInvalidException("User cart not found");
 
         Product product = this.productService.handleGetById(req.getProductId());
@@ -124,12 +98,8 @@ public class CartService {
 
         final ProductVariant finalVariant = variant;
 
-        // Check if item already exists in cart with SAME product AND SAME variant
-        CartItem cartItem = cart.getItems().stream()
-                .filter(item -> item.getProduct().getId().equals(req.getProductId()) &&
-                               (finalVariant == null ? item.getProductVariant() == null : 
-                                finalVariant.getId().equals(item.getProductVariant() != null ? item.getProductVariant().getId() : null)))
-                .findFirst()
+        CartItem cartItem = this.cartItemRepository
+                .findByCartProductAndVariant(cart.getId(), req.getProductId(), finalVariant != null ? finalVariant.getId() : null)
                 .orElse(null);
 
         BigDecimal price = variant != null && variant.getPrice() != null ? variant.getPrice() : product.getOriginalPrice();
@@ -238,6 +208,74 @@ public class CartService {
                                 .collect(Collectors.toList()) : null))
                 .collect(Collectors.toList());
         res.setItem(list);
+        return res;
+    }
+
+    public ResGetCart getCurrentCartSummary() {
+        Cart cart = this.getOrCreatePlainCart();
+        ResGetCart res = new ResGetCart();
+        if (cart == null) {
+            res.setItem(Collections.emptyList());
+            return res;
+        }
+
+        res.setId(cart.getId());
+        if (cart.getUser() != null) {
+            ResGetCart.UserInner resUser = new ResGetCart.UserInner();
+            resUser.setId(cart.getUser().getId());
+            if (cart.getUser().getUserProfile() != null) {
+                resUser.setName(cart.getUser().getUserProfile().getName());
+            }
+            res.setUser(resUser);
+        }
+
+        String email = SecurityUtil.getCurrentUserLogin().orElse(null);
+        if (email == null) {
+            res.setItem(Collections.emptyList());
+            return res;
+        }
+
+        List<Object[]> rows = this.cartItemRepository.findCartSummaryByUserEmail(email);
+        if (!rows.isEmpty()) {
+            Object[] first = rows.get(0);
+            ResGetCart.UserInner resUser = new ResGetCart.UserInner();
+            resUser.setId((Long) first[1]);
+            resUser.setName((String) first[2]);
+            res.setUser(resUser);
+        }
+
+        List<ResGetCart.CartItemInner> list = rows.stream()
+                .map(row -> new ResGetCart.CartItemInner(
+                        (Long) row[3],
+                        new ResGetCart.CartItemInner.ProductIner(
+                                (Long) row[4],
+                                (String) row[5],
+                                row[6] != null ? (String) row[6] : "",
+                                row[7] != null ? (String) row[7] : "No Brand",
+                                row[13] != null ? (BigDecimal) row[13] : (BigDecimal) row[8],
+                                row[14] != null ? ((Number) row[14]).intValue() : 0),
+                        (BigDecimal) row[9],
+                        row[10] != null ? ((Number) row[10]).intValue() : 0,
+                        (BigDecimal) row[11],
+                        (Long) row[12],
+                        null))
+                .collect(Collectors.toList());
+        res.setItem(list);
+        return res;
+    }
+
+    public ResAddToCart convertToLightResAddToCart(Cart cart) {
+        ResAddToCart res = new ResAddToCart();
+        res.setId(cart.getId());
+        if (cart.getUser() != null) {
+            ResAddToCart.UserInner resUser = new ResAddToCart.UserInner();
+            resUser.setId(cart.getUser().getId());
+            if (cart.getUser().getUserProfile() != null) {
+                resUser.setName(cart.getUser().getUserProfile().getName());
+            }
+            res.setUser(resUser);
+        }
+        res.setItem(Collections.emptyList());
         return res;
     }
 
