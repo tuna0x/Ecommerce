@@ -14,14 +14,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import com.tuna.ecommerce.config.RabbitMQConfig;
 import com.tuna.ecommerce.domain.Address;
-import com.tuna.ecommerce.domain.CartItem;
 import com.tuna.ecommerce.domain.CheckoutRequest;
 import com.tuna.ecommerce.domain.User;
 import com.tuna.ecommerce.domain.message.CheckoutMessage;
 import com.tuna.ecommerce.domain.request.order.ReqCheckoutDTO;
 import com.tuna.ecommerce.domain.response.order.ResCheckoutAsyncDTO;
 import com.tuna.ecommerce.domain.response.order.ResGetOrderDTO;
-import com.tuna.ecommerce.repository.CartItemRepository;
 import com.tuna.ecommerce.repository.CheckoutRequestRepository;
 import com.tuna.ecommerce.ultil.SecurityUtil;
 import com.tuna.ecommerce.ultil.constant.CheckoutStatusEnum;
@@ -38,7 +36,6 @@ public class CheckoutAsyncService {
     private final CheckoutRequestRepository checkoutRequestRepository;
     private final UserService userService;
     private final AddressService addressService;
-    private final CartItemRepository cartItemRepository;
     private final RabbitTemplate rabbitTemplate;
     private final OrderService orderService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -64,20 +61,6 @@ public class CheckoutAsyncService {
         Address address = addressService.getAddressById(req.getAddressId());
         if (address == null || address.getUser() == null || !address.getUser().getId().equals(user.getId())) {
             throw new IdInvalidException("Dia chi giao hang khong hop le.");
-        }
-
-        List<CartItem> cartItems = cartItemRepository.findByIdIn(req.getCartItemId());
-        long requestedItemCount = req.getCartItemId().stream().distinct().count();
-        if (cartItems.isEmpty() || cartItems.size() != requestedItemCount) {
-            throw new IdInvalidException("Gio hang cua ban dang trong.");
-        }
-
-        boolean hasInvalidOwner = cartItems.stream()
-                .anyMatch(item -> item.getCart() == null
-                        || item.getCart().getUser() == null
-                        || !item.getCart().getUser().getId().equals(user.getId()));
-        if (hasInvalidOwner) {
-            throw new IdInvalidException("Gio hang khong hop le.");
         }
 
         CheckoutRequest checkoutRequest = new CheckoutRequest();
@@ -126,6 +109,7 @@ public class CheckoutAsyncService {
             ResGetOrderDTO order = orderService.createOrderAsync(req, checkoutRequest.getUser().getEmail());
             checkoutRequest.setOrderId(order.getId());
             checkoutRequest.setPaymentUrl(order.getPaymentUrl());
+            checkoutRequest.setTransactionId(order.getTransactionID());
             checkoutRequest.setStatus(order.getPaymentUrl() != null
                     ? CheckoutStatusEnum.PAYMENT_REQUIRED
                     : CheckoutStatusEnum.SUCCESS);
@@ -177,25 +161,13 @@ public class CheckoutAsyncService {
     }
 
     private ResCheckoutAsyncDTO toResponse(CheckoutRequest checkoutRequest) {
-        String transactionId = null;
-        if (checkoutRequest.getOrderId() != null) {
-            try {
-                com.tuna.ecommerce.domain.Order order = orderService.getOrder(checkoutRequest.getOrderId());
-                if (order != null && order.getPayment() != null) {
-                    transactionId = order.getPayment().getTransactionId();
-                }
-            } catch (Exception e) {
-                log.warn("Failed to load payment transactionId for checkout request response: {}", e.getMessage());
-            }
-        }
-
         return ResCheckoutAsyncDTO.builder()
                 .checkoutId(checkoutRequest.getRequestId())
                 .status(checkoutRequest.getStatus())
                 .orderId(checkoutRequest.getOrderId())
                 .paymentUrl(checkoutRequest.getPaymentUrl())
                 .message(checkoutRequest.getErrorMessage())
-                .transactionId(transactionId)
+                .transactionId(checkoutRequest.getTransactionId())
                 .build();
     }
 

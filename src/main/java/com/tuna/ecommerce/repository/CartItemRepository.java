@@ -5,6 +5,9 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.tuna.ecommerce.domain.CartItem;
@@ -22,4 +25,19 @@ public interface CartItemRepository extends JpaRepository<CartItem,Long>,JpaSpec
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @EntityGraph(attributePaths = {"cart", "cart.user", "product", "productVariant"})
     List<CartItem> findByIdIn(List<Long> list);
+
+    @Modifying
+    @Query("""
+            DELETE FROM CartItem ci
+            WHERE ci.cart.id = :cartId
+              AND ci.product.id = :productId
+              AND (
+                    (:variantId IS NULL AND ci.productVariant IS NULL)
+                    OR (:variantId IS NOT NULL AND ci.productVariant.id = :variantId)
+                  )
+            """)
+    int deleteByCartProductAndVariant(
+            @Param("cartId") Long cartId,
+            @Param("productId") Long productId,
+            @Param("variantId") Long variantId);
 }

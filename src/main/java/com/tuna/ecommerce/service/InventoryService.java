@@ -2,6 +2,7 @@ package com.tuna.ecommerce.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -39,8 +40,6 @@ public class InventoryService {
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductVariantRepository productVariantRepository;
     private final TelegramService telegramService;
-    private final jakarta.persistence.EntityManager entityManager;
-
     public int getCurrentStock(Long productId, Long variantId) throws IdInvalidException {
         return getOrCreateInventory(productId, variantId).getStock();
     }
@@ -68,6 +67,31 @@ public class InventoryService {
                 });
     }
 
+    private Inventory getOrCreateInventoryForReservation(Long productId, Long variantId) throws IdInvalidException {
+        ProductVariant variant;
+
+        if (variantId == null) {
+            if (productId == null) throw new IdInvalidException("Product ID must not be null");
+            variant = productVariantRepository.findFirstByProduct_IdAndDeletedFalseOrderByIdAsc(productId)
+                    .orElseThrow(() -> new IdInvalidException(
+                            "Há»‡ thá»‘ng khÃ´ng tÃ¬m tháº¥y kho hÃ ng cho sáº£n pháº©m nÃ y."));
+        } else {
+            Optional<Inventory> existingInventory = inventoryRepository.findByProductVariantId(variantId);
+            if (existingInventory.isPresent()) {
+                return existingInventory.get();
+            }
+            variant = productVariantRepository.getReferenceById(variantId);
+        }
+
+        return inventoryRepository.findByProductVariantId(variant.getId())
+                .orElseGet(() -> {
+                    Inventory newInv = new Inventory();
+                    newInv.setProductVariant(variant);
+                    newInv.setStock(0);
+                    return inventoryRepository.save(newInv);
+                });
+    }
+
     @Transactional
     public Inventory reserveStock(Long productId, Long variantId, int quantity) throws IdInvalidException {
         if (quantity <= 0) {
@@ -76,7 +100,7 @@ public class InventoryService {
 
         Inventory inventory;
         try {
-            inventory = getOrCreateInventory(productId, variantId);
+            inventory = getOrCreateInventoryForReservation(productId, variantId);
         } catch (IdInvalidException e) {
             log.warn("Skipping stock reservation: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
             return null;
@@ -87,7 +111,7 @@ public class InventoryService {
             throw new IdInvalidException("Chỉ còn " + inventory.getStock() + " sản phẩm trong kho.");
         }
 
-        entityManager.refresh(inventory);
+        int remainingStock = inventory.getStock() - quantity;
 
         InventoryLog log = new InventoryLog();
         log.setInventory(inventory);
@@ -96,7 +120,7 @@ public class InventoryService {
         log.setNote("Giữ hàng cho đơn hàng mới");
         inventoryLogRepository.save(log);
         
-        checkLowStockAndNotify(inventory);
+        checkLowStockAndNotify(inventory, remainingStock);
 
         return inventory;
     }
@@ -194,7 +218,11 @@ public class InventoryService {
     }
     
     private void checkLowStockAndNotify(Inventory inventory) {
-        if (inventory.getStock() < inventory.getMinStockThreshold()) {
+        checkLowStockAndNotify(inventory, inventory.getStock());
+    }
+
+    private void checkLowStockAndNotify(Inventory inventory, int currentStock) {
+        if (currentStock < inventory.getMinStockThreshold()) {
             String productName = "N/A";
             String sku = "N/A";
             if (inventory.getProductVariant() != null) {
@@ -203,7 +231,7 @@ public class InventoryService {
                     productName = inventory.getProductVariant().getProduct().getName();
                 }
             }
-            telegramService.sendLowStockAlert(productName, sku, inventory.getStock());
+            telegramService.sendLowStockAlert(productName, sku, currentStock);
         }
     }
 
