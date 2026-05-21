@@ -85,7 +85,7 @@ public class CartService {
         Cart cart = this.getOrCreatePlainCart();
         if (cart == null) throw new IdInvalidException("User cart not found");
 
-        Product product = this.productService.handleGetById(req.getProductId());
+        Product product = this.productService.handleGetPlainById(req.getProductId());
         if (product == null) {
             throw new IdInvalidException("Product not found with id: " + req.getProductId());
         }

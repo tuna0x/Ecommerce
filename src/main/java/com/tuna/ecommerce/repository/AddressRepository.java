@@ -12,4 +12,5 @@ import com.tuna.ecommerce.domain.Address;
 public interface AddressRepository extends JpaRepository<Address,Long>,JpaSpecificationExecutor<Address>{
     Address findByUserIdAndIsDefaultTrue(Long userId);
     List<Address> findByUserId(Long userId);
+    boolean existsByIdAndUserId(Long id, Long userId);
 }
