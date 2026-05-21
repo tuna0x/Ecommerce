@@ -17,6 +17,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.dao.CannotAcquireLockException;
@@ -49,6 +51,7 @@ public class FlashSaleService {
     private final ProductVariantRepository productVariantRepository;
     private final com.tuna.ecommerce.repository.InventoryRepository inventoryRepository;
     private final ProductService productService;
+    private final CacheManager cacheManager;
 
     public FlashSaleService(
             FlashSaleCampaignRepository flashSaleCampaignRepository,
@@ -56,13 +59,15 @@ public class FlashSaleService {
             ProductRepository productRepository,
             ProductVariantRepository productVariantRepository,
             com.tuna.ecommerce.repository.InventoryRepository inventoryRepository,
-            @Lazy ProductService productService) {
+            @Lazy ProductService productService,
+            CacheManager cacheManager) {
         this.flashSaleCampaignRepository = flashSaleCampaignRepository;
         this.flashSaleItemRepository = flashSaleItemRepository;
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
         this.inventoryRepository = inventoryRepository;
         this.productService = productService;
+        this.cacheManager = cacheManager;
     }
 
     @Cacheable(value = "active_flash_sale_item", key = "'product_' + #productId")
@@ -85,10 +90,6 @@ public class FlashSaleService {
     }
 
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "active_flash_sale_item", key = "'product_' + #productId"),
-            @CacheEvict(value = "active_flash_sale_item", key = "#variantId == null ? 'variant_null' : 'variant_' + #variantId")
-    })
     public void reserveSoldQuantity(Long productId, Long variantId, int quantity) throws IdInvalidException {
         if (quantity <= 0) {
             throw new IdInvalidException("So luong flash sale phai lon hon 0.");
@@ -107,6 +108,14 @@ public class FlashSaleService {
         int updatedRows = flashSaleItemRepository.reserveSoldQuantityAtomically(item.get().getId(), quantity);
         if (updatedRows == 0) {
             throw new IdInvalidException("Flash sale da het suat.");
+        }
+
+        Cache cache = cacheManager.getCache("active_flash_sale_item");
+        if (cache != null) {
+            cache.evict("product_" + productId);
+            if (variantId != null) {
+                cache.evict("variant_" + variantId);
+            }
         }
     }
 

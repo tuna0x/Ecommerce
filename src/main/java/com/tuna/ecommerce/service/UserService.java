@@ -326,7 +326,7 @@ public class UserService {
 
     @Cacheable(value = "user_permissions", key = "#email", unless = "#result == null")
     public List<ResUserPermissionDTO> getPermissionsByEmail(String email) {
-        User user = this.findByUsername(email);
+        User user = this.userRepository.findByEmailWithPermissions(email);
         if (user != null && user.getRole() != null) {
             return user.getRole().getPermissions().stream()
                     .map(p -> new ResUserPermissionDTO(p.getName(), p.getApiPath(), p.getMethod(), p.getModule()))
@@ -337,6 +337,10 @@ public class UserService {
 
     public User findByUsername(String email) {
         return this.userRepository.findByEmail(email);
+    }
+
+    public User findByUsernameForAuth(String email) {
+        return this.userRepository.findByEmailForAuth(email);
     }
 
     public void updateUserToken(String token, String email) {

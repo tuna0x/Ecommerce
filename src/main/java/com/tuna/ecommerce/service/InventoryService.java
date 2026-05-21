@@ -6,6 +6,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tuna.ecommerce.domain.Inventory;
@@ -40,6 +42,7 @@ public class InventoryService {
     private final InventoryLogRepository inventoryLogRepository;
     private final ProductVariantRepository productVariantRepository;
     private final TelegramService telegramService;
+    private final RedisInventoryReservationService redisInventoryReservationService;
     public int getCurrentStock(Long productId, Long variantId) throws IdInvalidException {
         return getOrCreateInventory(productId, variantId).getStock();
     }
@@ -106,6 +109,20 @@ public class InventoryService {
             return null;
         }
 
+        if (redisInventoryReservationService.isEnabled()) {
+            try {
+                int remainingStock = redisInventoryReservationService.reserve(inventory, quantity);
+                registerRedisReservationSynchronization(inventory.getId(), quantity);
+                checkLowStockAndNotify(inventory, remainingStock);
+                return inventory;
+            } catch (IdInvalidException e) {
+                throw e;
+            } catch (Exception e) {
+                log.warn("Redis inventory reservation failed. Falling back to database reservation. inventoryId={}",
+                        inventory.getId(), e);
+            }
+        }
+
         int updatedRows = inventoryRepository.reserveStockAtomically(inventory.getId(), quantity);
         if (updatedRows == 0) {
             throw new IdInvalidException("Chỉ còn " + inventory.getStock() + " sản phẩm trong kho.");
@@ -125,6 +142,55 @@ public class InventoryService {
         return inventory;
     }
 
+    private void registerRedisReservationSynchronization(Long inventoryId, int quantity) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            redisInventoryReservationService.enqueueDatabaseFlush(inventoryId, quantity);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                redisInventoryReservationService.enqueueDatabaseFlush(inventoryId, quantity);
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    redisInventoryReservationService.releaseReservation(inventoryId, quantity);
+                }
+            }
+        });
+    }
+
+    private void registerRedisReleaseSynchronization(Long inventoryId, int quantity) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            redisInventoryReservationService.enqueueDatabaseFlush(inventoryId, -quantity);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                redisInventoryReservationService.enqueueDatabaseFlush(inventoryId, -quantity);
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    try {
+                        redisInventoryReservationService.reserve(
+                                inventoryRepository.getReferenceById(inventoryId),
+                                quantity);
+                    } catch (Exception e) {
+                        log.error("Failed to restore Redis reservation after transaction rollback. inventoryId={}",
+                                inventoryId, e);
+                    }
+                }
+            }
+        });
+    }
+
     @Transactional
     public void commitStock(Long productId, Long variantId, int quantity, String note) throws IdInvalidException {
         Inventory inventory;
@@ -133,6 +199,13 @@ public class InventoryService {
         } catch (IdInvalidException e) {
             log.warn("Skipping stock commit: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
             return;
+        }
+
+        if (redisInventoryReservationService.isEnabled()
+                && redisInventoryReservationService.hasReservationState(inventory.getId())
+                && redisInventoryReservationService.getPendingFlushQuantity(inventory.getId()) != 0) {
+            throw new IdInvalidException(
+                    "Ton kho dang dong bo tu Redis. Vui long thu lai sau vai giay truoc khi xac nhan don.");
         }
 
         if (inventory.getReservedStock() < quantity) {
@@ -164,6 +237,18 @@ public class InventoryService {
         } catch (IdInvalidException e) {
             log.warn("Skipping stock release: {} (Product ID: {}, Variant ID: {})", e.getMessage(), productId, variantId);
             return;
+        }
+
+        if (redisInventoryReservationService.isEnabled()
+                && redisInventoryReservationService.hasReservationState(inventory.getId())) {
+            int released = redisInventoryReservationService.releaseReservation(inventory.getId(), quantity);
+            if (released > 0) {
+                registerRedisReleaseSynchronization(inventory.getId(), released);
+                if (released >= quantity) {
+                    return;
+                }
+                quantity -= released;
+            }
         }
 
         inventory.setReservedStock(Math.max(0, inventory.getReservedStock() - quantity));
