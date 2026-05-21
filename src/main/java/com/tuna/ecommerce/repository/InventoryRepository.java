@@ -20,6 +20,8 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long>, Jpa
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"productVariant", "productVariant.product", "productVariant.product.category", "productVariant.product.images"})
     Optional<Inventory> findByProductVariant(ProductVariant productVariant);
 
+    Optional<Inventory> findByProductVariantId(Long productVariantId);
+
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"productVariant", "productVariant.product", "productVariant.product.category", "productVariant.product.images"})
     org.springframework.data.domain.Page<Inventory> findAll(org.springframework.data.jpa.domain.Specification<Inventory> spec, org.springframework.data.domain.Pageable pageable);
     

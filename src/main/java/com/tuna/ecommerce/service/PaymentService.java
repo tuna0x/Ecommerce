@@ -78,6 +78,10 @@ public class PaymentService {
 
     public Payment createCODPayment(Long orderId) {
         Order order = this.orderService.getOrder(orderId);
+        return createCODPayment(order);
+    }
+
+    public Payment createCODPayment(Order order) {
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setMethod(PaymentMethodEnum.COD);
@@ -101,6 +105,10 @@ public class PaymentService {
 
     public Payment createPendingVNPayPayment(Long orderId) {
         Order order = this.orderService.getOrder(orderId);
+        return createPendingVNPayPayment(order);
+    }
+
+    public Payment createPendingVNPayPayment(Order order) {
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setMethod(PaymentMethodEnum.VNPAY);
@@ -124,6 +132,10 @@ public class PaymentService {
 
     public Payment createPendingPayOSPayment(Long orderId) {
         Order order = this.orderService.getOrder(orderId);
+        return createPendingPayOSPayment(order);
+    }
+
+    public Payment createPendingPayOSPayment(Order order) {
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setMethod(PaymentMethodEnum.PAYOS);

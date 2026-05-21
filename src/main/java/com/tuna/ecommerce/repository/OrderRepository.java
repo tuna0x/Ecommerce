@@ -24,8 +24,12 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Page<Order> findAll(Specification<Order> spec, Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = { "items", "items.product", "payment" })
+    @EntityGraph(attributePaths = { "user", "user.userProfile", "items", "items.product", "items.productVariant", "payment" })
     Optional<Order> findById(Long id);
+
+    @EntityGraph(attributePaths = { "user", "user.userProfile", "items", "items.product", "items.productVariant", "payment" })
+    @Query("SELECT o FROM Order o WHERE o.id = :id")
+    Optional<Order> findCheckoutDetailsById(@Param("id") Long id);
 
     @EntityGraph(attributePaths = { "items", "payment" })
     Optional<Order> findByUserIdAndId(Long userId, Long id);

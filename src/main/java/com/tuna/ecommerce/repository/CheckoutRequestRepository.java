@@ -16,7 +16,6 @@ public interface CheckoutRequestRepository extends JpaRepository<CheckoutRequest
     @EntityGraph(attributePaths = {"user"})
     Optional<CheckoutRequest> findByRequestId(String requestId);
 
-    @EntityGraph(attributePaths = {"user"})
     Optional<CheckoutRequest> findByRequestIdAndUserId(String requestId, Long userId);
 
     @EntityGraph(attributePaths = {"user"})

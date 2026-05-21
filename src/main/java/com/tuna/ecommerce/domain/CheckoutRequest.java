@@ -13,6 +13,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
@@ -25,7 +26,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "checkout_requests")
+@Table(
+        name = "checkout_requests",
+        indexes = {
+                @Index(name = "idx_checkout_request_user", columnList = "request_id,user_id"),
+                @Index(name = "idx_checkout_status_updated", columnList = "status,updated_at")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -64,6 +71,8 @@ public class CheckoutRequest {
 
     @Column(length = 2048)
     private String paymentUrl;
+
+    private String transactionId;
 
     @Column(length = 2048)
     private String errorMessage;

@@ -407,6 +407,8 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         // ORDER
         perms.add(new PermDef("Create a order", "/api/v1/order/checkout", "POST", "ORDER", true));
+        perms.add(new PermDef("Submit async checkout", "/api/v1/order/checkout/async", "POST", "ORDER", true));
+        perms.add(new PermDef("Get async checkout status", "/api/v1/order/checkout/status/{checkoutId}", "GET", "ORDER", true));
         perms.add(new PermDef("Get order by id", "/api/v1/order/{id}", "GET", "ORDER", true));
         perms.add(new PermDef("Get my orders with pagination", "/api/v1/order/me", "GET", "ORDER", true));
         perms.add(new PermDef("Admin get all orders", "/api/v1/order/admin/all", "GET", "ORDER", false));

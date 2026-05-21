@@ -338,14 +338,14 @@ public class OrderService {
         // Payment Handling (Synchronous DB Record Creation)
         switch (paymentMethod) {
             case VNPAY:
-                this.paymentService.createPendingVNPayPayment(savedOrder.getId());
+                this.paymentService.createPendingVNPayPayment(savedOrder);
                 break;
             case PAYOS:
-                this.paymentService.createPendingPayOSPayment(savedOrder.getId());
+                this.paymentService.createPendingPayOSPayment(savedOrder);
                 break;
             case COD:
             default:
-                this.paymentService.createCODPayment(savedOrder.getId());
+                this.paymentService.createCODPayment(savedOrder);
                 break;
         }
 
@@ -692,18 +692,11 @@ public class OrderService {
         if (user != null && user.getCart() != null) {
             Long cartId = user.getCart().getId();
             for (OrderItem item : order.getItems()) {
-                // Find matching cart item by cartId, product, and variant
                 Long variantId = (item.getProductVariant() != null) ? item.getProductVariant().getId() : null;
-
-                List<CartItem> cartItems = this.cartItemRepository.findAll().stream()
-                        .filter(ci -> ci.getCart().getId().equals(cartId) &&
-                                ci.getProduct().getId().equals(item.getProduct().getId()))
-                        .filter(ci -> (variantId == null && ci.getProductVariant() == null) ||
-                                (variantId != null && ci.getProductVariant() != null
-                                        && ci.getProductVariant().getId().equals(variantId)))
-                        .collect(java.util.stream.Collectors.toList());
-
-                this.cartItemRepository.deleteAll(cartItems);
+                this.cartItemRepository.deleteByCartProductAndVariant(
+                        cartId,
+                        item.getProduct().getId(),
+                        variantId);
             }
         }
     }
@@ -848,10 +841,7 @@ public class OrderService {
     }
 
     public void forceLoadOrder(Order order) {
-        // Re-fetch from DB to get a managed entity in the current persistence context.
-        // This is necessary because @Modifying(clearAutomatically=true) on reserveStockAtomically
-        // clears the entire persistence context, detaching all previously loaded entities/proxies.
-        Order managed = this.orderRepository.findById(order.getId()).orElse(null);
+        Order managed = this.orderRepository.findCheckoutDetailsById(order.getId()).orElse(null);
         if (managed == null) return;
 
         // Force load on managed entity (session is active)
