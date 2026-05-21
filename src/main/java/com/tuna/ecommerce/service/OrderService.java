@@ -357,8 +357,6 @@ public class OrderService {
             this.cartItemRepository.deleteAll(cartItems);
         }
 
-        // Initialize lazy collections for Async Email processing
-        this.forceLoadOrder(savedOrder);
         return savedOrder;
     }
 
@@ -414,10 +412,12 @@ public class OrderService {
 
         // 3. PHASE 3: Async Notifications & Emails
         boolean isCod = paymentMethod == PaymentMethodEnum.COD;
+        this.forceLoadOrder(savedOrder);
+
         this.emailService.sendOrderConfirmationEmail(savedOrder, isCod);
 
-        this.notificationService.createNotification(
-                savedOrder.getUser(),
+        this.notificationService.createNotificationAsync(
+                savedOrder.getUser().getId(),
                 "Đặt hàng thành công",
                 "Đơn hàng #" + savedOrder.getId() + " của bạn đã được tiếp nhận và đang chờ xử lý.",
                 "ORDER_SUCCESS");

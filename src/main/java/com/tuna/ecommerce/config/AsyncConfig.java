@@ -15,9 +15,9 @@ public class AsyncConfig {
     @Primary
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(500);
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(30);
+        executor.setQueueCapacity(2000);
         executor.setThreadNamePrefix("Ecommerce-Async-");
         executor.initialize();
         return executor;
