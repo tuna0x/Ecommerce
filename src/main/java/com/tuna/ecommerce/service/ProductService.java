@@ -577,6 +577,105 @@ public class ProductService {
         return rs;
     }
 
+    @Cacheable(value = "products", key = "{'search', #query, #categoryId, #page.pageNumber, #page.pageSize}")
+    public ResultPaginationDTO searchProducts(String query, Long categoryId, Pageable page) {
+        String trimmedQuery = query == null ? "" : query.trim();
+        if (trimmedQuery.isEmpty()) {
+            return buildProductPaginationResult(Page.empty(page));
+        }
+
+        ResultPaginationDTO fullTextResult = trySearchProductsByFullText(categoryId, trimmedQuery, page);
+        if (fullTextResult != null) {
+            return fullTextResult;
+        }
+
+        return searchProductsByLike(categoryId, trimmedQuery, page);
+    }
+
+    private ResultPaginationDTO trySearchProductsByFullText(Long categoryId, String search, Pageable page) {
+        String booleanQuery = buildFullTextBooleanQuery(search);
+        if (booleanQuery == null) {
+            return null;
+        }
+
+        boolean categoryIdsEmpty = categoryId == null;
+        List<Long> categoryIds = categoryIdsEmpty
+                ? List.of(-1L)
+                : this.categoryService.getAllIdsInHierarchy(categoryId);
+        if (!categoryIdsEmpty && categoryIds.isEmpty()) {
+            categoryIds = List.of(-1L);
+        }
+
+        try {
+            Page<Product> products = this.productRepository.searchByFullText(
+                    booleanQuery,
+                    categoryIds,
+                    categoryIdsEmpty,
+                    page);
+
+            if (products.isEmpty()) {
+                return null;
+            }
+
+            return buildProductPaginationResult(products);
+        } catch (RuntimeException ex) {
+            log.warn("FULLTEXT product search failed; falling back to LIKE search. query={}", search, ex);
+            return null;
+        }
+    }
+
+    private ResultPaginationDTO searchProductsByLike(Long categoryId, String search, Pageable page) {
+        boolean categoryIdsEmpty = categoryId == null;
+        List<Long> categoryIds = categoryIdsEmpty
+                ? List.of(-1L)
+                : this.categoryService.getAllIdsInHierarchy(categoryId);
+        if (!categoryIdsEmpty && categoryIds.isEmpty()) {
+            categoryIds = List.of(-1L);
+        }
+
+        String unsignedSearch = Product.removeVietnameseAccents(search);
+        String likeQuery = "%" + (unsignedSearch == null ? search.toLowerCase() : unsignedSearch) + "%";
+        Page<Product> products = this.productRepository.searchByNameLike(
+                likeQuery,
+                categoryIds,
+                categoryIdsEmpty,
+                page);
+        return buildProductPaginationResult(products);
+    }
+
+    private String buildFullTextBooleanQuery(String search) {
+        String normalizedSearch = Product.removeVietnameseAccents(search.trim());
+        if (normalizedSearch == null || normalizedSearch.isBlank()) {
+            return null;
+        }
+
+        List<String> tokens = new ArrayList<>();
+        for (String rawToken : normalizedSearch.split("\\s+")) {
+            String token = rawToken.replaceAll("[^A-Za-z0-9]+", "");
+            if (token.length() < 3) {
+                return null;
+            }
+            tokens.add("+" + token + "*");
+        }
+
+        return tokens.isEmpty() ? null : String.join(" ", tokens);
+    }
+
+    private ResultPaginationDTO buildProductPaginationResult(Page<Product> products) {
+        ResultPaginationDTO rs = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
+        meta.setPage(products.getNumber() + 1);
+        meta.setPageSize(products.getSize());
+        meta.setPages(products.getTotalPages());
+        meta.setTotal(products.getTotalElements());
+
+        rs.setMeta(meta);
+        rs.setResult(products.getContent().stream()
+                .map(this::convertToResProductDTO)
+                .collect(Collectors.toList()));
+        return rs;
+    }
+
     public boolean findByName(String name) {
         return this.productRepository.existsByName(name);
     }

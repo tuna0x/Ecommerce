@@ -66,6 +66,16 @@ public class ProductController {
         return ResponseEntity.ok().body(this.productService.convertToResProductDTO(existingProduct));
     }
 
+    @GetMapping("/products/search")
+    @APIMessage("Search products successfully")
+    @Operation(summary = "Search public products", description = "Search active products using MySQL FULLTEXT with LIKE fallback")
+    public ResponseEntity<ResultPaginationDTO> searchProducts(
+            @org.springframework.web.bind.annotation.RequestParam("q") String query,
+            @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
+            Pageable pageable) {
+        return ResponseEntity.ok().body(this.productService.searchProducts(query, categoryId, pageable));
+    }
+
     @GetMapping("/products/{id}")
     @APIMessage("Get product by id successfully")
     @Operation(summary = "Get a product by ID", description = "Retrieve full details of a specific product")
