@@ -83,6 +83,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE coupons DROP COLUMN public_status");
         } catch (Exception e) {
         }
+        ensureProductFullTextIndex();
 
         // 1. Ensure Roles exist
         Role adminRole = this.roleRepository.findByName("SUPER_ADMIN");
@@ -299,6 +300,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         perms.add(new PermDef("Delete a product", "/api/v1/products/{id}", "DELETE", "PRODUCTS", false));
         perms.add(new PermDef("Get a product by id", "/api/v1/products/{id}", "GET", "PRODUCTS", true));
         perms.add(new PermDef("Get products with pagination", "/api/v1/products", "GET", "PRODUCTS", true));
+        perms.add(new PermDef("Search products", "/api/v1/products/search", "GET", "PRODUCTS", true));
         perms.add(new PermDef("Get related products", "/api/v1/products/{id}/related", "GET", "PRODUCTS", true));
         perms.add(new PermDef("Get flash sale products", "/api/v1/products/flash-sale", "GET", "PRODUCTS", true));
 
@@ -552,6 +554,25 @@ public class DatabaseInitializer implements CommandLineRunner {
             c.setUsedCount(0);
             this.couponRepository.save(c);
             log.info(">>> CREATED SKINCARE MILESTONE COUPON: {}", code);
+        }
+    }
+
+    private void ensureProductFullTextIndex() {
+        try {
+            Integer count = jdbcTemplate.queryForObject("""
+                    SELECT COUNT(*)
+                    FROM information_schema.statistics
+                    WHERE table_schema = DATABASE()
+                      AND table_name = 'products'
+                      AND index_name = 'ft_products_name_name_unsigned'
+                    """, Integer.class);
+            if (count != null && count == 0) {
+                jdbcTemplate.execute(
+                        "ALTER TABLE products ADD FULLTEXT INDEX ft_products_name_name_unsigned (name, name_unsigned)");
+                log.info(">>> CREATED FULLTEXT INDEX: ft_products_name_name_unsigned");
+            }
+        } catch (Exception e) {
+            log.debug(">>> SKIP FULLTEXT INDEX INIT: {}", e.getMessage());
         }
     }
 
