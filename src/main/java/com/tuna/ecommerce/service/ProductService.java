@@ -542,7 +542,9 @@ public class ProductService {
     public ResultPaginationDTO handleGetAll(Specification<Product> spec, Long categoryId, String search,
             Pageable page, boolean isPublic) {
         // Default filter: never show deleted products
-        Specification<Product> softDeleteSpec = (root, query, cb) -> cb.equal(root.get("deleted"), false);
+        Specification<Product> softDeleteSpec = (root, query, cb) -> cb.or(
+                cb.equal(root.get("deleted"), false),
+                cb.isNull(root.get("deleted")));
         spec = (spec == null) ? softDeleteSpec : spec.and(softDeleteSpec);
 
         // Public filter: only show active products

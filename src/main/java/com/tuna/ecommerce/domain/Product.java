@@ -61,9 +61,6 @@ public class Product {
     private boolean active = true;
     @Column(name = "is_deleted")
     private Boolean deleted = false;
-    @Column(name = "deleted")
-    @JsonIgnore
-    private Boolean legacyDeleted = false;
 
     public boolean isDeleted() {
         return deleted != null && deleted;

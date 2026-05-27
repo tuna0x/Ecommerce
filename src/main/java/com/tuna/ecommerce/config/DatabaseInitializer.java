@@ -83,6 +83,7 @@ public class DatabaseInitializer implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE coupons DROP COLUMN public_status");
         } catch (Exception e) {
         }
+        ensureProductSoftDeleteColumns();
         ensureProductFullTextIndex();
 
         // 1. Ensure Roles exist
@@ -557,6 +558,32 @@ public class DatabaseInitializer implements CommandLineRunner {
             c.setUsedCount(0);
             this.couponRepository.save(c);
             log.info(">>> CREATED SKINCARE MILESTONE COUPON: {}", code);
+        }
+    }
+
+    private void ensureProductSoftDeleteColumns() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE products ADD COLUMN is_deleted BIT(1) DEFAULT b'0'");
+            log.info(">>> CREATED products.is_deleted COLUMN");
+        } catch (Exception e) {
+            log.debug(">>> SKIP ADD products.is_deleted COLUMN: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute("UPDATE products SET is_deleted = true WHERE deleted = true");
+        } catch (Exception e) {
+            log.debug(">>> SKIP COPY legacy products.deleted TO products.is_deleted: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute("UPDATE products SET is_deleted = false WHERE is_deleted IS NULL");
+            jdbcTemplate.execute("ALTER TABLE products MODIFY COLUMN is_deleted BIT(1) NOT NULL DEFAULT b'0'");
+        } catch (Exception e) {
+            log.debug(">>> SKIP SYNC products.is_deleted COLUMN: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute("ALTER TABLE products DROP COLUMN deleted");
+            log.info(">>> DROPPED legacy products.deleted COLUMN");
+        } catch (Exception e) {
+            log.debug(">>> SKIP DROP legacy products.deleted COLUMN: {}", e.getMessage());
         }
     }
 
