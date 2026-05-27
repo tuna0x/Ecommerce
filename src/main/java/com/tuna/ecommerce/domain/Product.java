@@ -60,10 +60,14 @@ public class Product {
 
     private boolean active = true;
     @Column(name = "is_deleted")
-    private boolean deleted = false;
+    private Boolean deleted = false;
     @Column(name = "deleted")
     @JsonIgnore
-    private boolean legacyDeleted = false;
+    private Boolean legacyDeleted = false;
+
+    public boolean isDeleted() {
+        return deleted != null && deleted;
+    }
 
     private String skinType; // Dầu, Khô, Hỗn hợp, Nhạy cảm, Mọi loại da
 

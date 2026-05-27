@@ -49,7 +49,11 @@ public class ProductVariant {
     private BigDecimal price; // Price override for this variant
     private double weight;
 
-    private boolean deleted = false;
+    private Boolean deleted = false;
+
+    public boolean isDeleted() {
+        return deleted != null && deleted;
+    }
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_image_id")
