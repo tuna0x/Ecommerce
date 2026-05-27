@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +23,8 @@ import com.tuna.ecommerce.domain.request.product.ReqCreateProductDTO;
 import com.tuna.ecommerce.domain.request.product.ReqUpdateProductDTO;
 import com.tuna.ecommerce.domain.response.ResultPaginationDTO;
 import com.tuna.ecommerce.domain.response.product.ResProductDTO;
+import com.tuna.ecommerce.domain.response.product.ResProductImportDTO;
+import com.tuna.ecommerce.service.ProductImportService;
 import com.tuna.ecommerce.service.ProductService;
 import com.tuna.ecommerce.ultil.anotation.APIMessage;
 import com.tuna.ecommerce.ultil.err.IdInvalidException;
@@ -40,6 +44,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 public class ProductController {
     private final ProductService productService;
     private final FlashSaleService flashSaleService;
+    private final ProductImportService productImportService;
 
     @PostMapping("/products")
     @APIMessage("Product created successfully")
@@ -74,6 +79,29 @@ public class ProductController {
             @org.springframework.web.bind.annotation.RequestParam(value = "categoryId", required = false) Long categoryId,
             Pageable pageable) {
         return ResponseEntity.ok().body(this.productService.searchProducts(query, categoryId, pageable));
+    }
+
+    @GetMapping("/products/import-template")
+    @APIMessage("Download product import template successfully")
+    public ResponseEntity<byte[]> downloadImportTemplate() throws IOException {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=product-import-template.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(this.productImportService.createTemplate());
+    }
+
+    @PostMapping("/products/import/preview")
+    @APIMessage("Preview product import successfully")
+    public ResponseEntity<ResProductImportDTO> previewImport(@RequestPart("file") MultipartFile file)
+            throws IOException {
+        return ResponseEntity.ok(this.productImportService.preview(file));
+    }
+
+    @PostMapping("/products/import")
+    @APIMessage("Import products successfully")
+    public ResponseEntity<ResProductImportDTO> importProducts(@RequestPart("file") MultipartFile file)
+            throws IOException, IdInvalidException {
+        return ResponseEntity.ok(this.productImportService.importProducts(file));
     }
 
     @GetMapping("/products/{id}")

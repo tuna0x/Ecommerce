@@ -9,5 +9,6 @@ import com.tuna.ecommerce.domain.Brand;
 @Repository
 public interface BrandRepository extends JpaRepository<Brand, Long>,JpaSpecificationExecutor<Brand>{
     boolean existsByName(String name);
+    Brand findByName(String name);
 
 }

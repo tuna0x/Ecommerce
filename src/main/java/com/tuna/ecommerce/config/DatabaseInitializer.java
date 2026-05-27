@@ -297,6 +297,9 @@ public class DatabaseInitializer implements CommandLineRunner {
         // PRODUCTS
         perms.add(new PermDef("Create a product", "/api/v1/products", "POST", "PRODUCTS", false));
         perms.add(new PermDef("Update a product", "/api/v1/products", "PUT", "PRODUCTS", false));
+        perms.add(new PermDef("Download product import template", "/api/v1/products/import-template", "GET", "PRODUCTS", false));
+        perms.add(new PermDef("Preview product import", "/api/v1/products/import/preview", "POST", "PRODUCTS", false));
+        perms.add(new PermDef("Import products from Excel", "/api/v1/products/import", "POST", "PRODUCTS", false));
         perms.add(new PermDef("Delete a product", "/api/v1/products/{id}", "DELETE", "PRODUCTS", false));
         perms.add(new PermDef("Get a product by id", "/api/v1/products/{id}", "GET", "PRODUCTS", true));
         perms.add(new PermDef("Get products with pagination", "/api/v1/products", "GET", "PRODUCTS", true));
