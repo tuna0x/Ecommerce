@@ -58,13 +58,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "GROUP BY c.id, c.name")
     List<Object[]> findCategoryDistribution();
 
-    @Query(value = "SELECT * FROM products WHERE (LOWER(name) LIKE LOWER(:query) OR LOWER(name_unsigned) LIKE LOWER(:query)) AND active = true AND deleted = false LIMIT 15", nativeQuery = true)
+    @Query(value = "SELECT * FROM products WHERE (LOWER(name) LIKE LOWER(:query) OR LOWER(name_unsigned) LIKE LOWER(:query)) AND active = true AND is_deleted = false LIMIT 15", nativeQuery = true)
     List<Product> searchByNameNative(@Param("query") String query);
 
     @Query(value = """
             SELECT p.*
             FROM products p
-            WHERE p.deleted = false
+            WHERE p.is_deleted = false
               AND p.active = true
               AND (:categoryIdsEmpty = true OR p.category_id IN (:categoryIds))
               AND MATCH(p.name, p.name_unsigned) AGAINST (:query IN BOOLEAN MODE)
@@ -72,7 +72,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             """, countQuery = """
             SELECT COUNT(*)
             FROM products p
-            WHERE p.deleted = false
+            WHERE p.is_deleted = false
               AND p.active = true
               AND (:categoryIdsEmpty = true OR p.category_id IN (:categoryIds))
               AND MATCH(p.name, p.name_unsigned) AGAINST (:query IN BOOLEAN MODE)
@@ -85,7 +85,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query(value = """
             SELECT p.*
             FROM products p
-            WHERE p.deleted = false
+            WHERE p.is_deleted = false
               AND p.active = true
               AND (:categoryIdsEmpty = true OR p.category_id IN (:categoryIds))
               AND (LOWER(p.name) LIKE LOWER(:query) OR LOWER(p.name_unsigned) LIKE LOWER(:query))
@@ -93,7 +93,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             """, countQuery = """
             SELECT COUNT(*)
             FROM products p
-            WHERE p.deleted = false
+            WHERE p.is_deleted = false
               AND p.active = true
               AND (:categoryIdsEmpty = true OR p.category_id IN (:categoryIds))
               AND (LOWER(p.name) LIKE LOWER(:query) OR LOWER(p.name_unsigned) LIKE LOWER(:query))

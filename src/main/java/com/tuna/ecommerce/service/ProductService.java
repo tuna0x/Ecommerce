@@ -110,6 +110,33 @@ public class ProductService {
         log.info(">>> ProductService: Product price sync completed.");
     }
 
+    private void sendProductImageMessage(ProductImageMessage productImageMessage, String context) {
+        try {
+            this.rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
+                    RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+            log.info("Sent product image upload message after commit for product ID{}: {}",
+                    context, productImageMessage.getProductId());
+        } catch (Exception e) {
+            log.warn("RabbitMQ is unavailable, product was saved but image upload message was not sent for product ID{}: {}",
+                    context, productImageMessage.getProductId(), e);
+            cleanupTempFiles(productImageMessage.getTempFilePaths());
+        }
+    }
+
+    private void cleanupTempFiles(List<String> filePaths) {
+        if (filePaths == null) {
+            return;
+        }
+
+        for (String path : filePaths) {
+            try {
+                java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(path));
+            } catch (Exception cleanupException) {
+                log.warn("Could not delete temp file after failed RabbitMQ publish: {}", path, cleanupException);
+            }
+        }
+    }
+
     @Caching(evict = {
             @CacheEvict(value = "products", allEntries = true),
             @CacheEvict(value = "product_detail", allEntries = true),
@@ -145,15 +172,11 @@ public class ProductService {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
-                            rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
-                                    RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
-                            log.info("Sent product image upload message after commit for product ID: {}",
-                                    productImageMessage.getProductId());
+                            sendProductImageMessage(productImageMessage, "");
                         }
                     });
                 } else {
-                    this.rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
-                            RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                    this.sendProductImageMessage(productImageMessage, "");
                 }
             } catch (Exception e) {
                 log.error("Failed to process images for product ID: {}", newProduct.getId(), e);
@@ -321,15 +344,11 @@ public class ProductService {
                     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
-                            rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
-                                    RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
-                            log.info("Sent product image upload message after commit for product ID (update): {}",
-                                    productImageMessage.getProductId());
+                            sendProductImageMessage(productImageMessage, " (update)");
                         }
                     });
                 } else {
-                    this.rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_IMAGE_EXCHANGE,
-                            RabbitMQConfig.PRODUCT_IMAGE_ROUTING_KEY, productImageMessage);
+                    this.sendProductImageMessage(productImageMessage, " (update)");
                 }
             } catch (Exception e) {
                 log.error("Failed to process images for product ID (update): {}", cur.getId(), e);
@@ -838,15 +857,17 @@ public class ProductService {
                             vi.setMaxStock(inv.getMaxStock());
                         }
 
-                        List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues().stream()
-                                .filter(av -> av != null && av.getAttribute() != null)
-                                .map(av -> {
-                                    ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
-                                    va.setName(av.getAttribute().getName());
-                                    va.setAttributeValue(av.getAttributeValue());
-                                    return va;
-                                })
-                                .collect(Collectors.toList());
+                        List<ResProductDTO.VariantAttributeInner> vaInners = v.getAttributeValues() == null
+                                ? new ArrayList<>()
+                                : v.getAttributeValues().stream()
+                                        .filter(av -> av != null && av.getAttribute() != null)
+                                        .map(av -> {
+                                            ResProductDTO.VariantAttributeInner va = new ResProductDTO.VariantAttributeInner();
+                                            va.setName(av.getAttribute().getName());
+                                            va.setAttributeValue(av.getAttributeValue());
+                                            return va;
+                                        })
+                                        .collect(Collectors.toList());
                         vi.setVariantAttributes(vaInners);
 
                         // Map Flash Sale Info for this specific variant
