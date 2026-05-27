@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class FileUtil {
-    private static final String TEMP_DIR = "temp-uploads";
+    private static final String TEMP_DIR = "ecommerce-temp-uploads";
 
     public static List<String> saveTempFiles(List<MultipartFile> files) throws IOException {
-        Path uploadPath = Paths.get(TEMP_DIR);
+        Path uploadPath = Paths.get(System.getProperty("java.io.tmpdir"), TEMP_DIR);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }

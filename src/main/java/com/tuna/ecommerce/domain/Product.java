@@ -12,6 +12,7 @@ import com.tuna.ecommerce.ultil.SecurityUtil;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -58,7 +59,11 @@ public class Product {
     private String updatedBy;
 
     private boolean active = true;
+    @Column(name = "is_deleted")
     private boolean deleted = false;
+    @Column(name = "deleted")
+    @JsonIgnore
+    private boolean legacyDeleted = false;
 
     private String skinType; // Dầu, Khô, Hỗn hợp, Nhạy cảm, Mọi loại da
 
