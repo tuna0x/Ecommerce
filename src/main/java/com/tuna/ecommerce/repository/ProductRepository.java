@@ -31,6 +31,16 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Product> findTop8ByDeletedFalseAndActiveTrueAndCategoryIdAndIdNotOrderBySoldCountDesc(Long categoryId,
             Long id);
 
+    @EntityGraph(attributePaths = { "category", "brand", "images", "productDetail" })
+    @Query("""
+            SELECT p
+            FROM Product p
+            WHERE (p.deleted = false OR p.deleted IS NULL)
+              AND p.active = true
+            ORDER BY p.soldCount DESC, p.averageRating DESC, p.reviewCount DESC, p.id DESC
+            """)
+    List<Product> findTopSellingProductsForChatbot(Pageable pageable);
+
     @EntityGraph(attributePaths = { "category", "brand" })
     Page<Product> findByDeletedFalseAndActiveTrueAndIdIn(List<Long> productIds, Pageable pageable);
 

@@ -967,20 +967,35 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public String getProductsSummaryForChatbot(String query) {
+        return getProductsSummaryForChatbot(query, true);
+    }
+
+    @Transactional(readOnly = true)
+    public String getProductSearchSummaryForChatbot(String query) {
+        return getProductsSummaryForChatbot(query, false);
+    }
+
+    @Transactional(readOnly = true)
+    public Long findFirstProductIdForChatbot(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return null;
+        }
+        List<Product> searchResults = this.productRepository.searchByNameNative("%" + query.trim() + "%");
+        return searchResults.isEmpty() ? null : searchResults.get(0).getId();
+    }
+
+    private String getProductsSummaryForChatbot(String query, boolean includeTopSellers) {
         StringBuilder sb = new StringBuilder();
 
         // 1. Fetch Top 5 Bán chạy nhất
-        List<Product> topSellers = this.productRepository.findAll(
-                org.springframework.data.domain.PageRequest
-                        .of(0, 5,
-                                org.springframework.data.domain.Sort
-                                        .by(org.springframework.data.domain.Sort.Direction.DESC, "soldCount")))
-                .getContent();
+        if (includeTopSellers) {
+            List<Product> topSellers = getTopSellingProducts(5);
 
-        if (!topSellers.isEmpty()) {
-            sb.append("--- TOÀN TRANG: 5 SẢN PHẨM BÁN CHẠY NHẤT HIỆN GẦN ĐÂY ---\n");
-            for (Product p : topSellers) {
-                appendChatbotProductInfo(sb, p);
+            if (!topSellers.isEmpty()) {
+                sb.append("--- TOÀN TRANG: 5 SẢN PHẨM BÁN CHẠY NHẤT HIỆN GẦN ĐÂY ---\n");
+                for (Product p : topSellers) {
+                    appendChatbotProductInfo(sb, p);
+                }
             }
         }
 
@@ -997,10 +1012,33 @@ public class ProductService {
         }
 
         if (sb.length() == 0) {
-            return "Hiện tại tôi không tìm thấy sản phẩm nào trong cửa hàng.";
+            return "Hiện tại tôi không tìm thấy sản phẩm phù hợp. Bạn có thể nói rõ hơn về loại da, vấn đề da hoặc ngân sách.\n"
+                    + categoryService.getCategoriesSummaryForChatbot();
         }
 
         return sb.toString();
+    }
+
+    @Transactional(readOnly = true)
+    public String getTopProductsSummaryForChatbot(int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 10));
+        List<Product> topSellers = getTopSellingProducts(safeLimit);
+
+        if (topSellers.isEmpty()) {
+            return "Hiện tại tôi chưa tìm thấy sản phẩm hot nào trong cửa hàng.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Đây là top ").append(safeLimit).append(" sản phẩm hot/bán chạy nhất hiện tại:\n");
+        for (Product p : topSellers) {
+            appendChatbotProductInfo(sb, p);
+        }
+        return sb.toString();
+    }
+
+    private List<Product> getTopSellingProducts(int limit) {
+        return this.productRepository.findTopSellingProductsForChatbot(
+                org.springframework.data.domain.PageRequest.of(0, Math.max(1, Math.min(limit, 10))));
     }
 
     private void appendChatbotProductInfo(StringBuilder sb, Product p) {
@@ -1043,10 +1081,22 @@ public class ProductService {
 
         // Thẻ tag đặc biệt để Frontend nhận diện và hiển thị Rich Card
         sb.append(" [PRODUCT_CARD:").append(p.getId()).append("|")
-                .append(p.getName()).append("|")
+                .append(sanitizeProductCardField(p.getName())).append("|")
                 .append(String.format("%,.0f", finalPrice.doubleValue())).append("|")
-                .append(thumbnail).append("]");
+                .append(sanitizeProductCardField(thumbnail)).append("]");
 
         sb.append("\n");
+    }
+
+    private String sanitizeProductCardField(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("|", " ")
+                .replace("[", " ")
+                .replace("]", " ")
+                .replace("\n", " ")
+                .replace("\r", " ")
+                .trim();
     }
 }
