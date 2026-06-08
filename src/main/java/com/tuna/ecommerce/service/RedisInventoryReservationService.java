@@ -8,6 +8,8 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import com.tuna.ecommerce.domain.Inventory;
 import com.tuna.ecommerce.domain.InventoryLog;
@@ -163,6 +165,11 @@ public class RedisInventoryReservationService {
         }
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Scheduled(fixedDelayString = "${inventory.redis-reservation.flush-delay-ms:1000}")
     @Transactional
     public void flushPendingReservations() {
