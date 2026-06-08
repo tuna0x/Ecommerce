@@ -573,11 +573,11 @@ public class ProductService {
                 jakarta.persistence.criteria.Join<Product, Brand> brandJoin = root.join("brand", jakarta.persistence.criteria.JoinType.LEFT);
                 jakarta.persistence.criteria.Predicate brandPredicate = cb.like(cb.lower(brandJoin.get("name")), "%" + keyword + "%");
                 
-                // Search in Category Name
-                jakarta.persistence.criteria.Join<Product, Category> categoryJoin = root.join("category", jakarta.persistence.criteria.JoinType.LEFT);
-                jakarta.persistence.criteria.Predicate categoryPredicate = cb.like(cb.lower(categoryJoin.get("name")), "%" + keyword + "%");
+                // Search in Skin Type
+                jakarta.persistence.criteria.Predicate skinTypePredicate = cb.like(cb.lower(root.get("skinType")), "%" + keyword + "%");
+
                 
-                return cb.or(namePredicate, brandPredicate, categoryPredicate);
+                return cb.or(namePredicate, brandPredicate, skinTypePredicate);
             };
 
             spec = (spec == null) ? searchSpec : spec.and(searchSpec);

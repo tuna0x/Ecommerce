@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import com.tuna.ecommerce.domain.Inventory;
 import com.tuna.ecommerce.domain.InventoryLog;
@@ -95,6 +97,11 @@ public class InventoryService {
                 });
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public Inventory reserveStock(Long productId, Long variantId, int quantity) throws IdInvalidException {
         if (quantity <= 0) {
@@ -191,6 +198,11 @@ public class InventoryService {
         });
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public void commitStock(Long productId, Long variantId, int quantity, String note) throws IdInvalidException {
         Inventory inventory;
@@ -229,6 +241,11 @@ public class InventoryService {
         checkLowStockAndNotify(inventory);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public void releaseStock(Long productId, Long variantId, int quantity, String note) throws IdInvalidException {
         Inventory inventory;
@@ -263,6 +280,11 @@ public class InventoryService {
         inventoryLogRepository.save(log);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public ResInventoryDTO updateStock(Long productId, Long variantId, int quantityChange, InventoryLogType type,
             String note, Integer minStockThreshold, Integer maxStock, Double costPrice) throws IdInvalidException {
@@ -320,6 +342,11 @@ public class InventoryService {
         }
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public List<ResInventoryDTO> bulkUpdateStock(List<ReqInventoryAdjustDTO> requests) throws IdInvalidException {
         return requests.stream()
@@ -547,6 +574,11 @@ public class InventoryService {
                 .build();
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     @Transactional
     public void syncInitialInventory(Product product, Map<String, Integer> variantStocks, Map<String, Double> variantCostPrices) {
         // Ensure every variant has an inventory record
