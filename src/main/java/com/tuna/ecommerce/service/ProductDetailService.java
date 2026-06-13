@@ -4,6 +4,8 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import com.tuna.ecommerce.domain.Product;
@@ -24,6 +26,11 @@ public class ProductDetailService {
     private final ProductDetailRepository productDetailRepository;
     private final ProductRepository productRepository;
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public ProductDetail createProductDetail(ReqCreateProductDetailDTO req) throws IdInvalidException {
         ProductDetail productDetail = new ProductDetail();
         productDetail.setDescription(req.getDescription());
@@ -44,6 +51,11 @@ public class ProductDetailService {
         return this.productDetailRepository.findById(id).orElse(null);
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public ProductDetail updateProductDetail(ReqUpdateProductDetailDTO req) throws IdInvalidException {
         ProductDetail cur = this.getById(req.getId());
         if (cur != null) {
@@ -110,6 +122,11 @@ public class ProductDetailService {
         return res;
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "products", allEntries = true),
+            @CacheEvict(value = "product_detail", allEntries = true),
+            @CacheEvict(value = "related_products", allEntries = true)
+    })
     public void deleteProductDetail(long id) {
         this.productDetailRepository.deleteById(id);
     }
